@@ -1117,6 +1117,7 @@
       const shiftY = -(transparentTop - 16);
       logo.style.opacity = opacity;
       logo.style.mixBlendMode = 'normal';
+      logo.style.filter = 'none';
       logo.style.transform = `translateX(calc(-50% + ${shiftX}px)) translateY(${shiftY}px) scale(${scale})`;
       logo.style.transformOrigin = 'top center';
     }
@@ -1125,6 +1126,7 @@
       const logo = document.getElementById('bg-logo');
       logo.style.opacity = '0.5';
       logo.style.mixBlendMode = 'screen';
+      logo.style.filter = 'invert(1)';
       logo.style.transform = 'translateX(-50%) translateY(0) scale(1)';
       logo.style.transformOrigin = 'top center';
     }
