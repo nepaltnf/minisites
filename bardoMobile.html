@@ -199,12 +199,12 @@
       100% { opacity: 0.5; }
     }
     @keyframes logoSlideUp {
-      from { transform: translateX(-50%) translateY(0);      opacity: 0.5; }
-      to   { transform: translateX(-50%) translateY(-225px); opacity: 0.5; }
+      from { transform: translateX(-50%) translateY(0) scale(1);    left: 50%; opacity: 0.5; }
+      to   { transform: translateX(0)    translateY(0) scale(0.35); left: 55%; opacity: 0.5; }
     }
     @keyframes logoSlideDown {
-      from { transform: translateX(-50%) translateY(-225px); opacity: 0.5; }
-      to   { transform: translateX(-50%) translateY(0);      opacity: 0.5; }
+      from { transform: translateX(0)    translateY(0) scale(0.35); left: 55%; opacity: 0.5; }
+      to   { transform: translateX(-50%) translateY(0) scale(1);    left: 50%; opacity: 0.5; }
     }
     #bg-logo.timer-mode {
       animation: logoSlideUp 0.7s ease forwards;
