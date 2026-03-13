@@ -114,20 +114,6 @@
       letter-spacing: 0.05em;
     }
 
-    .auth-hint {
-      font-size: 11px;
-      color: var(--gray);
-      text-align: center;
-      margin-top: 24px;
-      line-height: 1.7;
-    }
-
-    .auth-hint a {
-      color: var(--brand-green);
-      text-decoration: none;
-      cursor: pointer;
-    }
-
     /* ============================================================
        ADMIN SCREEN
        ============================================================ */
@@ -553,9 +539,6 @@
       </div>
       <div class="auth-error" id="auth-error"></div>
       <button class="auth-btn" id="auth-submit-btn" onclick="handleAuth()">sign in</button>
-      <div class="auth-hint" id="auth-hint">
-        First time? <a onclick="toggleAuthMode()">create an account</a>
-      </div>
     </div>
   </div>
 
@@ -690,7 +673,7 @@
     let teas = [];
     let editingId = null;
     let deletingId = null;
-    let authMode = 'signin'; // 'signin' | 'signup'
+    let authMode = 'signin';
 
     /* ============================================================
        AUTH
@@ -698,20 +681,6 @@
     async function checkSession() {
       const { data: { session } } = await sb.auth.getSession();
       if (session) showAdmin();
-    }
-
-    function toggleAuthMode() {
-      authMode = authMode === 'signin' ? 'signup' : 'signin';
-      const btn = document.getElementById('auth-submit-btn');
-      const hint = document.getElementById('auth-hint');
-      if (authMode === 'signup') {
-        btn.textContent = 'create account';
-        hint.innerHTML = 'Already have an account? <a onclick="toggleAuthMode()">sign in</a>';
-      } else {
-        btn.textContent = 'sign in';
-        hint.innerHTML = 'First time? <a onclick="toggleAuthMode()">create an account</a>';
-      }
-      document.getElementById('auth-error').textContent = '';
     }
 
     async function handleAuth() {
@@ -722,22 +691,10 @@
 
       if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; return; }
 
-      let result;
-      if (authMode === 'signup') {
-        result = await sb.auth.signUp({ email, password });
-      } else {
-        result = await sb.auth.signInWithPassword({ email, password });
-      }
+      const result = await sb.auth.signInWithPassword({ email, password });
 
       if (result.error) {
         errEl.textContent = result.error.message;
-        return;
-      }
-
-      if (authMode === 'signup') {
-        errEl.style.color = '#00aa00';
-        errEl.textContent = 'Account created! Check your email to confirm, then sign in.';
-        toggleAuthMode();
         return;
       }
 
