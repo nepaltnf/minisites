@@ -203,8 +203,14 @@
       opacity: 0.4;
     }
 
-    .tea-card.drag-over {
-      outline: 2px solid var(--brand-green);
+    .tea-card.drag-over-above {
+      border-top: 3px solid var(--brand-green);
+      margin-top: -3px;
+    }
+
+    .tea-card.drag-over-below {
+      border-bottom: 3px solid var(--brand-green);
+      margin-bottom: -3px;
     }
 
     .tea-card-header {
@@ -847,18 +853,28 @@
       document.addEventListener('pointerup', onPointerUp);
     }
 
+    function getDropPosition(target, clientY) {
+      const rect = target.getBoundingClientRect();
+      return clientY < rect.top + rect.height / 2 ? 'above' : 'below';
+    }
+
     function onPointerMove(e) {
       if (!ghost) return;
       ghost.style.top = (e.clientY - offsetY) + 'px';
 
-      // Find card we're hovering over
       ghost.style.display = 'none';
       const el = document.elementFromPoint(e.clientX, e.clientY);
       ghost.style.display = '';
       const target = el && el.closest('.tea-card');
 
-      document.querySelectorAll('.tea-card').forEach(c => c.classList.remove('drag-over'));
-      if (target && target !== draggingCard) target.classList.add('drag-over');
+      document.querySelectorAll('.tea-card').forEach(c => {
+        c.classList.remove('drag-over-above', 'drag-over-below');
+      });
+
+      if (target && target !== draggingCard) {
+        const pos = getDropPosition(target, e.clientY);
+        target.classList.add(pos === 'above' ? 'drag-over-above' : 'drag-over-below');
+      }
     }
 
     function onPointerUp(e) {
@@ -868,19 +884,23 @@
       ghost && ghost.remove();
       ghost = null;
 
-      ghost = null;
       const el = document.elementFromPoint(e.clientX, e.clientY);
       const target = el && el.closest('.tea-card');
 
-      document.querySelectorAll('.tea-card').forEach(c => c.classList.remove('dragging', 'drag-over'));
+      document.querySelectorAll('.tea-card').forEach(c => {
+        c.classList.remove('dragging', 'drag-over-above', 'drag-over-below');
+      });
 
       if (target && target !== draggingCard) {
+        const pos = getDropPosition(target, e.clientY);
         const srcId = parseInt(draggingCard.dataset.id);
         const dstId = parseInt(target.dataset.id);
         const srcIdx = teas.findIndex(t => t.id === srcId);
-        const dstIdx = teas.findIndex(t => t.id === dstId);
+        let dstIdx = teas.findIndex(t => t.id === dstId);
         const [moved] = teas.splice(srcIdx, 1);
-        teas.splice(dstIdx, 0, moved);
+        // Recalculate dstIdx after splice
+        dstIdx = teas.findIndex(t => t.id === dstId);
+        teas.splice(pos === 'above' ? dstIdx : dstIdx + 1, 0, moved);
         renderTeaList();
         saveOrder();
       }
