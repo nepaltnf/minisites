@@ -198,17 +198,11 @@
       55%  { opacity: 1; }
       100% { opacity: 0.5; }
     }
-    @keyframes logoSlideUp {
-      from { transform: translateX(-50%) scale(1);    opacity: 0.5; top: 10px; }
-      to   { transform: translateX(-50%) scale(0.35); opacity: 0.5; top: 10px; }
-    }
-    @keyframes logoSlideDown {
-      from { transform: translateX(-50%) scale(0.35); opacity: 0.5; top: 10px; }
-      to   { transform: translateX(-50%) scale(1);    opacity: 0.5; top: 10px; }
+    #bg-logo {
+      transition: transform 0.7s ease, opacity 0.7s ease;
     }
     #bg-logo.timer-mode {
-      animation: logoSlideUp 0.7s ease forwards;
-      transform-origin: top right;
+      /* positioned via JS */
     }
     .timer-bottom.shifted {
       transform: translateY(calc(15vh - 50px));
@@ -1109,9 +1103,8 @@
       clearInterval(state.timerInterval);
       state.timerInterval = null;
       const logo = document.getElementById('bg-logo');
-      logo.style.animation = 'none';
-      void logo.offsetWidth;
-      logo.style.animation = 'logoSlideDown 0.7s ease forwards';
+      logo.classList.remove('timer-mode');
+      logo.style.transform = 'translateX(-50%) translateY(0) scale(1)';
       document.querySelector('.timer-bottom').classList.remove('shifted');
       showScreen('screen-style');
     }
@@ -1146,11 +1139,23 @@
       waterEl.textContent = waterStr;
       showScreen('screen-water');
 
-      // Slide logo up
+      // Slide logo to top-right corner
       const logo = document.getElementById('bg-logo');
-      logo.style.animation = 'none';
-      void logo.offsetWidth;
-      logo.style.animation = 'logoSlideUp 0.7s ease forwards';
+      const vw = window.innerWidth;
+      const scale = 0.35;
+      // Image aspect ratio: 2358w x 5112h, transparent overhead: 1377px top (1377/5112 = 0.269)
+      const imgHeightRatio = 5112 / 2358; // height relative to width
+      const transparentTopRatio = 1377 / 5112;
+      const scaledWidth = vw * scale;
+      const scaledHeight = scaledWidth * imgHeightRatio;
+      const transparentTop = scaledHeight * transparentTopRatio;
+      // Shift right so right edge is 12px from screen edge
+      const shiftX = (vw * 0.5) - (scaledWidth / 2) - 12;
+      // Shift up so logo art sits ~16px from top, accounting for transparent overhead
+      const shiftY = -(transparentTop - 16);
+      logo.classList.add('timer-mode');
+      logo.style.transform = `translateX(calc(-50% + ${shiftX}px)) translateY(${shiftY}px) scale(${scale})`;
+      logo.style.transformOrigin = 'top center';
     }
 
     // Called when user taps the water screen — shows timer, waits for tap to start
