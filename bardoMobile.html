@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tea Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================================
+       DESIGN TOKENS — adjust brand color here
+       ============================================================ */
+    :root {
+      --brand-green: #00FF00;   /* PRIMARY BRAND COLOR — change this one value */
+      --white: #ffffff;
+      --off-white: #ebebeb;
+      --black: #0a0a0a;
+      --gray: #888888;
+      --card-bg: #ffffff;
+      --card-shadow: none;      /* flat, no elevation — matches wireframe */
+      --radius: 4px;            /* sharp corners — matches wireframe */
+      --font: 'Space Mono', ui-monospace, 'Courier New', monospace;
+    }
+
+    /* ============================================================
+       RESET & BASE
+       ============================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: var(--font);
+      overflow: hidden;
+      /* BACKGROUND — replace color with image when ready:
+         background-image: url('background.jpg');
+         background-size: cover;
+         background-position: center;
+         background-repeat: no-repeat; */
+      background-color: var(--brand-green);
+    }
+
+    /* ============================================================
+       SCREEN SYSTEM
+       ============================================================ */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 52px 20px 32px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .screen.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    /* ============================================================
+       CARD
+       ============================================================ */
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--card-shadow);
+      padding: 24px 20px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    /* ============================================================
+       TYPOGRAPHY
+       ============================================================ */
+    .greeting {
+      font-size: 14px;
+      font-weight: 400;
+      color: var(--black);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.45;
+      margin-bottom: 4px;
+    }
+    .question {
+      font-size: 38px;
+      font-weight: 900;
+      color: var(--black);
+      margin-bottom: 24px;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+    .tea-name-large {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--black);
+      letter-spacing: -0.03em;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+    .big-number {
+      font-size: clamp(120px, 46vw, 220px);
+      font-weight: 400;
+      color: var(--white);
+      line-height: 1;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+    }
+    #timer-display {
+      /* font-size set dynamically in JS based on char count */
+      white-space: nowrap;
+      text-align: center;
+      line-height: 1;
+    }
+    /* Collapse the colon width in mm:ss display */
+    .timer-colon {
+      display: inline-block;
+      width: 0.2em;
+      text-align: center;
+      letter-spacing: 0;
+      margin-left: -0.19em;
+      margin-right: 0.2em;
+    }
+    /* White screen flash when timer ends */
+    #flash-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--white);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 999;
+    }
+    @keyframes whiteFlash {
+      0%   { opacity: 1; }
+      100% { opacity: 0; }
+    }
+    #flash-overlay.flash {
+      animation: whiteFlash 0.9s ease-out forwards;
+    }
+    .pour-word {
+      font-size: clamp(80px, 30vw, 180px);
+      font-weight: 400;
+      color: var(--white);
+      line-height: 1;
+      letter-spacing: -0.03em;
+      text-transform: lowercase;
+    }
+
+    /* ============================================================
+       SCREEN 1 — TAPE CARD + TEA LIST
+       ============================================================ */
+    #screen-welcome {
+      padding: 56px 0 0;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+    .welcome-header {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      background: var(--brand-green);
+      padding-bottom: 12px;
+      width: 100%;
+    }
+
+    /* the label on the wall — content-width, left-aligned */
+    .tape-card {
+      align-self: flex-start;
+      margin-left: 16px;
+      background: var(--white);
+      padding: 18px 20px 16px;
+      cursor: pointer;
+      border-radius: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes logoFadeDown {
+      0%   { opacity: 1; }
+      55%  { opacity: 1; }
+      100% { opacity: 0.5; }
+    }
+    @keyframes logoSlideUp {
+      from { transform: translateX(-50%) translateY(0);      opacity: 0.5; }
+      to   { transform: translateX(-50%) translateY(-225px); opacity: 0.5; }
+    }
+    @keyframes logoSlideDown {
+      from { transform: translateX(-50%) translateY(-225px); opacity: 0.5; }
+      to   { transform: translateX(-50%) translateY(0);      opacity: 0.5; }
+    }
+    #bg-logo.timer-mode {
+      animation: logoSlideUp 0.7s ease forwards;
+    }
+    .timer-bottom.shifted {
+      transform: translateY(calc(15vh - 27px));
+      transition: transform 0.7s ease;
+    }
+    .tape-greeting {
+      font-size: 34px;
+      font-weight: 400;
+      color: var(--black);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      margin-bottom: 0;
+    }
+    .tape-hello-card {
+      opacity: 0;
+      animation: fadeInUp 0.5s ease 0.2s forwards;
+    }
+    @keyframes fadeOutUp {
+      from { opacity: 1; transform: translateY(0); }
+      to   { opacity: 0; transform: translateY(-6px); }
+    }
+    .tape-hello-card.hidden {
+      animation: fadeOutUp 0.25s ease forwards;
+    }
+    .tape-question-card {
+      opacity: 0;
+      animation: fadeInUp 0.5s ease 1.2s forwards;
+    }
+    .tape-question {
+      font-size: 34px;
+      font-weight: 400;
+      color: var(--black);
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+    }
+
+    /* unfurling tea list */
+    .tea-list-wrap {
+      position: relative;
+      width: 100%;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.3s ease;
+      z-index: 1;
+    }
+    .tea-list-wrap.open {
+      max-height: 100vh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+      min-height: 0;
+      opacity: 1;
+    }
+    .tea-list {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      padding: 12px 16px 60px;
+      gap: 8px;
+    }
+    /* fade hint at bottom — fixed to viewport */
+    #screen-welcome::after {
+      content: '';
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 80px;
+      background: linear-gradient(to bottom, transparent, var(--brand-green));
+      pointer-events: none;
+      z-index: 10;
+    }
+    .tea-item {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 16px 14px;
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--black);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.1s;
+      align-self: flex-start;
+      white-space: nowrap;
+    }
+    .tea-item:active {
+      background: var(--brand-green);
+    }
+
+    /* ============================================================
+       SCREEN 2 — TEA CARD (style + params merged, chip layout)
+       ============================================================ */
+    #screen-style {
+      align-items: flex-start;
+      padding: 56px 0 60px;
+    }
+
+    /* Tea master notes card */
+    .tea-notes-card {
+      margin: 10px 16px 0;
+      background: var(--white);
+      padding: 16px 18px;
+    }
+    .tea-notes-text {
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--black);
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    /* "which style?" prompt */
+    .style-reveal-wrap {
+      position: relative;
+      margin: 12px 16px 0;
+    }
+    #style-prompt {
+      font-size: 17px;
+      font-weight: 400;
+      font-family: var(--font);
+      color: var(--black);
+      background: var(--white);
+      padding: 12px 20px;
+      display: inline-block;
+      position: absolute;
+      top: 0; left: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
+    #style-prompt.show { animation: fadeInUp 0.5s ease forwards; }
+    #style-prompt.hide { animation: fadeOutUp 0.3s ease forwards; }
+
+    /* East / West selection chips */
+    .style-chips-row {
+      display: flex;
+      gap: 8px;
+      opacity: 0;
+    }
+    .style-chips-row.show { animation: fadeInUp 0.5s ease forwards; }
+    .style-chip {
+      background: var(--white);
+      padding: 12px 20px;
+      font-family: var(--font);
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--black);
+      cursor: pointer;
+      border-radius: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      outline: 3px solid transparent;
+      outline-offset: -6px;
+      transition: outline-color 0.15s ease;
+    }
+    .style-chip.selected {
+      outline-color: var(--brand-green);
+      font-weight: 700;
+    }
+
+    /* Unfurling container for params + steep table */
+    .info-chips-wrap {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+    }
+    .info-chips-wrap.open {
+      max-height: 2000px;
+      overflow: visible;
+      opacity: 1;
+    }
+
+    /* Ratio / water / tea chips in a row */
+    .param-chips-row {
+      display: flex;
+      gap: 8px;
+      margin: 12px 16px 0;
+      flex-wrap: wrap;
+    }
+    .info-chip {
+      background: var(--white);
+      padding: 10px 9px;
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--black);
+      border-radius: 0;
+      white-space: nowrap;
+    }
+    #param-ratio {
+      background: transparent;
+      border: 1.5px solid var(--white);
+      padding: 9px 8px;
+      color: var(--white);
+      font-size: 20px;
+      font-weight: 700;
+    }
+    /* Editable chips (water & tea inputs) */
+    .editable-chip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 72px;
+    }
+    .chip-number-row {
+      display: flex;
+      align-items: baseline;
+      gap: 1px;
+    }
+    .chip-g {
+      font-size: 18px;
+      font-weight: 400;
+      font-family: var(--font);
+      color: var(--black);
+      line-height: 1;
+    }
+    .chip-label {
+      font-size: 18px;
+      font-weight: 400;
+      font-family: var(--font);
+      color: var(--black);
+      line-height: 1.1;
+      text-transform: none;
+    }
+    .chip-input {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--black);
+      width: 64px;
+      background: transparent;
+      border: none;
+      border-bottom: 1.5px solid var(--black);
+      outline: none;
+      text-align: center;
+      font-family: var(--font);
+      -moz-appearance: textfield;
+    }
+    .chip-input::-webkit-outer-spin-button,
+    .chip-input::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; }
+    .editable-chip:focus-within { outline: 2px solid var(--black); outline-offset: 0; }
+    .chip-unit {
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 3px;
+    }
+
+    /* Steep chips — each steep is one combined chip */
+    .steep-chips {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 8px 16px 0;
+    }
+    .steep-combined-chip {
+      display: inline-block;
+      align-self: flex-start;
+      background: transparent;
+      border: 1.5px solid var(--white);
+      padding: 9px 15px;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--white);
+      border-radius: 0;
+      white-space: pre;
+    }
+
+    /* Begin chip */
+    .begin-chip {
+      display: inline-block;
+      margin: 16px 16px 0;
+      background: var(--white);
+      padding: 14px 28px;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--black);
+      cursor: pointer;
+      border-radius: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .begin-chip:active { background: var(--off-white); }
+    .steep-times-label {
+      display: inline-block;
+      background: transparent;
+      border: 1.5px solid var(--white);
+      color: var(--white);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 400;
+      padding: 9px 15px;
+      margin: 16px 16px 0;
+      border-radius: 0;
+    }
+
+    /* ============================================================
+       BUTTONS
+       ============================================================ */
+    .btn-primary {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: var(--radius);
+      background: var(--brand-green);
+      color: var(--black);
+      font-size: 14px;
+      font-weight: 400;
+      font-family: var(--font);
+      cursor: pointer;
+      margin-top: 20px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      -webkit-tap-highlight-color: transparent;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:active { opacity: 0.75; }
+
+    .btn-ghost {
+      background: transparent;
+      border: 2px solid rgba(255,255,255,0.6);
+      color: var(--white);
+      border-radius: var(--radius);
+      padding: 14px 32px;
+      font-size: 13px;
+      font-weight: 400;
+      font-family: var(--font);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s;
+    }
+    .btn-ghost:active { background: rgba(255,255,255,0.15); }
+
+    /* ============================================================
+       BACK BUTTON
+       ============================================================ */
+    .back-btn {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      background: rgba(255,255,255,0.5);
+      border: none;
+      border-radius: var(--radius);
+      padding: 10px 16px;
+      font-size: 20px;
+      font-weight: 400;
+      font-family: var(--font);
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--black);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ============================================================
+       TIMER SCREEN (Screen 4)
+       ============================================================ */
+    #screen-timer {
+      padding: 0;
+    }
+    .timer-inner {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      width: 100%;
+      padding: 56px 24px 32px;
+      position: relative;
+    }
+    .exit-timer-btn {
+      position: absolute;
+      top: 40px;
+      left: 16px;
+      background: var(--white);
+      color: var(--black);
+      font-family: var(--font);
+      font-size: 20px;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      padding: 10px 16px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .steep-indicator {
+      font-size: 25px;
+      font-weight: 400;
+      color: #ffffff;
+      text-transform: none;
+      letter-spacing: 0.14em;
+      line-height: 1.1;
+    }
+    .timer-skip-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 16px 24px 36px;
+    }
+    .timer-skip-label {
+      font-size: 13px;
+      font-family: var(--font);
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.08em;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .timer-skip-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .timer-skip-link {
+      font-size: 18px;
+      font-family: var(--font);
+      font-weight: 700;
+      color: var(--white);
+      background: rgba(255,255,255,0.5);
+      padding: 14px 20px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      white-space: nowrap;
+    }
+    .timer-skip-link:active { opacity: 0.5; }
+    .timer-bottom {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      background: var(--white);
+      padding: 32px 24px;
+      cursor: pointer;
+    }
+    .timer-bottom .steep-indicator,
+    .timer-bottom .pour-sub { color: var(--black); }
+    .timer-bottom .big-number { color: var(--brand-green); }
+    .steep-pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      margin-bottom: 8px;
+    }
+    .steep-pill {
+      padding: 5px 11px;
+      border-radius: var(--radius);
+      font-size: 11px;
+      font-weight: 400;
+      font-family: var(--font);
+      background: rgba(255,255,255,0.15);
+      color: #ffffff;
+      transition: background 0.15s, color 0.15s;
+    }
+    .steep-pill.current {
+      background: var(--white);
+      color: var(--black);
+    }
+    .steep-pill.done {
+      text-decoration: line-through;
+      opacity: 0.3;
+    }
+
+    /* ============================================================
+       WATER / POUR / DONE SCREENS
+       ============================================================ */
+    #screen-water, #screen-pour, #screen-done {
+      padding: 0;
+    }
+    .pour-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      width: 100%;
+      padding: 32px 24px;
+      gap: 16px;
+    }
+    .pour-sub {
+      font-size: 25px;
+      color: #ffffff;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: none;
+    }
+    #screen-water .pour-sub {
+      color: var(--white);
+    }
+  </style>
+</head>
+<body>
+  <img id="bg-logo" src="Artboard 1@2x.png" style="
+    position: fixed;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    mix-blend-mode: screen;
+    filter: invert(1);
+    pointer-events: none;
+    z-index: 0;
+    animation: logoFadeDown 3.5s ease forwards;
+  " alt="" />
+
+  <!-- ============================================================
+       SCREEN 1 — WELCOME / TEA SELECT
+       DB: teas table — list populated from teas[]
+       ============================================================ -->
+  <div id="screen-welcome" class="screen active">
+    <div class="welcome-header">
+      <!-- Greeting — its own white card above the selector -->
+      <div class="tape-card tape-hello-card" id="tape-greeting" style="cursor:default; margin-bottom:8px;">
+        <div class="tape-greeting">Hello!</div>
+      </div>
+      <!-- Tape card — tap to reveal tea list -->
+      <div class="tape-card tape-question-card" style="cursor:default;">
+        <div class="tape-question">Which Tea Today?</div>
+      </div>
+    </div>
+    <!-- Tea list — unfurls below tape card -->
+    <div class="tea-list-wrap" id="tea-list-wrap">
+      <div class="tea-list" id="tea-list">
+        <!-- Populated by JS — replace data source with Supabase query when ready -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 2 — TEA CARD (style select + params in one screen)
+       ============================================================ -->
+  <div id="screen-style" class="screen">
+    <button class="back-btn" onclick="goBackToTeaList()">back</button>
+
+    <!-- Tea name chip — tap to go back and pick a different tea -->
+    <div class="tape-card" style="margin-top: 48px;" onclick="goBackToTeaList()">
+      <div class="tape-question" id="style-tea-name">—</div>
+    </div>
+
+    <!-- Tea master notes — DB: teas.notes -->
+    <div class="tea-notes-card" id="tea-notes-card">
+      <p class="tea-notes-text" id="tea-notes-text"></p>
+    </div>
+
+    <div class="style-reveal-wrap">
+      <!-- "which style?" prompt — fades out before chips appear -->
+      <div id="style-prompt">which style?</div>
+
+      <!-- East / West floating chips -->
+      <div class="style-chips-row" id="style-chips-row">
+        <div class="style-chip" id="chip-east" onclick="selectStyle('eastern')">East</div>
+        <div class="style-chip" id="chip-west" onclick="selectStyle('western')">West</div>
+      </div>
+    </div>
+
+    <!-- Unfurling section: ratio/water/tea + steep table + Begin -->
+    <div class="info-chips-wrap" id="info-chips-wrap">
+
+      <!-- Ratio · tea · water · temp chips -->
+      <div class="param-chips-row">
+        <!-- DB: teas.eastern_ratio / teas.western_ratio -->
+        <div class="info-chip" id="param-ratio">5:1</div>
+        <!-- DB: teas.eastern_tea_g / teas.western_tea_g -->
+        <div class="info-chip editable-chip">
+          <div class="chip-number-row">
+            <input class="chip-input" id="params-tea" type="number" min="1" inputmode="numeric" oninput="onTeaChange()" />
+            <span class="chip-g">g</span>
+          </div>
+          <span class="chip-label">tea</span>
+        </div>
+        <!-- DB: teas.eastern_water_g / teas.western_water_g -->
+        <div class="info-chip editable-chip">
+          <div class="chip-number-row">
+            <input class="chip-input" id="params-water" type="number" min="1" inputmode="numeric" oninput="onWaterChange()" />
+            <span class="chip-g">g</span>
+          </div>
+          <span class="chip-label">water</span>
+        </div>
+        <!-- DB: teas.eastern_temp / teas.western_temp -->
+        <div class="info-chip" id="param-temp" onclick="toggleTempUnit()" style="cursor:pointer;">—°C</div>
+      </div>
+
+      <!-- Begin chip -->
+      <div class="begin-chip" id="begin-chip" onclick="startSession()">start first steep</div>
+
+      <!-- Steep times label + chips — commented out
+      <div class="steep-times-label">steep times</div>
+      <div class="steep-chips" id="steep-chips"></div>
+      -->
+
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 4 — TIMER
+       ============================================================ -->
+  <div id="screen-timer" class="screen">
+    <div class="timer-inner">
+      <div class="exit-timer-btn" onclick="exitTimer()">exit timer</div>
+      <div class="timer-bottom" onclick="beginCountdown()" style="cursor:pointer;">
+        <div class="pour-sub" id="timer-tap-hint">tap to start</div>
+        <div class="steep-indicator" id="timer-steep-label">1st steep</div>
+        <div class="big-number" id="timer-display">—</div>
+      </div>
+    </div>
+    <div class="timer-skip-nav" id="timer-skip-nav">
+      <div class="timer-skip-label">skip to</div>
+      <div class="timer-skip-row">
+        <span class="timer-skip-link" id="skip-prev" onclick="skipToSteep(-1)">previous steep</span>
+        <span class="timer-skip-link" id="skip-next" onclick="skipToSteep(1)">next steep</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 5 — ADD WATER (tap to start steep timer)
+       ============================================================ -->
+  <div id="screen-water" class="screen" onclick="startTimer()">
+    <div class="pour-inner">
+      <div class="pour-sub">add water</div>
+      <div class="big-number" id="water-display">—</div>
+      <div class="pour-sub">tap to steep</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 6 — POUR (into glass, then next steep or done)
+       ============================================================ -->
+  <div id="screen-pour" class="screen" onclick="afterPour()">
+    <div class="pour-inner">
+      <div class="pour-sub" id="pour-sub">pour</div>
+      <div class="pour-word">pour</div>
+      <div class="pour-sub" id="pour-tap">tap to continue</div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCREEN 7 — DONE / ENJOY
+       ============================================================ -->
+  <div id="screen-done" class="screen" onclick="showScreen('screen-welcome')">
+    <div class="pour-inner">
+      <div class="pour-word">enjoy</div>
+      <div class="pour-sub">all steeps complete</div>
+      <div class="pour-sub">tap to start over</div>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       MOCK DATA
+       All fields tagged for Supabase connection.
+       DB table: teas
+
+       TO CONNECT TO SUPABASE — replace the teas array with:
+         const { data: teas } = await supabase
+           .from('teas')
+           .select('*')
+           .order('name')
+       Then adapt the field names below to match your column names.
+       ============================================================ */
+    const teas = [
+      {
+        id: 1,                            // DB: teas.id
+        name: "Disco Biscuit",            // DB: teas.name
+        notes: "A bold, roasted dancong oolong with a thick, syrupy body. Expect deep stone fruit, a hint of charcoal, and a long sweet finish. Best enjoyed on a slow morning — this one rewards patience and multiple steeps.", // DB: teas.notes
+        eastern: {
+          ratio: "5:1",                   // DB: teas.eastern_ratio
+          water_g: 100,                   // DB: teas.eastern_water_g
+          tea_g: 20,                      // DB: teas.eastern_tea_g
+          temp_c: 95,                     // DB: teas.eastern_temp_c
+          steeps: [10, 20, 40, 60, 90]   // DB: teas.eastern_steeps  (integer array, seconds)
+        },
+        western: {
+          ratio: "3:1",                   // DB: teas.western_ratio
+          water_g: 100,                   // DB: teas.western_water_g
+          tea_g: 34,                      // DB: teas.western_tea_g
+          temp_c: 95,                     // DB: teas.western_temp_c
+          steep_time: 180                 // DB: teas.western_steep_seconds
+        }
+      },
+      {
+        id: 2,
+        name: "Horses Blanket",
+        notes: "A wild, barn-yard dancong with a funky depth that grows on you fast. Warm hay, dried apricot, and a mineral backbone. Brews long and strong — don't be afraid to push the later steeps.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 95, steeps: [15, 25, 50, 80, 120, 240, 300] },
+        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 95, steep_time: 240 }
+      },
+      {
+        id: 3,
+        name: "Morning Fog",
+        notes: "A gentle, mist-like white tea from high elevation gardens. Soft melon, fresh cream, and a barely-there floral note. Low temperature is essential here — let it unfurl slowly and it will reward you.",
+        eastern: { ratio: "4:1", water_g: 100, tea_g: 25, temp_c: 85, steeps: [20, 30, 45, 70, 100] },
+        western: { ratio: "3:1", water_g: 200, tea_g: 67, temp_c: 85, steep_time: 210 }
+      },
+      {
+        id: 4,
+        name: "Silver Needle",
+        notes: "The most delicate tea in the collection. Single buds only, hand-picked in early spring. Tastes of honeydew, white flowers, and rain on warm stone. Use cooler water and resist the urge to rush it.",
+        eastern: { ratio: "6:1", water_g: 120, tea_g: 20, temp_c: 80, steeps: [30, 45, 60, 90] },
+        western: { ratio: "4:1", water_g: 160, tea_g: 40, temp_c: 80, steep_time: 180 }
+      },
+      {
+        id: 5,
+        name: "Puer Old Tree",
+        notes: "From trees over 200 years old in Yunnan province. Earthy, full-bodied, and deeply complex. Notes of forest floor, leather, and dark plum. Rinse once before your first steep to open it up.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 100, steeps: [10, 15, 20, 30, 45, 60, 90, 120] },
+        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 100, steep_time: 300 }
+      },
+      {
+        id: 6,
+        name: "Golden Tips",
+        notes: "A Yunnan black tea made entirely from golden buds. Remarkably smooth with no astringency. Honey, malt, and a faint cocoa finish. One of the friendliest teas in the collection — hard to brew badly.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 95, steeps: [15, 20, 30, 50, 75] },
+        western: { ratio: "3:1", water_g: 120, tea_g: 40, temp_c: 95, steep_time: 240 }
+      },
+      {
+        id: 7,
+        name: "Wulong Amber",
+        notes: "A medium-roast wulong with a warm amber liquor and rich toasty character. Dried peach, roasted nuts, and a clean sweet finish. Sits comfortably between green and dark oolongs — accessible and satisfying.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 90, steeps: [20, 30, 40, 60, 80, 120] },
+        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 90, steep_time: 210 }
+      },
+      {
+        id: 8,
+        name: "Green Jade",
+        notes: "A lightly oxidised jade oolong with a fresh green character. Butter, osmanthus, and a creamy mouthfeel. Keep water cool to preserve the delicate floral notes — overheating will shift it toward bitterness.",
+        eastern: { ratio: "4:1", water_g: 80, tea_g: 20, temp_c: 78, steeps: [25, 35, 50, 70] },
+        western: { ratio: "3:1", water_g: 180, tea_g: 60, temp_c: 78, steep_time: 150 }
+      },
+      {
+        id: 9,
+        name: "Roasted Hojicha",
+        notes: "Japanese green tea roasted over charcoal until it turns deep amber. Low in caffeine, high in comfort. Caramel, toasted rice, and a smoky warmth. Perfect in the evening or whenever you need to slow down.",
+        eastern: { ratio: "4:1", water_g: 100, tea_g: 25, temp_c: 100, steeps: [30, 45, 60, 90] },
+        western: { ratio: "3:1", water_g: 200, tea_g: 67, temp_c: 100, steep_time: 180 }
+      },
+      {
+        id: 10,
+        name: "Moonlight White",
+        notes: "Crafted in Yunnan from large-leaf varietal buds, dried slowly under moonlight. Richer than most whites — dark honey, dried dates, and a lingering sweetness. A contemplative tea for unhurried moments.",
+        eastern: { ratio: "6:1", water_g: 120, tea_g: 20, temp_c: 80, steeps: [20, 30, 45, 60, 90, 120] },
+        western: { ratio: "4:1", water_g: 160, tea_g: 40, temp_c: 80, steep_time: 240 }
+      },
+      {
+        id: 11,
+        name: "Dragon Well",
+        notes: "The most celebrated green tea in China, grown in the hills above Hangzhou. Flat pressed leaves with a grassy, sweet, and nutty flavour. Chestnut, fresh peas, and a clean finish. Use lower water for the best expression.",
+        eastern: { ratio: "4:1", water_g: 100, tea_g: 25, temp_c: 78, steeps: [30, 40, 55, 75] },
+        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 78, steep_time: 120 }
+      },
+      {
+        id: 12,
+        name: "Crimson Robe",
+        notes: "Da Hong Pao — one of the most storied wulongs from Wuyi Mountain. Heavy roast, mineral rock water, and dried longan. Intense and complex. Brews remarkably long. Each steep reveals something different.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 90, steeps: [10, 20, 30, 45, 60, 90, 150] },
+        western: { ratio: "3:1", water_g: 120, tea_g: 40, temp_c: 90, steep_time: 270 }
+      },
+      {
+        id: 13,
+        name: "Snow Bud",
+        notes: "A rare spring white tea of only the youngest buds, covered in fine white down. Exceptionally light and sweet with notes of melon, fresh snow, and a faint floral whisper. Handle with care — low and slow.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 80, steeps: [25, 35, 50, 70, 100] },
+        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 80, steep_time: 180 }
+      },
+      {
+        id: 14,
+        name: "Iron Goddess",
+        notes: "Tie Guan Yin — a lightly roasted Fujian oolong with an orchid-like perfume. Floral, creamy, and gently sweet with a distinct mineral edge. One of the most fragrant teas you will ever brew.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 90, steeps: [15, 25, 35, 50, 70, 100] },
+        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 90, steep_time: 210 }
+      },
+      {
+        id: 15,
+        name: "Lapsang Souchong",
+        notes: "Pine-smoked black tea from the Wuyi mountains — one of the world's most distinctive cups. Bold, campfire smoke, dried longan, and a sweet resinous finish. Not for the faint-hearted, and unforgettable once you love it.",
+        eastern: { ratio: "4:1", water_g: 100, tea_g: 25, temp_c: 95, steeps: [30, 45, 60, 90] },
+        western: { ratio: "3:1", water_g: 200, tea_g: 67, temp_c: 95, steep_time: 240 }
+      },
+      {
+        id: 16,
+        name: "Ripe Puer Brick",
+        notes: "A wet-piled shou puer aged into a dense brick. Dark, smooth, and deeply earthy. Damp forest, dark chocolate, and a surprisingly clean finish. Rinse twice before brewing — it opens up beautifully by the third steep.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 100, steeps: [10, 15, 20, 30, 45, 60, 90, 120, 180] },
+        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 100, steep_time: 300 }
+      },
+      {
+        id: 17,
+        name: "White Peony",
+        notes: "Bai Mu Dan — a fuller-bodied white tea with both buds and leaves. More character than Silver Needle, with a pleasant woodiness alongside the sweetness. Dried apricot, wildflower honey, and a soft hay finish.",
+        eastern: { ratio: "6:1", water_g: 120, tea_g: 20, temp_c: 80, steeps: [30, 45, 60, 90, 120] },
+        western: { ratio: "4:1", water_g: 160, tea_g: 40, temp_c: 80, steep_time: 210 }
+      },
+      {
+        id: 18,
+        name: "Milk Oolong",
+        notes: "Jin Xuan oolong from the high mountains of Taiwan. Naturally creamy without any artificial flavouring. Warm milk, vanilla, and a soft buttery finish. One of the most approachable and comforting teas in the list.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 85, steeps: [20, 30, 45, 60, 90] },
+        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 85, steep_time: 180 }
+      },
+      {
+        id: 19,
+        name: "High Mountain Fog",
+        notes: "A Taiwanese high-mountain oolong grown above 1,500m where the clouds sit low. Cool air and slow growth concentrate intense floral and fruity notes. Lilac, green apple, and a long sweet finish that lingers.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 90, steeps: [15, 25, 40, 60, 90, 120] },
+        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 90, steep_time: 240 }
+      },
+      {
+        id: 20,
+        name: "Yunnan Gold",
+        notes: "A classic Yunnan Dianhong black tea made from large golden buds. Sweet, malty, and full of warmth. Notes of molasses, dried fruit, and a cocoa edge. Brews rich without bitterness — excellent any time of day.",
+        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 95, steeps: [20, 30, 45, 70, 100] },
+        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 95, steep_time: 180 }
+      }
+    ];
+
+    /* ============================================================
+       APP STATE
+       ============================================================ */
+    const state = {
+      selectedTea: null,
+      selectedStyle: 'eastern',
+      currentSteepIndex: 0,
+      timerInterval: null,
+      timerSeconds: 0,
+      ratioMultiplier: 5   // water = tea * ratioMultiplier; updated per tea/style
+    };
+
+    /* ============================================================
+       SCREEN FLASH — white overlay flashes when timer ends
+       ============================================================ */
+    function flashScreen() {
+      const el = document.getElementById('flash-overlay');
+      el.classList.remove('flash');
+      void el.offsetWidth; // force reflow so animation restarts
+      el.classList.add('flash');
+    }
+
+    /* ============================================================
+       CHIME — Web Audio API, no external files needed
+       Three-note ascending bell: soft attack, slow natural decay
+       ============================================================ */
+    function playChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [
+          { freq: 528, delay: 0,    dur: 2.2, vol: 0.38 },
+          { freq: 660, delay: 0.18, dur: 2.0, vol: 0.30 },
+          { freq: 792, delay: 0.36, dur: 1.8, vol: 0.22 }
+        ];
+        notes.forEach(({ freq, delay, dur, vol }) => {
+          const osc  = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          const t = ctx.currentTime + delay;
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(vol, t + 0.012);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+          osc.start(t);
+          osc.stop(t + dur);
+        });
+      } catch (e) { /* audio not available — fail silently */ }
+    }
+
+    /* ============================================================
+       UTILITIES
+       ============================================================ */
+    const ordinals = ['1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th'];
+
+    function formatTime(seconds) {
+      if (seconds < 60) return `${seconds}s`;
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return s === 0 ? `${m}m` : `${m}m ${s}s`;
+    }
+
+    function formatTimer(seconds) {
+      if (seconds < 60) return { html: String(seconds), len: String(seconds).length };
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      const sPad = s.toString().padStart(2, '0');
+      // Colon gets a narrow span so monospace spacing doesn't gap it out
+      return { html: `${m}<span class="timer-colon">:</span>${sPad}`, len: (String(m) + sPad).length + 1 };
+    }
+
+    function getSteeps() {
+      const p = state.selectedStyle === 'eastern'
+        ? state.selectedTea.eastern
+        : state.selectedTea.western;
+      return state.selectedStyle === 'eastern' ? p.steeps : [p.steep_time];
+    }
+
+    /* ============================================================
+       SCREEN NAVIGATION
+       ============================================================ */
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function goBackToTeaList() {
+      showScreen('screen-welcome');
+      document.getElementById('tea-list-wrap').classList.add('open');
+    }
+
+    /* ============================================================
+       SCREEN 1 — BUILD TEA LIST + INTERACTIONS
+       ============================================================ */
+    function buildTeaList() {
+      const list = document.getElementById('tea-list');
+      list.innerHTML = '';
+      teas.forEach(tea => {
+        const el = document.createElement('div');
+        el.className = 'tea-item';
+        el.textContent = tea.name;   // DB: teas.name
+        el.onclick = () => selectTea(tea);
+        list.appendChild(el);
+      });
+    }
+
+    function toggleTeaList() {
+      document.getElementById('tea-list-wrap').classList.toggle('open');
+    }
+
+    function selectTea(tea) {
+      state.selectedTea = tea;
+      state.selectedStyle = null;
+      document.getElementById('style-tea-name').textContent = tea.name;
+      // Tea master notes — DB: teas.notes
+      const notesCard = document.getElementById('tea-notes-card');
+      const notesText = document.getElementById('tea-notes-text');
+      if (tea.notes) {
+        notesText.textContent = tea.notes;
+        notesCard.style.display = '';
+      } else {
+        notesCard.style.display = 'none';
+      }
+      // Reset chips — neither selected yet
+      document.getElementById('chip-east').classList.remove('selected');
+      document.getElementById('chip-west').classList.remove('selected');
+      document.getElementById('info-chips-wrap').classList.remove('open');
+
+      // Reset style prompt animation state
+      const prompt = document.getElementById('style-prompt');
+      const chipsRow = document.getElementById('style-chips-row');
+      prompt.className = '';
+      prompt.style.opacity = '0';
+      chipsRow.className = 'style-chips-row';
+      chipsRow.style.opacity = '0';
+
+      showScreen('screen-style');
+
+      setTimeout(() => {
+        document.getElementById('tea-list-wrap').classList.remove('open');
+      }, 300);
+
+      // Sequence: prompt fades in → fades out → chips fade in
+      setTimeout(() => { prompt.classList.add('show'); }, 100);
+      setTimeout(() => { prompt.classList.replace('show', 'hide'); }, 1400);
+      setTimeout(() => { chipsRow.classList.add('show'); }, 1700);
+    }
+
+    /* ============================================================
+       SCREEN 2 — STYLE SELECTION (inline unfurl, no separate screen)
+       ============================================================ */
+    function selectStyle(style) {
+      state.selectedStyle = style;
+
+      // Highlight selected chip with inset green border
+      document.getElementById('chip-east').classList.toggle('selected', style === 'eastern');
+      document.getElementById('chip-west').classList.toggle('selected', style === 'western');
+
+      // Populate params
+      const tea = state.selectedTea;
+      const profile = style === 'eastern' ? tea.eastern : tea.western;
+      const steeps = style === 'eastern' ? tea.eastern.steeps : [tea.western.steep_time];
+
+      state.ratioMultiplier = profile.water_g / profile.tea_g;
+      document.getElementById('param-ratio').textContent = profile.ratio;
+      state.tempC = profile.temp_c || null;
+      state.tempUnit = 'C';
+      document.getElementById('param-temp').textContent = state.tempC ? state.tempC + '°C' : '—°C';
+      document.getElementById('params-water').value = profile.water_g;
+      document.getElementById('params-tea').value = profile.tea_g;
+      document.getElementById('begin-chip').textContent = style === 'eastern' ? 'start first steep' : 'start timer';
+
+      // Populate steep chips (container may be hidden/commented out)
+      const steepChips = document.getElementById('steep-chips');
+      if (steepChips) {
+        steepChips.innerHTML = '';
+        steeps.forEach((sec, i) => {
+          const chip = document.createElement('div');
+          chip.className = 'steep-combined-chip';
+          chip.textContent = `${ordinals[i]}  ${formatTime(sec)}`;
+          steepChips.appendChild(chip);
+        });
+      }
+
+      // Unfurl
+      document.getElementById('info-chips-wrap').classList.add('open');
+    }
+
+    /* ============================================================
+       SCREEN 3 — RATIO CALCULATOR
+       ============================================================ */
+    function onWaterChange() {
+      const water = parseFloat(document.getElementById('params-water').value);
+      if (!water || water <= 0) return;
+      const tea = Math.round(water / state.ratioMultiplier);
+      document.getElementById('params-tea').value = tea || '';
+    }
+
+    function onTeaChange() {
+      const tea = parseFloat(document.getElementById('params-tea').value);
+      if (!tea || tea <= 0) return;
+      const water = Math.round(tea * state.ratioMultiplier);
+      document.getElementById('params-water').value = water || '';
+    }
+
+    function toggleTempUnit() {
+      if (!state.tempC) return;
+      state.tempUnit = state.tempUnit === 'C' ? 'F' : 'C';
+      const display = state.tempUnit === 'C'
+        ? state.tempC + '°C'
+        : Math.round(state.tempC * 9/5 + 32) + '°F';
+      document.getElementById('param-temp').textContent = display;
+    }
+
+    /* ============================================================
+       SESSION FLOW:
+       startSession → startSteep (water screen) → startTimer (countdown)
+                    → showPour (pour into glass) → afterPour (next steep or done)
+       ============================================================ */
+    function exitTimer() {
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+      const logo = document.getElementById('bg-logo');
+      logo.style.animation = 'none';
+      void logo.offsetWidth;
+      logo.style.animation = 'logoSlideDown 0.7s ease forwards';
+      document.querySelector('.timer-bottom').classList.remove('shifted');
+      showScreen('screen-style');
+    }
+
+    function exitTimerBtn(e) {
+      e.stopPropagation();
+      exitTimer();
+    }
+
+    function startSession() {
+      if (!state.selectedStyle) return;
+      state.currentSteepIndex = 0;
+      startSteep();
+    }
+
+    // Show the water screen for the current steep
+    function startSteep() {
+      const steeps = getSteeps();
+      const idx = state.currentSteepIndex;
+      clearInterval(state.timerInterval);
+      state.timerSeconds = steeps[idx];
+
+      // Show water amount to add
+      const waterVal = parseInt(document.getElementById('params-water').value) ||
+        (state.selectedStyle === 'eastern'
+          ? state.selectedTea.eastern.water_g
+          : state.selectedTea.western.water_g);
+      const waterStr = waterVal + 'g';
+      const waterEl = document.getElementById('water-display');
+      const wFs = Math.min(90, Math.round(158 / waterStr.length));
+      waterEl.style.fontSize = wFs + 'vw';
+      waterEl.textContent = waterStr;
+      showScreen('screen-water');
+
+      // Slide logo up
+      const logo = document.getElementById('bg-logo');
+      logo.style.animation = 'none';
+      void logo.offsetWidth;
+      logo.style.animation = 'logoSlideUp 0.7s ease forwards';
+    }
+
+    // Called when user taps the water screen — shows timer, waits for tap to start
+    function startTimer() {
+      const steeps = getSteeps();
+      const idx = state.currentSteepIndex;
+
+      document.getElementById('timer-steep-label').textContent =
+        steeps.length > 1 ? `${ordinals[idx]} steep` : 'steeping';
+
+      updateTimerDisplay();
+      updateSkipNav();
+      document.getElementById('timer-tap-hint').style.visibility = 'visible';
+      state.timerInterval = null;
+      showScreen('screen-timer');
+
+      // Slide timer block down
+      document.querySelector('.timer-bottom').classList.add('shifted');
+    }
+
+    function updateSkipNav() {
+      const steeps = getSteeps();
+      const idx = state.currentSteepIndex;
+      const isEastern = state.selectedStyle === 'eastern';
+      const nav = document.getElementById('timer-skip-nav');
+      const prev = document.getElementById('skip-prev');
+      const next = document.getElementById('skip-next');
+
+      // Only show skip nav for eastern (multiple steeps)
+      nav.style.display = isEastern && steeps.length > 1 ? '' : 'none';
+      prev.style.visibility = idx > 0 ? 'visible' : 'hidden';
+      next.style.visibility = idx < steeps.length - 1 ? 'visible' : 'hidden';
+    }
+
+    function skipToSteep(dir) {
+      const steeps = getSteeps();
+      const newIdx = state.currentSteepIndex + dir;
+      if (newIdx < 0 || newIdx >= steeps.length) return;
+
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+      state.currentSteepIndex = newIdx;
+      state.timerSeconds = steeps[newIdx];
+
+      document.getElementById('timer-steep-label').textContent = `${ordinals[newIdx]} steep`;
+      updateTimerDisplay();
+      updateSkipNav();
+      document.getElementById('timer-tap-hint').style.visibility = 'visible';
+    }
+
+    // Called when user taps the timer screen — begins the countdown
+    function beginCountdown() {
+      if (state.timerInterval) return; // already running
+      document.getElementById('timer-tap-hint').style.visibility = 'hidden';
+
+      state.timerInterval = setInterval(() => {
+        state.timerSeconds--;
+        updateTimerDisplay();
+        if (state.timerSeconds <= 0) {
+          clearInterval(state.timerInterval);
+          state.timerInterval = null;
+          playChime();
+          flashScreen();
+          showPour();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const el = document.getElementById('timer-display');
+      const fmt = formatTimer(state.timerSeconds);
+      // Scale font so ~90% of viewport width regardless of digit count
+      // Space Mono chars are ~0.57em wide; formula: 90vw / (charCount * 0.57) ≈ 158 / charCount
+      const fs = Math.min(90, Math.round(158 / fmt.len));
+      el.style.fontSize = fs + 'vw';
+      el.innerHTML = fmt.html;
+    }
+
+    // After steep completes — show pour screen
+    function showPour() {
+      const steeps = getSteeps();
+      const isLast = state.currentSteepIndex >= steeps.length - 1;
+      document.getElementById('pour-sub').textContent =
+        isLast ? 'last steep' : `${ordinals[state.currentSteepIndex]} steep`;
+      document.getElementById('pour-tap').textContent =
+        isLast ? 'tap to finish' : 'tap to continue';
+      showScreen('screen-pour');
+    }
+
+    // After pouring — next steep (back to water screen) or done
+    function afterPour() {
+      const steeps = getSteeps();
+      const isLast = state.currentSteepIndex >= steeps.length - 1;
+      if (isLast) {
+        showScreen('screen-done');
+      } else {
+        state.currentSteepIndex++;
+        startSteep();
+      }
+    }
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    buildTeaList();
+    setTimeout(() => {
+      document.getElementById('tea-list-wrap').classList.add('open');
+    }, 2200);
+  </script>
+  <div id="flash-overlay"></div>
+</body>
+</html>
