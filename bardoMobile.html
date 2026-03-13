@@ -1175,11 +1175,11 @@
 
       // Slide logo to top-right corner (already done on selectTea)
       logoToCorner();
+      document.getElementById('bg-logo').src = 'bardologo.png';
     }
 
     // Called when user taps the water screen — shows timer, waits for tap to start
     function startTimer() {
-      document.getElementById('bg-logo').src = 'bardologo.png';
       const steeps = getSteeps();
       const idx = state.currentSteepIndex;
 
