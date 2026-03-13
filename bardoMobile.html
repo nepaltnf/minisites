@@ -1138,6 +1138,7 @@
       state.timerInterval = null;
       document.getElementById('bg-logo').classList.remove('timer-mode');
       logoToCorner();
+      setTimeout(() => { document.getElementById('bg-logo').src = 'bardologo_alt.png'; }, 350);
       document.querySelector('.timer-bottom').classList.remove('shifted');
       showScreen('screen-style');
     }
@@ -1178,6 +1179,7 @@
 
     // Called when user taps the water screen — shows timer, waits for tap to start
     function startTimer() {
+      document.getElementById('bg-logo').src = 'bardologo.png';
       const steeps = getSteeps();
       const idx = state.currentSteepIndex;
 
