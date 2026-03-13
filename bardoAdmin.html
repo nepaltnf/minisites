@@ -196,6 +196,15 @@
       border-radius: var(--radius);
       margin-bottom: 10px;
       overflow: hidden;
+      transition: opacity 0.15s;
+    }
+
+    .tea-card.dragging {
+      opacity: 0.4;
+    }
+
+    .tea-card.drag-over {
+      outline: 2px solid var(--brand-green);
     }
 
     .tea-card-header {
@@ -207,6 +216,17 @@
       user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
+
+    .drag-handle {
+      font-size: 16px;
+      color: var(--gray);
+      cursor: grab;
+      padding: 0 10px 0 0;
+      touch-action: none;
+      flex-shrink: 0;
+    }
+
+    .drag-handle:active { cursor: grabbing; }
 
     .tea-card-name {
       font-size: 15px;
@@ -720,7 +740,7 @@
       document.getElementById('list-state').textContent = 'loading...';
       document.getElementById('list-state').style.display = 'block';
 
-      const { data, error } = await sb.from('bardo_teas').select('*').order('name');
+      const { data, error } = await sb.from('bardo_teas').select('*').order('sort_order');
       if (error) { document.getElementById('list-state').textContent = 'Error loading teas.'; return; }
 
       teas = data;
@@ -744,8 +764,11 @@
         const card = document.createElement('div');
         card.className = 'tea-card';
         card.id = `card-${tea.id}`;
+        card.draggable = true;
+        card.dataset.id = tea.id;
         card.innerHTML = `
           <div class="tea-card-header">
+            <span class="drag-handle" title="drag to reorder">⠿</span>
             <div class="tea-card-name">${tea.name}</div>
             <div class="tea-card-actions">
               <button class="edit-btn" onclick="openModal(${tea.id})">edit</button>
@@ -774,12 +797,70 @@
             </div>
           </div>
         `;
+
         card.querySelector('.tea-card-header').addEventListener('click', (e) => {
-          if (e.target.closest('button')) return;
+          if (e.target.closest('button') || e.target.closest('.drag-handle')) return;
           document.getElementById(`detail-${tea.id}`).classList.toggle('open');
         });
+
+        // Drag events
+        card.addEventListener('dragstart', onDragStart);
+        card.addEventListener('dragover', onDragOver);
+        card.addEventListener('dragleave', onDragLeave);
+        card.addEventListener('drop', onDrop);
+        card.addEventListener('dragend', onDragEnd);
+
         container.appendChild(card);
       });
+    }
+
+    /* ============================================================
+       DRAG TO REORDER
+       ============================================================ */
+    let dragSrcId = null;
+
+    function onDragStart(e) {
+      dragSrcId = parseInt(this.dataset.id);
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function onDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      this.classList.add('drag-over');
+    }
+
+    function onDragLeave() {
+      this.classList.remove('drag-over');
+    }
+
+    function onDrop(e) {
+      e.preventDefault();
+      this.classList.remove('drag-over');
+      const dropId = parseInt(this.dataset.id);
+      if (dragSrcId === dropId) return;
+
+      const srcIdx = teas.findIndex(t => t.id === dragSrcId);
+      const dstIdx = teas.findIndex(t => t.id === dropId);
+      const [moved] = teas.splice(srcIdx, 1);
+      teas.splice(dstIdx, 0, moved);
+
+      renderTeaList();
+      saveOrder();
+    }
+
+    function onDragEnd() {
+      document.querySelectorAll('.tea-card').forEach(c => {
+        c.classList.remove('dragging', 'drag-over');
+      });
+    }
+
+    async function saveOrder() {
+      const updates = teas.map((tea, i) =>
+        sb.from('bardo_teas').update({ sort_order: i }).eq('id', tea.id)
+      );
+      await Promise.all(updates);
     }
 
     /* ============================================================

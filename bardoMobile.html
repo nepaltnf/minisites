@@ -1262,7 +1262,7 @@
       const { data, error } = await sbClient
         .from('bardo_teas')
         .select('*')
-        .order('name');
+        .order('sort_order');
 
       console.log('Supabase result:', data, error);
       if (error) { console.error('Failed to load teas:', error); return; }
