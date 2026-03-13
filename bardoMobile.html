@@ -209,7 +209,7 @@
       animation: logoSlideUp 0.7s ease forwards;
     }
     .timer-bottom.shifted {
-      transform: translateY(calc(15vh - 27px));
+      transform: translateY(calc(15vh - 40px));
       transition: transform 0.7s ease;
     }
     .tape-greeting {
@@ -619,6 +619,11 @@
       left: 0;
       right: 0;
       padding: 16px 24px 36px;
+      z-index: 10;
+    }
+    .timer-bottom.skip-visible {
+      max-height: 55vh;
+      overflow: hidden;
     }
     .timer-skip-label {
       font-size: 13px;
@@ -635,7 +640,7 @@
       gap: 12px;
     }
     .timer-skip-link {
-      font-size: 18px;
+      font-size: 14px;
       font-family: var(--font);
       font-weight: 700;
       color: var(--white);
@@ -1312,8 +1317,8 @@
       document.getElementById('timer-steep-label').textContent =
         steeps.length > 1 ? `${ordinals[idx]} steep` : 'steeping';
 
-      updateTimerDisplay();
       updateSkipNav();
+      updateTimerDisplay();
       document.getElementById('timer-tap-hint').style.visibility = 'visible';
       state.timerInterval = null;
       showScreen('screen-timer');
@@ -1331,7 +1336,9 @@
       const next = document.getElementById('skip-next');
 
       // Only show skip nav for eastern (multiple steeps)
-      nav.style.display = isEastern && steeps.length > 1 ? '' : 'none';
+      const showNav = isEastern && steeps.length > 1;
+      nav.style.display = showNav ? '' : 'none';
+      document.querySelector('.timer-bottom').classList.toggle('skip-visible', showNav);
       prev.style.visibility = idx > 0 ? 'visible' : 'hidden';
       next.style.visibility = idx < steeps.length - 1 ? 'visible' : 'hidden';
     }
@@ -1347,8 +1354,8 @@
       state.timerSeconds = steeps[newIdx];
 
       document.getElementById('timer-steep-label').textContent = `${ordinals[newIdx]} steep`;
-      updateTimerDisplay();
       updateSkipNav();
+      updateTimerDisplay();
       document.getElementById('timer-tap-hint').style.visibility = 'visible';
     }
 
@@ -1375,7 +1382,9 @@
       const fmt = formatTimer(state.timerSeconds);
       // Scale font so ~90% of viewport width regardless of digit count
       // Space Mono chars are ~0.57em wide; formula: 90vw / (charCount * 0.57) ≈ 158 / charCount
-      const fs = Math.min(90, Math.round(158 / fmt.len));
+      // Cap lower when skip nav is visible to prevent overlap on short screens
+      const skipVisible = document.querySelector('.timer-bottom').classList.contains('skip-visible');
+      const fs = Math.min(skipVisible ? 55 : 90, Math.round(158 / fmt.len));
       el.style.fontSize = fs + 'vw';
       el.innerHTML = fmt.html;
     }
