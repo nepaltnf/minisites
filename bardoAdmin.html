@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Bardo Tea — Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --brand-green: #00FF00;
+      --black: #0a0a0a;
+      --white: #ffffff;
+      --off-white: #ebebeb;
+      --gray: #888888;
+      --light-gray: #f2f2f2;
+      --danger: #ff3b30;
+      --font: 'Space Mono', ui-monospace, 'Courier New', monospace;
+      --radius: 4px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      font-family: var(--font);
+      background: var(--off-white);
+      color: var(--black);
+      min-height: 100%;
+    }
+
+    /* ============================================================
+       AUTH SCREEN
+       ============================================================ */
+    #auth-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 32px 24px;
+      background: var(--black);
+    }
+
+    #auth-screen.hidden { display: none; }
+
+    .auth-logo {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      color: var(--brand-green);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .auth-subtitle {
+      font-size: 11px;
+      color: var(--gray);
+      letter-spacing: 0.1em;
+      margin-bottom: 48px;
+    }
+
+    .auth-form {
+      width: 100%;
+      max-width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .auth-label {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--gray);
+      margin-bottom: 4px;
+    }
+
+    .auth-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-family: var(--font);
+      font-size: 15px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: var(--white);
+      border-radius: var(--radius);
+      outline: none;
+    }
+
+    .auth-input:focus { border-color: var(--brand-green); }
+
+    .auth-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--brand-green);
+      color: var(--black);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .auth-btn:active { opacity: 0.8; }
+
+    .auth-error {
+      font-size: 12px;
+      color: var(--danger);
+      text-align: center;
+      min-height: 18px;
+      letter-spacing: 0.05em;
+    }
+
+    .auth-hint {
+      font-size: 11px;
+      color: var(--gray);
+      text-align: center;
+      margin-top: 24px;
+      line-height: 1.7;
+    }
+
+    .auth-hint a {
+      color: var(--brand-green);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    /* ============================================================
+       ADMIN SCREEN
+       ============================================================ */
+    #admin-screen { display: none; }
+    #admin-screen.visible { display: block; }
+
+    .admin-header {
+      background: var(--black);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .admin-header-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--brand-green);
+      text-transform: uppercase;
+    }
+
+    .signout-btn {
+      font-family: var(--font);
+      font-size: 11px;
+      color: var(--gray);
+      background: none;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      padding: 4px 0;
+    }
+
+    .signout-btn:active { color: var(--white); }
+
+    .admin-body {
+      padding: 20px 16px 80px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--gray);
+      text-transform: uppercase;
+    }
+
+    .add-btn {
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      background: var(--brand-green);
+      color: var(--black);
+      border: none;
+      padding: 8px 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .add-btn:active { opacity: 0.8; }
+
+    /* ============================================================
+       TEA CARDS
+       ============================================================ */
+    .tea-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    .tea-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .tea-card-name {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .tea-card-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .edit-btn, .delete-btn {
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      border: none;
+      padding: 6px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .edit-btn {
+      background: var(--black);
+      color: var(--white);
+    }
+
+    .delete-btn {
+      background: var(--off-white);
+      color: var(--danger);
+    }
+
+    .edit-btn:active { opacity: 0.7; }
+    .delete-btn:active { opacity: 0.7; }
+
+    .tea-card-detail {
+      display: none;
+      padding: 0 16px 14px;
+      border-top: 1px solid var(--off-white);
+    }
+
+    .tea-card-detail.open { display: block; }
+
+    .detail-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .detail-item {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .detail-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: var(--gray);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .detail-value {
+      font-size: 13px;
+      color: var(--black);
+    }
+
+    .detail-notes {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--gray);
+      line-height: 1.6;
+    }
+
+    .detail-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--black);
+      text-transform: uppercase;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--off-white);
+    }
+
+    /* ============================================================
+       MODAL (add / edit)
+       ============================================================ */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 20px 0 40px;
+    }
+
+    .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+
+    .modal {
+      background: var(--white);
+      width: 100%;
+      max-width: 560px;
+      margin: 0 16px;
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      background: var(--black);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--brand-green);
+      text-transform: uppercase;
+    }
+
+    .modal-close {
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--gray);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .modal-body { padding: 20px; }
+
+    .field-group {
+      margin-bottom: 16px;
+    }
+
+    .field-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--gray);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .field-hint {
+      font-size: 10px;
+      color: var(--gray);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    .field-input, .field-textarea {
+      width: 100%;
+      padding: 12px 14px;
+      font-family: var(--font);
+      font-size: 14px;
+      background: var(--light-gray);
+      border: 1px solid #ddd;
+      border-radius: var(--radius);
+      color: var(--black);
+      outline: none;
+    }
+
+    .field-input:focus, .field-textarea:focus {
+      border-color: var(--black);
+    }
+
+    .field-textarea {
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.5;
+    }
+
+    .field-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .field-row .field-group { flex: 1; }
+
+    .section-divider {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: var(--black);
+      text-transform: uppercase;
+      padding: 12px 0 6px;
+      border-bottom: 1px solid var(--off-white);
+      margin-bottom: 14px;
+    }
+
+    .modal-footer {
+      padding: 16px 20px;
+      border-top: 1px solid var(--off-white);
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .btn-cancel {
+      font-family: var(--font);
+      font-size: 13px;
+      padding: 12px 20px;
+      background: var(--light-gray);
+      color: var(--black);
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .btn-save {
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 700;
+      padding: 12px 24px;
+      background: var(--brand-green);
+      color: var(--black);
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .btn-cancel:active { opacity: 0.7; }
+    .btn-save:active { opacity: 0.7; }
+
+    .modal-error {
+      font-size: 12px;
+      color: var(--danger);
+      padding: 0 20px 12px;
+      min-height: 18px;
+    }
+
+    /* ============================================================
+       CONFIRM DELETE
+       ============================================================ */
+    .confirm-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .confirm-overlay.open { display: flex; }
+
+    .confirm-box {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      max-width: 340px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .confirm-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .confirm-msg {
+      font-size: 12px;
+      color: var(--gray);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .confirm-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .confirm-actions button {
+      flex: 1;
+      padding: 12px;
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 700;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+
+    .confirm-cancel { background: var(--light-gray); color: var(--black); }
+    .confirm-delete { background: var(--danger); color: var(--white); }
+
+    /* ============================================================
+       EMPTY / LOADING STATES
+       ============================================================ */
+    .state-msg {
+      font-size: 13px;
+      color: var(--gray);
+      text-align: center;
+      padding: 40px 0;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       AUTH SCREEN
+       ============================================================ -->
+  <div id="auth-screen">
+    <div class="auth-logo">Bardo Tea</div>
+    <div class="auth-subtitle">admin panel</div>
+    <div class="auth-form">
+      <div class="field-group">
+        <div class="auth-label">email</div>
+        <input class="auth-input" id="auth-email" type="email" autocomplete="email" placeholder="you@example.com" />
+      </div>
+      <div class="field-group">
+        <div class="auth-label">password</div>
+        <input class="auth-input" id="auth-password" type="password" autocomplete="current-password" placeholder="••••••••" />
+      </div>
+      <div class="auth-error" id="auth-error"></div>
+      <button class="auth-btn" id="auth-submit-btn" onclick="handleAuth()">sign in</button>
+      <div class="auth-hint" id="auth-hint">
+        First time? <a onclick="toggleAuthMode()">create an account</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ADMIN SCREEN
+       ============================================================ -->
+  <div id="admin-screen">
+    <div class="admin-header">
+      <div class="admin-header-title">Bardo Tea — Admin</div>
+      <button class="signout-btn" onclick="signOut()">sign out</button>
+    </div>
+    <div class="admin-body">
+      <div class="section-header">
+        <div class="section-title">Teas</div>
+        <button class="add-btn" onclick="openModal()">+ add tea</button>
+      </div>
+      <div id="tea-list-admin">
+        <div class="state-msg" id="list-state">loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ADD / EDIT MODAL
+       ============================================================ -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-title">Add Tea</div>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+
+        <div class="field-group">
+          <label class="field-label">Tea Name</label>
+          <input class="field-input" id="f-name" type="text" placeholder="e.g. Disco Biscuit" />
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Notes / Description</label>
+          <textarea class="field-textarea" id="f-notes" placeholder="Tasting notes, brewing tips, character of the tea..."></textarea>
+        </div>
+
+        <div class="section-divider">Eastern Style</div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Ratio</label>
+            <input class="field-input" id="f-e-ratio" type="text" placeholder="5:1" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Temp (°C)</label>
+            <input class="field-input" id="f-e-temp" type="number" placeholder="95" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Water (g)</label>
+            <input class="field-input" id="f-e-water" type="number" placeholder="100" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Tea (g)</label>
+            <input class="field-input" id="f-e-tea" type="number" placeholder="20" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Steep Times (seconds)</label>
+          <input class="field-input" id="f-e-steeps" type="text" placeholder="10, 20, 40, 60, 90" />
+          <div class="field-hint">Enter each steep time in seconds, separated by commas. Example: 10, 20, 40, 60, 90 means the first steep is 10 seconds, second is 20, and so on.</div>
+        </div>
+
+        <div class="section-divider">Western Style</div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Ratio</label>
+            <input class="field-input" id="f-w-ratio" type="text" placeholder="3:1" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Temp (°C)</label>
+            <input class="field-input" id="f-w-temp" type="number" placeholder="95" />
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label class="field-label">Water (g)</label>
+            <input class="field-input" id="f-w-water" type="number" placeholder="150" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Tea (g)</label>
+            <input class="field-input" id="f-w-tea" type="number" placeholder="50" />
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label class="field-label">Steep Time (seconds)</label>
+          <input class="field-input" id="f-w-steep" type="number" placeholder="180" />
+          <div class="field-hint">Single steep time in seconds. 180 = 3 minutes.</div>
+        </div>
+
+      </div>
+      <div class="modal-error" id="modal-error"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal()">cancel</button>
+        <button class="btn-save" onclick="saveTea()">save tea</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       CONFIRM DELETE
+       ============================================================ -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-box">
+      <div class="confirm-title">Delete tea?</div>
+      <div class="confirm-msg" id="confirm-msg">This cannot be undone.</div>
+      <div class="confirm-actions">
+        <button class="confirm-cancel" onclick="closeConfirm()">cancel</button>
+        <button class="confirm-delete" onclick="confirmDelete()">delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://qlbcgpbfpkkumvznvejs.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsYmNncGJmcGtrdW12em52ZWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mjk1ODUsImV4cCI6MjA4ODEwNTU4NX0.BzIHuf1Anb16cmwx7cqXMwEXO3R3kuzVDNjsVWP0wVE';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let teas = [];
+    let editingId = null;
+    let deletingId = null;
+    let authMode = 'signin'; // 'signin' | 'signup'
+
+    /* ============================================================
+       AUTH
+       ============================================================ */
+    async function checkSession() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) showAdmin();
+    }
+
+    function toggleAuthMode() {
+      authMode = authMode === 'signin' ? 'signup' : 'signin';
+      const btn = document.getElementById('auth-submit-btn');
+      const hint = document.getElementById('auth-hint');
+      if (authMode === 'signup') {
+        btn.textContent = 'create account';
+        hint.innerHTML = 'Already have an account? <a onclick="toggleAuthMode()">sign in</a>';
+      } else {
+        btn.textContent = 'sign in';
+        hint.innerHTML = 'First time? <a onclick="toggleAuthMode()">create an account</a>';
+      }
+      document.getElementById('auth-error').textContent = '';
+    }
+
+    async function handleAuth() {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const errEl = document.getElementById('auth-error');
+      errEl.textContent = '';
+
+      if (!email || !password) { errEl.textContent = 'Please enter your email and password.'; return; }
+
+      let result;
+      if (authMode === 'signup') {
+        result = await sb.auth.signUp({ email, password });
+      } else {
+        result = await sb.auth.signInWithPassword({ email, password });
+      }
+
+      if (result.error) {
+        errEl.textContent = result.error.message;
+        return;
+      }
+
+      if (authMode === 'signup') {
+        errEl.style.color = '#00aa00';
+        errEl.textContent = 'Account created! Check your email to confirm, then sign in.';
+        toggleAuthMode();
+        return;
+      }
+
+      showAdmin();
+    }
+
+    async function signOut() {
+      await sb.auth.signOut();
+      document.getElementById('admin-screen').classList.remove('visible');
+      document.getElementById('auth-screen').classList.remove('hidden');
+    }
+
+    function showAdmin() {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('admin-screen').classList.add('visible');
+      loadTeas();
+    }
+
+    /* ============================================================
+       LOAD TEAS
+       ============================================================ */
+    async function loadTeas() {
+      document.getElementById('list-state').textContent = 'loading...';
+      document.getElementById('list-state').style.display = 'block';
+
+      const { data, error } = await sb.from('bardo_teas').select('*').order('name');
+      if (error) { document.getElementById('list-state').textContent = 'Error loading teas.'; return; }
+
+      teas = data;
+      renderTeaList();
+    }
+
+    function renderTeaList() {
+      const container = document.getElementById('tea-list-admin');
+      const stateEl = document.getElementById('list-state');
+
+      if (!teas.length) {
+        stateEl.textContent = 'No teas yet. Add your first one.';
+        stateEl.style.display = 'block';
+        return;
+      }
+
+      stateEl.style.display = 'none';
+      container.innerHTML = '<div class="state-msg" id="list-state" style="display:none"></div>';
+
+      teas.forEach(tea => {
+        const card = document.createElement('div');
+        card.className = 'tea-card';
+        card.id = `card-${tea.id}`;
+        card.innerHTML = `
+          <div class="tea-card-header">
+            <div class="tea-card-name">${tea.name}</div>
+            <div class="tea-card-actions">
+              <button class="edit-btn" onclick="openModal(${tea.id})">edit</button>
+              <button class="delete-btn" onclick="openConfirm(${tea.id}, '${tea.name.replace(/'/g, "\\'")}')">delete</button>
+            </div>
+          </div>
+          <div class="tea-card-detail" id="detail-${tea.id}">
+            <div class="detail-notes">${tea.notes || '—'}</div>
+            <div class="detail-section-label">Eastern</div>
+            <div class="detail-row">
+              <div class="detail-item"><div class="detail-label">Ratio</div><div class="detail-value">${tea.eastern_ratio}</div></div>
+              <div class="detail-item"><div class="detail-label">Temp</div><div class="detail-value">${tea.eastern_temp_c}°C</div></div>
+              <div class="detail-item"><div class="detail-label">Water</div><div class="detail-value">${tea.eastern_water_g}g</div></div>
+              <div class="detail-item"><div class="detail-label">Tea</div><div class="detail-value">${tea.eastern_tea_g}g</div></div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item"><div class="detail-label">Steeps (sec)</div><div class="detail-value">${(tea.eastern_steeps || []).join(', ')}</div></div>
+            </div>
+            <div class="detail-section-label">Western</div>
+            <div class="detail-row">
+              <div class="detail-item"><div class="detail-label">Ratio</div><div class="detail-value">${tea.western_ratio}</div></div>
+              <div class="detail-item"><div class="detail-label">Temp</div><div class="detail-value">${tea.western_temp_c}°C</div></div>
+              <div class="detail-item"><div class="detail-label">Water</div><div class="detail-value">${tea.western_water_g}g</div></div>
+              <div class="detail-item"><div class="detail-label">Tea</div><div class="detail-value">${tea.western_tea_g}g</div></div>
+              <div class="detail-item"><div class="detail-label">Steep (sec)</div><div class="detail-value">${tea.western_steep_seconds}</div></div>
+            </div>
+          </div>
+        `;
+        card.querySelector('.tea-card-header').addEventListener('click', (e) => {
+          if (e.target.closest('button')) return;
+          document.getElementById(`detail-${tea.id}`).classList.toggle('open');
+        });
+        container.appendChild(card);
+      });
+    }
+
+    /* ============================================================
+       MODAL — ADD / EDIT
+       ============================================================ */
+    function openModal(id = null) {
+      editingId = id;
+      document.getElementById('modal-error').textContent = '';
+      document.getElementById('modal-title').textContent = id ? 'Edit Tea' : 'Add Tea';
+
+      if (id) {
+        const tea = teas.find(t => t.id === id);
+        document.getElementById('f-name').value = tea.name || '';
+        document.getElementById('f-notes').value = tea.notes || '';
+        document.getElementById('f-e-ratio').value = tea.eastern_ratio || '';
+        document.getElementById('f-e-temp').value = tea.eastern_temp_c || '';
+        document.getElementById('f-e-water').value = tea.eastern_water_g || '';
+        document.getElementById('f-e-tea').value = tea.eastern_tea_g || '';
+        document.getElementById('f-e-steeps').value = (tea.eastern_steeps || []).join(', ');
+        document.getElementById('f-w-ratio').value = tea.western_ratio || '';
+        document.getElementById('f-w-temp').value = tea.western_temp_c || '';
+        document.getElementById('f-w-water').value = tea.western_water_g || '';
+        document.getElementById('f-w-tea').value = tea.western_tea_g || '';
+        document.getElementById('f-w-steep').value = tea.western_steep_seconds || '';
+      } else {
+        document.getElementById('f-name').value = '';
+        document.getElementById('f-notes').value = '';
+        document.getElementById('f-e-ratio').value = '';
+        document.getElementById('f-e-temp').value = '';
+        document.getElementById('f-e-water').value = '';
+        document.getElementById('f-e-tea').value = '';
+        document.getElementById('f-e-steeps').value = '';
+        document.getElementById('f-w-ratio').value = '';
+        document.getElementById('f-w-temp').value = '';
+        document.getElementById('f-w-water').value = '';
+        document.getElementById('f-w-tea').value = '';
+        document.getElementById('f-w-steep').value = '';
+      }
+
+      document.getElementById('modal-overlay').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+      editingId = null;
+    }
+
+    async function saveTea() {
+      const errEl = document.getElementById('modal-error');
+      errEl.textContent = '';
+
+      const name = document.getElementById('f-name').value.trim();
+      if (!name) { errEl.textContent = 'Tea name is required.'; return; }
+
+      const steepsRaw = document.getElementById('f-e-steeps').value;
+      const steeps = steepsRaw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+
+      const payload = {
+        name,
+        notes: document.getElementById('f-notes').value.trim(),
+        eastern_ratio: document.getElementById('f-e-ratio').value.trim(),
+        eastern_temp_c: parseInt(document.getElementById('f-e-temp').value) || null,
+        eastern_water_g: parseInt(document.getElementById('f-e-water').value) || null,
+        eastern_tea_g: parseInt(document.getElementById('f-e-tea').value) || null,
+        eastern_steeps: steeps,
+        western_ratio: document.getElementById('f-w-ratio').value.trim(),
+        western_temp_c: parseInt(document.getElementById('f-w-temp').value) || null,
+        western_water_g: parseInt(document.getElementById('f-w-water').value) || null,
+        western_tea_g: parseInt(document.getElementById('f-w-tea').value) || null,
+        western_steep_seconds: parseInt(document.getElementById('f-w-steep').value) || null,
+      };
+
+      let error;
+      if (editingId) {
+        ({ error } = await sb.from('bardo_teas').update(payload).eq('id', editingId));
+      } else {
+        ({ error } = await sb.from('bardo_teas').insert(payload));
+      }
+
+      if (error) { errEl.textContent = error.message; return; }
+
+      closeModal();
+      loadTeas();
+    }
+
+    /* ============================================================
+       CONFIRM DELETE
+       ============================================================ */
+    function openConfirm(id, name) {
+      deletingId = id;
+      document.getElementById('confirm-msg').textContent = `"${name}" will be permanently deleted.`;
+      document.getElementById('confirm-overlay').classList.add('open');
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirm-overlay').classList.remove('open');
+      deletingId = null;
+    }
+
+    async function confirmDelete() {
+      if (!deletingId) return;
+      const { error } = await sb.from('bardo_teas').delete().eq('id', deletingId);
+      closeConfirm();
+      if (!error) loadTeas();
+    }
+
+    /* ============================================================
+       INIT
+       ============================================================ */
+    checkSession();
+  </script>
+</body>
+</html>
