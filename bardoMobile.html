@@ -1117,8 +1117,8 @@
       const shiftX = (vw * 0.5) - (scaledWidth / 2) - 12;
       const shiftY = -(transparentTop - 16);
       logo.style.opacity = opacity;
-      logo.style.mixBlendMode = 'multiply';
-      logo.style.filter = 'none';
+      logo.style.mixBlendMode = 'screen';
+      logo.style.filter = 'invert(1)';
       logo.style.transform = `translateX(calc(-50% + ${shiftX}px)) translateY(${shiftY}px) scale(${scale})`;
       logo.style.transformOrigin = 'top center';
     }
