@@ -764,7 +764,6 @@
         const card = document.createElement('div');
         card.className = 'tea-card';
         card.id = `card-${tea.id}`;
-        card.draggable = true;
         card.dataset.id = tea.id;
         card.innerHTML = `
           <div class="tea-card-header">
@@ -803,57 +802,90 @@
           document.getElementById(`detail-${tea.id}`).classList.toggle('open');
         });
 
-        // Drag events
-        card.addEventListener('dragstart', onDragStart);
-        card.addEventListener('dragover', onDragOver);
-        card.addEventListener('dragleave', onDragLeave);
-        card.addEventListener('drop', onDrop);
-        card.addEventListener('dragend', onDragEnd);
+        // Attach drag handle pointer events
+        card.querySelector('.drag-handle').addEventListener('pointerdown', onHandlePointerDown);
 
         container.appendChild(card);
       });
     }
 
     /* ============================================================
-       DRAG TO REORDER
+       DRAG TO REORDER — pointer events (desktop + mobile)
        ============================================================ */
-    let dragSrcId = null;
+    let draggingCard = null;
+    let ghost = null;
+    let startY = 0;
+    let offsetY = 0;
 
-    function onDragStart(e) {
-      dragSrcId = parseInt(this.dataset.id);
-      this.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    }
-
-    function onDragOver(e) {
+    function onHandlePointerDown(e) {
       e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      this.classList.add('drag-over');
+      const card = e.target.closest('.tea-card');
+      if (!card) return;
+
+      draggingCard = card;
+      const rect = card.getBoundingClientRect();
+      startY = e.clientY;
+      offsetY = e.clientY - rect.top;
+
+      // Create ghost
+      ghost = card.cloneNode(true);
+      ghost.style.cssText = `
+        position: fixed;
+        left: ${rect.left}px;
+        top: ${rect.top}px;
+        width: ${rect.width}px;
+        opacity: 0.85;
+        pointer-events: none;
+        z-index: 1000;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        transition: none;
+      `;
+      document.body.appendChild(ghost);
+      card.classList.add('dragging');
+
+      document.addEventListener('pointermove', onPointerMove);
+      document.addEventListener('pointerup', onPointerUp);
     }
 
-    function onDragLeave() {
-      this.classList.remove('drag-over');
+    function onPointerMove(e) {
+      if (!ghost) return;
+      ghost.style.top = (e.clientY - offsetY) + 'px';
+
+      // Find card we're hovering over
+      ghost.style.display = 'none';
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      ghost.style.display = '';
+      const target = el && el.closest('.tea-card');
+
+      document.querySelectorAll('.tea-card').forEach(c => c.classList.remove('drag-over'));
+      if (target && target !== draggingCard) target.classList.add('drag-over');
     }
 
-    function onDrop(e) {
-      e.preventDefault();
-      this.classList.remove('drag-over');
-      const dropId = parseInt(this.dataset.id);
-      if (dragSrcId === dropId) return;
+    function onPointerUp(e) {
+      document.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerup', onPointerUp);
 
-      const srcIdx = teas.findIndex(t => t.id === dragSrcId);
-      const dstIdx = teas.findIndex(t => t.id === dropId);
-      const [moved] = teas.splice(srcIdx, 1);
-      teas.splice(dstIdx, 0, moved);
+      ghost && ghost.remove();
+      ghost = null;
 
-      renderTeaList();
-      saveOrder();
-    }
+      ghost = null;
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const target = el && el.closest('.tea-card');
 
-    function onDragEnd() {
-      document.querySelectorAll('.tea-card').forEach(c => {
-        c.classList.remove('dragging', 'drag-over');
-      });
+      document.querySelectorAll('.tea-card').forEach(c => c.classList.remove('dragging', 'drag-over'));
+
+      if (target && target !== draggingCard) {
+        const srcId = parseInt(draggingCard.dataset.id);
+        const dstId = parseInt(target.dataset.id);
+        const srcIdx = teas.findIndex(t => t.id === srcId);
+        const dstIdx = teas.findIndex(t => t.id === dstId);
+        const [moved] = teas.splice(srcIdx, 1);
+        teas.splice(dstIdx, 0, moved);
+        renderTeaList();
+        saveOrder();
+      }
+
+      draggingCard = null;
     }
 
     async function saveOrder() {
