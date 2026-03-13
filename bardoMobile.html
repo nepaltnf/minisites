@@ -6,6 +6,7 @@
   <title>Tea Guide</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     /* ============================================================
        DESIGN TOKENS — adjust brand color here
@@ -875,171 +876,13 @@
 
   <script>
     /* ============================================================
-       MOCK DATA
-       All fields tagged for Supabase connection.
-       DB table: teas
-
-       TO CONNECT TO SUPABASE — replace the teas array with:
-         const { data: teas } = await supabase
-           .from('teas')
-           .select('*')
-           .order('name')
-       Then adapt the field names below to match your column names.
+       SUPABASE CONFIG
        ============================================================ */
-    const teas = [
-      {
-        id: 1,                            // DB: teas.id
-        name: "Disco Biscuit",            // DB: teas.name
-        notes: "A bold, roasted dancong oolong with a thick, syrupy body. Expect deep stone fruit, a hint of charcoal, and a long sweet finish. Best enjoyed on a slow morning — this one rewards patience and multiple steeps.", // DB: teas.notes
-        eastern: {
-          ratio: "5:1",                   // DB: teas.eastern_ratio
-          water_g: 100,                   // DB: teas.eastern_water_g
-          tea_g: 20,                      // DB: teas.eastern_tea_g
-          temp_c: 95,                     // DB: teas.eastern_temp_c
-          steeps: [10, 20, 40, 60, 90]   // DB: teas.eastern_steeps  (integer array, seconds)
-        },
-        western: {
-          ratio: "3:1",                   // DB: teas.western_ratio
-          water_g: 100,                   // DB: teas.western_water_g
-          tea_g: 34,                      // DB: teas.western_tea_g
-          temp_c: 95,                     // DB: teas.western_temp_c
-          steep_time: 180                 // DB: teas.western_steep_seconds
-        }
-      },
-      {
-        id: 2,
-        name: "Horses Blanket",
-        notes: "A wild, barn-yard dancong with a funky depth that grows on you fast. Warm hay, dried apricot, and a mineral backbone. Brews long and strong — don't be afraid to push the later steeps.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 95, steeps: [15, 25, 50, 80, 120, 240, 300] },
-        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 95, steep_time: 240 }
-      },
-      {
-        id: 3,
-        name: "Morning Fog",
-        notes: "A gentle, mist-like white tea from high elevation gardens. Soft melon, fresh cream, and a barely-there floral note. Low temperature is essential here — let it unfurl slowly and it will reward you.",
-        eastern: { ratio: "4:1", water_g: 100, tea_g: 25, temp_c: 85, steeps: [20, 30, 45, 70, 100] },
-        western: { ratio: "3:1", water_g: 200, tea_g: 67, temp_c: 85, steep_time: 210 }
-      },
-      {
-        id: 4,
-        name: "Silver Needle",
-        notes: "The most delicate tea in the collection. Single buds only, hand-picked in early spring. Tastes of honeydew, white flowers, and rain on warm stone. Use cooler water and resist the urge to rush it.",
-        eastern: { ratio: "6:1", water_g: 120, tea_g: 20, temp_c: 80, steeps: [30, 45, 60, 90] },
-        western: { ratio: "4:1", water_g: 160, tea_g: 40, temp_c: 80, steep_time: 180 }
-      },
-      {
-        id: 5,
-        name: "Puer Old Tree",
-        notes: "From trees over 200 years old in Yunnan province. Earthy, full-bodied, and deeply complex. Notes of forest floor, leather, and dark plum. Rinse once before your first steep to open it up.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 100, steeps: [10, 15, 20, 30, 45, 60, 90, 120] },
-        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 100, steep_time: 300 }
-      },
-      {
-        id: 6,
-        name: "Golden Tips",
-        notes: "A Yunnan black tea made entirely from golden buds. Remarkably smooth with no astringency. Honey, malt, and a faint cocoa finish. One of the friendliest teas in the collection — hard to brew badly.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 95, steeps: [15, 20, 30, 50, 75] },
-        western: { ratio: "3:1", water_g: 120, tea_g: 40, temp_c: 95, steep_time: 240 }
-      },
-      {
-        id: 7,
-        name: "Wulong Amber",
-        notes: "A medium-roast wulong with a warm amber liquor and rich toasty character. Dried peach, roasted nuts, and a clean sweet finish. Sits comfortably between green and dark oolongs — accessible and satisfying.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 90, steeps: [20, 30, 40, 60, 80, 120] },
-        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 90, steep_time: 210 }
-      },
-      {
-        id: 8,
-        name: "Green Jade",
-        notes: "A lightly oxidised jade oolong with a fresh green character. Butter, osmanthus, and a creamy mouthfeel. Keep water cool to preserve the delicate floral notes — overheating will shift it toward bitterness.",
-        eastern: { ratio: "4:1", water_g: 80, tea_g: 20, temp_c: 78, steeps: [25, 35, 50, 70] },
-        western: { ratio: "3:1", water_g: 180, tea_g: 60, temp_c: 78, steep_time: 150 }
-      },
-      {
-        id: 9,
-        name: "Roasted Hojicha",
-        notes: "Japanese green tea roasted over charcoal until it turns deep amber. Low in caffeine, high in comfort. Caramel, toasted rice, and a smoky warmth. Perfect in the evening or whenever you need to slow down.",
-        eastern: { ratio: "4:1", water_g: 100, tea_g: 25, temp_c: 100, steeps: [30, 45, 60, 90] },
-        western: { ratio: "3:1", water_g: 200, tea_g: 67, temp_c: 100, steep_time: 180 }
-      },
-      {
-        id: 10,
-        name: "Moonlight White",
-        notes: "Crafted in Yunnan from large-leaf varietal buds, dried slowly under moonlight. Richer than most whites — dark honey, dried dates, and a lingering sweetness. A contemplative tea for unhurried moments.",
-        eastern: { ratio: "6:1", water_g: 120, tea_g: 20, temp_c: 80, steeps: [20, 30, 45, 60, 90, 120] },
-        western: { ratio: "4:1", water_g: 160, tea_g: 40, temp_c: 80, steep_time: 240 }
-      },
-      {
-        id: 11,
-        name: "Dragon Well",
-        notes: "The most celebrated green tea in China, grown in the hills above Hangzhou. Flat pressed leaves with a grassy, sweet, and nutty flavour. Chestnut, fresh peas, and a clean finish. Use lower water for the best expression.",
-        eastern: { ratio: "4:1", water_g: 100, tea_g: 25, temp_c: 78, steeps: [30, 40, 55, 75] },
-        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 78, steep_time: 120 }
-      },
-      {
-        id: 12,
-        name: "Crimson Robe",
-        notes: "Da Hong Pao — one of the most storied wulongs from Wuyi Mountain. Heavy roast, mineral rock water, and dried longan. Intense and complex. Brews remarkably long. Each steep reveals something different.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 90, steeps: [10, 20, 30, 45, 60, 90, 150] },
-        western: { ratio: "3:1", water_g: 120, tea_g: 40, temp_c: 90, steep_time: 270 }
-      },
-      {
-        id: 13,
-        name: "Snow Bud",
-        notes: "A rare spring white tea of only the youngest buds, covered in fine white down. Exceptionally light and sweet with notes of melon, fresh snow, and a faint floral whisper. Handle with care — low and slow.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 80, steeps: [25, 35, 50, 70, 100] },
-        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 80, steep_time: 180 }
-      },
-      {
-        id: 14,
-        name: "Iron Goddess",
-        notes: "Tie Guan Yin — a lightly roasted Fujian oolong with an orchid-like perfume. Floral, creamy, and gently sweet with a distinct mineral edge. One of the most fragrant teas you will ever brew.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 90, steeps: [15, 25, 35, 50, 70, 100] },
-        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 90, steep_time: 210 }
-      },
-      {
-        id: 15,
-        name: "Lapsang Souchong",
-        notes: "Pine-smoked black tea from the Wuyi mountains — one of the world's most distinctive cups. Bold, campfire smoke, dried longan, and a sweet resinous finish. Not for the faint-hearted, and unforgettable once you love it.",
-        eastern: { ratio: "4:1", water_g: 100, tea_g: 25, temp_c: 95, steeps: [30, 45, 60, 90] },
-        western: { ratio: "3:1", water_g: 200, tea_g: 67, temp_c: 95, steep_time: 240 }
-      },
-      {
-        id: 16,
-        name: "Ripe Puer Brick",
-        notes: "A wet-piled shou puer aged into a dense brick. Dark, smooth, and deeply earthy. Damp forest, dark chocolate, and a surprisingly clean finish. Rinse twice before brewing — it opens up beautifully by the third steep.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 100, steeps: [10, 15, 20, 30, 45, 60, 90, 120, 180] },
-        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 100, steep_time: 300 }
-      },
-      {
-        id: 17,
-        name: "White Peony",
-        notes: "Bai Mu Dan — a fuller-bodied white tea with both buds and leaves. More character than Silver Needle, with a pleasant woodiness alongside the sweetness. Dried apricot, wildflower honey, and a soft hay finish.",
-        eastern: { ratio: "6:1", water_g: 120, tea_g: 20, temp_c: 80, steeps: [30, 45, 60, 90, 120] },
-        western: { ratio: "4:1", water_g: 160, tea_g: 40, temp_c: 80, steep_time: 210 }
-      },
-      {
-        id: 18,
-        name: "Milk Oolong",
-        notes: "Jin Xuan oolong from the high mountains of Taiwan. Naturally creamy without any artificial flavouring. Warm milk, vanilla, and a soft buttery finish. One of the most approachable and comforting teas in the list.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 85, steeps: [20, 30, 45, 60, 90] },
-        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 85, steep_time: 180 }
-      },
-      {
-        id: 19,
-        name: "High Mountain Fog",
-        notes: "A Taiwanese high-mountain oolong grown above 1,500m where the clouds sit low. Cool air and slow growth concentrate intense floral and fruity notes. Lilac, green apple, and a long sweet finish that lingers.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 90, steeps: [15, 25, 40, 60, 90, 120] },
-        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 90, steep_time: 240 }
-      },
-      {
-        id: 20,
-        name: "Yunnan Gold",
-        notes: "A classic Yunnan Dianhong black tea made from large golden buds. Sweet, malty, and full of warmth. Notes of molasses, dried fruit, and a cocoa edge. Brews rich without bitterness — excellent any time of day.",
-        eastern: { ratio: "5:1", water_g: 100, tea_g: 20, temp_c: 95, steeps: [20, 30, 45, 70, 100] },
-        western: { ratio: "3:1", water_g: 150, tea_g: 50, temp_c: 95, steep_time: 180 }
-      }
-    ];
+    const SUPABASE_URL = 'https://qlbcgpbfpkkumvznvejs.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsYmNncGJmcGtrdW12em52ZWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mjk1ODUsImV4cCI6MjA4ODEwNTU4NX0.BzIHuf1Anb16cmwx7cqXMwEXO3R3kuzVDNjsVWP0wVE';
+    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let teas = [];
 
     /* ============================================================
        APP STATE
@@ -1415,10 +1258,41 @@
     /* ============================================================
        INIT
        ============================================================ */
-    buildTeaList();
-    setTimeout(() => {
-      document.getElementById('tea-list-wrap').classList.add('open');
-    }, 2200);
+    async function init() {
+      const { data, error } = await sbClient
+        .from('bardo_teas')
+        .select('*')
+        .order('name');
+
+      if (error) { console.error('Failed to load teas:', error); return; }
+
+      teas = data.map(r => ({
+        id: r.id,
+        name: r.name,
+        notes: r.notes,
+        eastern: {
+          ratio: r.eastern_ratio,
+          water_g: r.eastern_water_g,
+          tea_g: r.eastern_tea_g,
+          temp_c: r.eastern_temp_c,
+          steeps: r.eastern_steeps
+        },
+        western: {
+          ratio: r.western_ratio,
+          water_g: r.western_water_g,
+          tea_g: r.western_tea_g,
+          temp_c: r.western_temp_c,
+          steep_time: r.western_steep_seconds
+        }
+      }));
+
+      buildTeaList();
+      setTimeout(() => {
+        document.getElementById('tea-list-wrap').classList.add('open');
+      }, 2200);
+    }
+
+    init();
   </script>
   <div id="flash-overlay"></div>
 </body>
