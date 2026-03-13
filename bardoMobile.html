@@ -1125,12 +1125,12 @@
 
     function logoReset() {
       const logo = document.getElementById('bg-logo');
+      logo.src = 'bardologo.png';
       logo.style.opacity = '0.5';
       logo.style.mixBlendMode = 'screen';
       logo.style.filter = 'invert(1)';
       logo.style.transform = 'translateX(-50%) translateY(0) scale(1)';
       logo.style.transformOrigin = 'top center';
-      setTimeout(() => { logo.src = 'bardologo.png'; }, 350);
     }
 
     function exitTimer() {
