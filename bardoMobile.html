@@ -1018,6 +1018,7 @@
       chipsRow.style.opacity = '0';
 
       logoToCorner();
+      setTimeout(() => { document.getElementById('bg-logo').src = 'bardologo_alt.png'; }, 350);
       showScreen('screen-style');
 
       setTimeout(() => {
@@ -1120,7 +1121,6 @@
       logo.style.filter = 'none';
       logo.style.transform = `translateX(calc(-50% + ${shiftX}px)) translateY(${shiftY}px) scale(${scale})`;
       logo.style.transformOrigin = 'top center';
-      setTimeout(() => { logo.src = 'bardologo_alt.png'; }, 350);
     }
 
     function logoReset() {
