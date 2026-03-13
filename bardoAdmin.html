@@ -853,28 +853,47 @@
       document.addEventListener('pointerup', onPointerUp);
     }
 
-    function getDropPosition(target, clientY) {
-      const rect = target.getBoundingClientRect();
-      return clientY < rect.top + rect.height / 2 ? 'above' : 'below';
+    // Returns the index in `teas` where the dragged item should be inserted,
+    // based on cursor Y vs midpoints of each card.
+    function getInsertIndex(clientY) {
+      const cards = [...document.querySelectorAll('.tea-card')].filter(c => c !== draggingCard);
+      for (let i = 0; i < cards.length; i++) {
+        const rect = cards[i].getBoundingClientRect();
+        if (clientY < rect.top + rect.height / 2) {
+          // insert before this card
+          return teas.findIndex(t => t.id === parseInt(cards[i].dataset.id));
+        }
+      }
+      return teas.length; // insert at end
+    }
+
+    function clearDropIndicators() {
+      document.querySelectorAll('.tea-card').forEach(c => {
+        c.classList.remove('drag-over-above', 'drag-over-below');
+      });
+    }
+
+    function showDropIndicator(clientY) {
+      clearDropIndicators();
+      const cards = [...document.querySelectorAll('.tea-card')].filter(c => c !== draggingCard);
+      let shown = false;
+      for (let i = 0; i < cards.length; i++) {
+        const rect = cards[i].getBoundingClientRect();
+        if (clientY < rect.top + rect.height / 2) {
+          cards[i].classList.add('drag-over-above');
+          shown = true;
+          break;
+        }
+      }
+      if (!shown && cards.length) {
+        cards[cards.length - 1].classList.add('drag-over-below');
+      }
     }
 
     function onPointerMove(e) {
       if (!ghost) return;
       ghost.style.top = (e.clientY - offsetY) + 'px';
-
-      ghost.style.display = 'none';
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      ghost.style.display = '';
-      const target = el && el.closest('.tea-card');
-
-      document.querySelectorAll('.tea-card').forEach(c => {
-        c.classList.remove('drag-over-above', 'drag-over-below');
-      });
-
-      if (target && target !== draggingCard) {
-        const pos = getDropPosition(target, e.clientY);
-        target.classList.add(pos === 'above' ? 'drag-over-above' : 'drag-over-below');
-      }
+      showDropIndicator(e.clientY);
     }
 
     function onPointerUp(e) {
@@ -883,24 +902,18 @@
 
       ghost && ghost.remove();
       ghost = null;
+      clearDropIndicators();
 
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      const target = el && el.closest('.tea-card');
+      const srcId = parseInt(draggingCard.dataset.id);
+      draggingCard.classList.remove('dragging');
 
-      document.querySelectorAll('.tea-card').forEach(c => {
-        c.classList.remove('dragging', 'drag-over-above', 'drag-over-below');
-      });
+      const insertIdx = getInsertIndex(e.clientY);
+      const srcIdx = teas.findIndex(t => t.id === srcId);
 
-      if (target && target !== draggingCard) {
-        const pos = getDropPosition(target, e.clientY);
-        const srcId = parseInt(draggingCard.dataset.id);
-        const dstId = parseInt(target.dataset.id);
-        const srcIdx = teas.findIndex(t => t.id === srcId);
-        let dstIdx = teas.findIndex(t => t.id === dstId);
+      if (insertIdx !== srcIdx && insertIdx !== srcIdx + 1) {
         const [moved] = teas.splice(srcIdx, 1);
-        // Recalculate dstIdx after splice
-        dstIdx = teas.findIndex(t => t.id === dstId);
-        teas.splice(pos === 'above' ? dstIdx : dstIdx + 1, 0, moved);
+        const newIdx = insertIdx > srcIdx ? insertIdx - 1 : insertIdx;
+        teas.splice(newIdx, 0, moved);
         renderTeaList();
         saveOrder();
       }
