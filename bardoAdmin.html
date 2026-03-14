@@ -955,12 +955,12 @@
         document.getElementById('f-notes').value = '';
         document.getElementById('f-e-ratio').value = '';
         document.getElementById('f-e-temp').value = '';
-        document.getElementById('f-e-water').value = '';
+        document.getElementById('f-e-water').value = '100';
         document.getElementById('f-e-tea').value = '';
         document.getElementById('f-e-steeps').value = '';
         document.getElementById('f-w-ratio').value = '';
         document.getElementById('f-w-temp').value = '';
-        document.getElementById('f-w-water').value = '';
+        document.getElementById('f-w-water').value = '100';
         document.getElementById('f-w-tea').value = '';
         document.getElementById('f-w-steep').value = '';
       }
@@ -1031,6 +1031,46 @@
       closeConfirm();
       if (!error) loadTeas();
     }
+
+    /* ============================================================
+       RATIO AUTO-CALC
+       Ratio format: water:tea (e.g. 5:1 = 5 parts water, 1 part tea)
+       ============================================================ */
+    function parseRatio(ratioStr) {
+      const parts = ratioStr.split(':').map(s => parseFloat(s.trim()));
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]) && parts[1] > 0) {
+        return parts[0] / parts[1]; // water per gram of tea
+      }
+      return null;
+    }
+
+    function calcTea(waterId, teaId, ratioId) {
+      const ratio = parseRatio(document.getElementById(ratioId).value);
+      const water = parseInt(document.getElementById(waterId).value);
+      if (ratio && water) {
+        document.getElementById(teaId).value = Math.round(water / ratio);
+      }
+    }
+
+    function calcWater(waterId, teaId, ratioId) {
+      const ratio = parseRatio(document.getElementById(ratioId).value);
+      const tea = parseInt(document.getElementById(teaId).value);
+      if (ratio && tea) {
+        document.getElementById(waterId).value = Math.round(tea * ratio);
+      }
+    }
+
+    // Wire up listeners after DOM is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      // Eastern
+      document.getElementById('f-e-ratio').addEventListener('input', () => calcTea('f-e-water', 'f-e-tea', 'f-e-ratio'));
+      document.getElementById('f-e-water').addEventListener('input', () => calcTea('f-e-water', 'f-e-tea', 'f-e-ratio'));
+      document.getElementById('f-e-tea').addEventListener('input', () => calcWater('f-e-water', 'f-e-tea', 'f-e-ratio'));
+      // Western
+      document.getElementById('f-w-ratio').addEventListener('input', () => calcTea('f-w-water', 'f-w-tea', 'f-w-ratio'));
+      document.getElementById('f-w-water').addEventListener('input', () => calcTea('f-w-water', 'f-w-tea', 'f-w-ratio'));
+      document.getElementById('f-w-tea').addEventListener('input', () => calcWater('f-w-water', 'f-w-tea', 'f-w-ratio'));
+    });
 
     /* ============================================================
        INIT
