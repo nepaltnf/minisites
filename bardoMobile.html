@@ -274,6 +274,11 @@
       background: linear-gradient(to bottom, transparent, var(--brand-green));
       pointer-events: none;
       z-index: 10;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    #screen-welcome.list-open::after {
+      opacity: 1;
     }
     .tea-item {
       background: var(--card-bg);
@@ -969,6 +974,7 @@
     function goBackToTeaList() {
       showScreen('screen-welcome');
       document.getElementById('tea-list-wrap').classList.add('open');
+      document.getElementById('screen-welcome').classList.add('list-open');
       logoReset();
     }
 
@@ -1130,7 +1136,7 @@
       logo.style.opacity = '0.5';
       logo.style.mixBlendMode = 'screen';
       logo.style.filter = 'invert(1)';
-      logo.style.top = '30px';
+      logo.style.top = 'calc(100vh - 530px)';
       logo.style.transform = 'translateX(-50%) translateY(0) scale(1)';
       logo.style.transformOrigin = 'top center';
     }
@@ -1318,6 +1324,7 @@
       buildTeaList();
       setTimeout(() => {
         document.getElementById('tea-list-wrap').classList.add('open');
+        document.getElementById('screen-welcome').classList.add('list-open');
         setTimeout(() => { document.getElementById('bg-logo').src = 'bardologo_alt.png'; }, 400);
       }, 2200);
     }
