@@ -17,7 +17,7 @@
 <rect x="64" y="24" width="8" height="8" fill="#00FF00"/>
 
 <!-- === CUP RIM === -->
-<rect x="0"   y="48" width="8" height="8" fill="#00FF00"/>
+<rect x="0"   y="48" width="8" height="8" fill="#ffffff"/>
 <rect x="8"   y="48" width="8" height="8" fill="#00FF00"/>
 <rect x="16"  y="48" width="8" height="8" fill="#00FF00"/>
 <rect x="24"  y="48" width="8" height="8" fill="#00FF00"/>
