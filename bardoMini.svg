@@ -5,16 +5,16 @@
 
 <!-- === STEAM === -->
 <!-- left wisp -->
-<rect x="20" y="0"  width="8" height="8" fill="#00FF00"/>
-<rect x="20" y="16" width="8" height="8" fill="#00FF00"/>
-<rect x="28" y="8"  width="8" height="8" fill="#00FF00"/>
-<rect x="28" y="24" width="8" height="8" fill="#00FF00"/>
+<rect x="12" y="0"  width="8" height="8" fill="#00FF00"/>
+<rect x="12" y="16" width="8" height="8" fill="#00FF00"/>
+<rect x="20" y="8"  width="8" height="8" fill="#00FF00"/>
+<rect x="20" y="24" width="8" height="8" fill="#00FF00"/>
 
 <!-- right wisp -->
-<rect x="80" y="0"  width="8" height="8" fill="#00FF00"/>
-<rect x="80" y="16" width="8" height="8" fill="#00FF00"/>
-<rect x="72" y="8"  width="8" height="8" fill="#00FF00"/>
-<rect x="72" y="24" width="8" height="8" fill="#00FF00"/>
+<rect x="72" y="0"  width="8" height="8" fill="#00FF00"/>
+<rect x="72" y="16" width="8" height="8" fill="#00FF00"/>
+<rect x="64" y="8"  width="8" height="8" fill="#00FF00"/>
+<rect x="64" y="24" width="8" height="8" fill="#00FF00"/>
 
 <!-- === CUP RIM === -->
 <rect x="0"   y="48" width="8" height="8" fill="#00FF00"/>
@@ -93,15 +93,15 @@
 
 <!-- === SAUCER === -->
 <rect x="0"   y="96" width="8" height="8" fill="#ffffff"/>
-<rect x="8"   y="96" width="8" height="8" fill="#00FF00"/>
-<rect x="16"  y="96" width="8" height="8" fill="#00FF00"/>
-<rect x="24"  y="96" width="8" height="8" fill="#00FF00"/>
-<rect x="32"  y="96" width="8" height="8" fill="#00FF00"/>
-<rect x="40"  y="96" width="8" height="8" fill="#00FF00"/>
-<rect x="48"  y="96" width="8" height="8" fill="#00FF00"/>
-<rect x="56"  y="96" width="8" height="8" fill="#00FF00"/>
-<rect x="64"  y="96" width="8" height="8" fill="#00FF00"/>
-<rect x="72"  y="96" width="8" height="8" fill="#00FF00"/>
+<rect x="8"   y="96" width="8" height="8" fill="#0a0a0a"/>
+<rect x="16"  y="96" width="8" height="8" fill="#0a0a0a"/>
+<rect x="24"  y="96" width="8" height="8" fill="#0a0a0a"/>
+<rect x="32"  y="96" width="8" height="8" fill="#0a0a0a"/>
+<rect x="40"  y="96" width="8" height="8" fill="#0a0a0a"/>
+<rect x="48"  y="96" width="8" height="8" fill="#0a0a0a"/>
+<rect x="56"  y="96" width="8" height="8" fill="#0a0a0a"/>
+<rect x="64"  y="96" width="8" height="8" fill="#0a0a0a"/>
+<rect x="72"  y="96" width="8" height="8" fill="#0a0a0a"/>
 <rect x="80"  y="96" width="8" height="8" fill="#ffffff"/>
 
 <!-- saucer bottom -->
