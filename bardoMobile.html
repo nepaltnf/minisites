@@ -1018,7 +1018,6 @@
       chipsRow.style.opacity = '0';
 
       logoToCorner();
-      setTimeout(() => { document.getElementById('bg-logo').src = 'bardologo_alt.png'; }, 350);
       showScreen('screen-style');
 
       setTimeout(() => {
@@ -1317,6 +1316,7 @@
       buildTeaList();
       setTimeout(() => {
         document.getElementById('tea-list-wrap').classList.add('open');
+        setTimeout(() => { document.getElementById('bg-logo').src = 'bardologo_alt.png'; }, 400);
       }, 2200);
     }
 
