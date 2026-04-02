@@ -283,31 +283,73 @@ const TEXTURES = {
 };
 
 // ─── LIVE TELEMETRY ──────────────────────────────────────────────────────────
-// Source: launchwatch.modelotech.com — proxies NASA AROW telemetry
+// Primary: NASA AROW GCS bucket — ECI state vector, no proxies needed
+// Parameters: 2003/2004/2005 = position X/Y/Z (meters, J2000 ECI)
+//             2009/2010/2011 = velocity X/Y/Z (m/s)
+// Secondary (fire-and-forget): launchwatch for mission phase text only
 
-const BASE_TELEMETRY_URL = 'https://launchwatch.modelotech.com/api/artemis2/status';
+const GCS_BASE = 'https://storage.googleapis.com/storage/v1/b/p-2-cen1/o';
+let nasaFilePath = 'October%2F1%2FOctober_105_1.txt';
 
+// Launchwatch used only for phase text (best-effort, CORS proxies)
+const LAUNCHWATCH_URL = 'https://launchwatch.modelotech.com/api/artemis2/status';
 const CORS_PROXIES = [
   url => `https://corsproxy.io/?${url}`,
   url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://thingproxy.freeboard.io/fetch/${url}`,
 ];
 
-// Fetch with a timeout so a slow proxy doesn't block the chain
-function fetchWithTimeout(url, ms = 6000) {
+function fetchWithTimeout(url, ms = 8000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
   return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
-async function fetchArtemisStatus() {
+function parseNASAEphemeris(data) {
+  const pv = (id) => parseFloat(data[`Parameter_${id}`]?.Value);
+  const x = pv(2003), y = pv(2004), z = pv(2005);
+  const vx = pv(2009), vy = pv(2010), vz = pv(2011);
+  if (isNaN(x) || isNaN(y) || isNaN(z)) throw new Error('Missing ECI position params');
+  return { x, y, z, vx: isNaN(vx) ? 0 : vx, vy: isNaN(vy) ? 0 : vy, vz: isNaN(vz) ? 0 : vz };
+}
+
+async function fetchNASAEphemeris() {
+  // Try known file path first
+  try {
+    const res = await fetchWithTimeout(`${GCS_BASE}/${nasaFilePath}?alt=media`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.File?.Activity === 'MIS') return parseNASAEphemeris(data);
+    }
+  } catch (_) {}
+  // Discover current live file by listing bucket
+  const listRes = await fetchWithTimeout(`${GCS_BASE}?prefix=October%2F1%2F`);
+  if (!listRes.ok) throw new Error('NASA GCS unavailable');
+  const listing = await listRes.json();
+  for (const item of (listing.items || [])) {
+    if (!item.name.endsWith('.txt')) continue;
+    const r = await fetchWithTimeout(`${GCS_BASE}/${encodeURIComponent(item.name)}?alt=media`);
+    if (!r.ok) continue;
+    const d = await r.json();
+    if (d.File?.Activity === 'MIS') {
+      nasaFilePath = encodeURIComponent(item.name);
+      return parseNASAEphemeris(d);
+    }
+  }
+  throw new Error('No live NASA telemetry found');
+}
+
+// Fire-and-forget: fetch phase text from launchwatch, update HUD if it works
+async function fetchPhaseText() {
   for (const makeUrl of CORS_PROXIES) {
     try {
-      const res = await fetchWithTimeout(makeUrl(BASE_TELEMETRY_URL));
-      if (res.ok) return res.json();
+      const res = await fetchWithTimeout(makeUrl(LAUNCHWATCH_URL), 6000);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.current_phase) document.getElementById('met-phase').textContent = data.current_phase;
+        return;
+      }
     } catch (_) {}
   }
-  throw new Error('All telemetry sources failed');
 }
 
 // Convert geocentric lat/lon + radius to Cartesian (Y-up)
@@ -750,24 +792,26 @@ function applyFallbackPositions() {
 async function fetchAndApply() {
   const now = new Date();
   try {
-    const status = await fetchArtemisStatus();
-    const { lat, lon, d_earth, d_moon, vel } = status.telemetry;
+    const eph = await fetchNASAEphemeris();
 
-    lastGoodTelemetry = { status, d_earth, d_moon, vel, fetchedAt: now };
+    // ECI position in km (J2000: x=vernal equinox, y=RA90°, z=north pole)
+    const cx = eph.x / 1000, cy = eph.y / 1000, cz = eph.z / 1000;
 
-    const craft = geocentricToXYZ(lat, lon, d_earth);
-    const moon  = approxMoonPos(now);
+    // Moon ECI position in km (same frame — x=vernal equinox, y=RA90°, z=north pole)
+    const moon = approxMoonPos(now);
 
     placeSun(approxSunDirection(now));
 
-    const toScene = (abs) => ({
-      x: (abs.x - craft.x) * SCENE_SCALE,
-      y: (abs.y - craft.y) * SCENE_SCALE,
-      z: (abs.z - craft.z) * SCENE_SCALE,
+    // ECI → scene: scene has y=north pole, z=-(RA90°), x=vernal equinox
+    // So: scene(x,y,z) = (eci_x, eci_z, -eci_y) relative to spacecraft
+    const eciRelToScene = (eci_km) => ({
+      x:  (eci_km.x - cx) * SCENE_SCALE,
+      y:  (eci_km.z - cz) * SCENE_SCALE,
+      z: -(eci_km.y - cy) * SCENE_SCALE,
     });
 
-    const eRel = toScene({ x: 0, y: 0, z: 0 });
-    const mRel = toScene(moon);
+    const eRel = eciRelToScene({ x: 0, y: 0, z: 0 }); // Earth at ECI origin
+    const mRel = eciRelToScene(moon);
 
     earthMesh.position.set(eRel.x, eRel.y, eRel.z);
     moonMesh.position.set(mRel.x, mRel.y, mRel.z);
@@ -777,24 +821,30 @@ async function fetchAndApply() {
       cameraInitialized = true;
     }
 
+    // Derive HUD values from state vector
+    const d_earth = Math.sqrt(cx*cx + cy*cy + cz*cz);
+    const vel_ms  = Math.sqrt(eph.vx*eph.vx + eph.vy*eph.vy + eph.vz*eph.vz);
+    const dx = moon.x - cx, dy = moon.y - cy, dz = moon.z - cz;
+    const d_moon = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+    lastGoodTelemetry = { d_earth, d_moon, vel_kmh: vel_ms * 3.6, fetchedAt: now };
+
     document.getElementById('dist-earth').textContent = formatKm(d_earth);
     document.getElementById('dist-moon').textContent  = formatKm(d_moon);
-    document.getElementById('velocity').textContent   = Math.round(vel).toLocaleString() + ' km/h';
+    document.getElementById('velocity').textContent   = Math.round(vel_ms * 3.6).toLocaleString() + ' km/h';
     document.getElementById('hud-date').textContent   = now.toUTCString().slice(0, 25) + ' UTC';
-    document.getElementById('met-phase').textContent  = status.current_phase;
     setTelemetryStatus(true, 'live');
+
+    fetchPhaseText(); // fire-and-forget: update phase label if launchwatch responds
 
   } catch (e) {
     console.warn('Telemetry fetch failed:', e);
 
     if (lastGoodTelemetry) {
-      // Keep last known values, show how stale they are
       const minsAgo = Math.round((now - lastGoodTelemetry.fetchedAt) / 60000);
       const age = minsAgo < 2 ? 'moments ago' : `${minsAgo}m ago`;
       setTelemetryStatus(false, `last data ${age}`);
-      document.getElementById('met-phase').textContent = lastGoodTelemetry.status.current_phase;
     } else {
-      // Never had data
       setTelemetryStatus(false, 'telemetry unavailable');
       document.getElementById('met-phase').textContent = '—';
       if (!cameraInitialized) applyFallbackPositions();
