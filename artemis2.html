@@ -482,7 +482,7 @@ const TEXTURES = {
 // Secondary (fire-and-forget): launchwatch for mission phase text only
 
 const GCS_BASE = 'https://storage.googleapis.com/storage/v1/b/p-2-cen1/o';
-let nasaFilePath = 'October%2F1%2FOctober_105_1.txt';
+let nasaFilePath = null;
 
 // Launchwatch used only for phase text (best-effort, CORS proxies)
 const LAUNCHWATCH_URL = 'https://launchwatch.modelotech.com/api/artemis2/status';
@@ -506,27 +506,19 @@ function parseNASAEphemeris(data) {
 }
 
 async function fetchNASAEphemeris() {
-  // Try known file path first
-  try {
-    const res = await fetchWithTimeout(`${GCS_BASE}/${nasaFilePath}?alt=media`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data.File?.Activity === 'MIS') return parseNASAEphemeris(data);
-    }
-  } catch (_) {}
-  // Discover current live file by listing bucket
+  // Always list the bucket to find the most recently updated MIS file
   const listRes = await fetchWithTimeout(`${GCS_BASE}?prefix=October%2F1%2F`);
   if (!listRes.ok) throw new Error('NASA GCS unavailable');
   const listing = await listRes.json();
-  for (const item of (listing.items || [])) {
-    if (!item.name.endsWith('.txt')) continue;
+  // Sort by updated time descending — newest first
+  const items = (listing.items || [])
+    .filter(i => i.name.endsWith('.txt'))
+    .sort((a, b) => new Date(b.updated) - new Date(a.updated));
+  for (const item of items) {
     const r = await fetchWithTimeout(`${GCS_BASE}/${encodeURIComponent(item.name)}?alt=media`);
     if (!r.ok) continue;
     const d = await r.json();
-    if (d.File?.Activity === 'MIS') {
-      nasaFilePath = encodeURIComponent(item.name);
-      return parseNASAEphemeris(d);
-    }
+    if (d.File?.Activity === 'MIS') return parseNASAEphemeris(d);
   }
   throw new Error('No live NASA telemetry found');
 }
