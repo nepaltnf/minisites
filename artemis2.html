@@ -926,7 +926,7 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
         float oceanMask = texture2D(u_spec, vUv).r;
         vec3 H = normalize(S + V);
         float spec = pow(max(0.0, dot(N, H)), 180.0);
-        surface += vec3(1.0, 0.97, 0.93) * spec * oceanMask * blend * 0.5;
+        surface += vec3(1.0, 0.97, 0.93) * spec * oceanMask * blend * 0.3;
 
         // Cloud layer — longitude-shifted UV for gentle drift
         vec2 cloudUV = vec2(mod(vUv.x + u_cloudOffset, 1.0), vUv.y);
