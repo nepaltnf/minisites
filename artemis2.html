@@ -1272,17 +1272,10 @@ function render() {
     const D = (Date.now() - Date.UTC(2000, 0, 1, 12, 0, 0)) / 86400000;
     const GMST = (280.46061837 + 360.98564736629 * D) * Math.PI / 180;
     earthMesh.rotation.y = GMST;
-    // Update sun direction uniform for day/night shader
+    // Update sun direction uniform — pass world-space direction directly
+    // (vWorldNormal in the shader is already world-space via modelMatrix)
     if (earthMat && sunMesh) {
-      const sd = sunMesh.position.clone().normalize();
-      // Transform from scene space into Earth's local space (inverse of Earth rotation)
-      const invY = -GMST;
-      const cosY = Math.cos(invY), sinY = Math.sin(invY);
-      earthMat.uniforms.u_sunDir.value.set(
-        sd.x * cosY + sd.z * sinY,
-        sd.y,
-        -sd.x * sinY + sd.z * cosY,
-      );
+      earthMat.uniforms.u_sunDir.value.copy(sunMesh.position).normalize();
     }
   }
 
