@@ -1275,6 +1275,7 @@ let isDragging = false;
 let hasDragged = false;
 let prevMouse  = { x: 0, y: 0 };
 let yaw = 0, pitch = 0;
+const _euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
 renderer.domElement.addEventListener('mousedown', e => {
   isDragging = true;
@@ -1409,12 +1410,12 @@ function render() {
     if (!moon8kLoaded && MOON_DIST < 160934 * SCENE_SCALE) {
       moon8kLoaded = true;
       loader.load(TEXTURES.moon8k, tex => {
-        if (moonMesh) { moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
+        if (moonMesh) { moonMesh.material.map?.dispose(); moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
       });
     } else if (moon8kLoaded && MOON_DIST > 200000 * SCENE_SCALE) {
       moon8kLoaded = false;
       loader.load(TEXTURES.moon2k, tex => {
-        if (moonMesh) { moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
+        if (moonMesh) { moonMesh.material.map?.dispose(); moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
       });
     }
   }
@@ -1426,20 +1427,20 @@ function render() {
     if (!earth8kLoaded && EARTH_DIST < 160934 * SCENE_SCALE) {
       earth8kLoaded = true;
       loader.load(TEXTURES.earthNight8k, t => {
-        if (earthMat) earthMat.uniforms.u_night.value = t;
+        if (earthMat) { earthMat.uniforms.u_night.value?.dispose(); earthMat.uniforms.u_night.value = t; }
       });
     } else if (earth8kLoaded && EARTH_DIST > 200000 * SCENE_SCALE) {
       earth8kLoaded = false;
       loader.load(TEXTURES.earthNight2k, t => {
-        if (earthMat) earthMat.uniforms.u_night.value = t;
+        if (earthMat) { earthMat.uniforms.u_night.value?.dispose(); earthMat.uniforms.u_night.value = t; }
       });
     }
   }
 
   // Apply mouse look rotation to camera
   if (!renderer.xr.enabled) {
-    const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
-    camera.quaternion.setFromEuler(euler);
+    _euler.set(pitch, yaw, 0);
+    camera.quaternion.setFromEuler(_euler);
   }
 
   updatePupilEffect(delta);
