@@ -794,8 +794,9 @@ async function fetchAndApply() {
   try {
     const eph = await fetchNASAEphemeris();
 
-    // ECI position in km (J2000: x=vernal equinox, y=RA90°, z=north pole)
-    const cx = eph.x / 1000, cy = eph.y / 1000, cz = eph.z / 1000;
+    // ECI position in km — parameters are in feet, convert to km
+    const FT2KM = 0.0003048;
+    const cx = eph.x * FT2KM, cy = eph.y * FT2KM, cz = eph.z * FT2KM;
 
     // Moon ECI position in km (same frame — x=vernal equinox, y=RA90°, z=north pole)
     const moon = approxMoonPos(now);
@@ -821,17 +822,17 @@ async function fetchAndApply() {
       cameraInitialized = true;
     }
 
-    // Derive HUD values from state vector
+    // Derive HUD values from state vector (velocity params also in ft/s)
     const d_earth = Math.sqrt(cx*cx + cy*cy + cz*cz);
-    const vel_ms  = Math.sqrt(eph.vx*eph.vx + eph.vy*eph.vy + eph.vz*eph.vz);
+    const vel_kmh = Math.sqrt(eph.vx*eph.vx + eph.vy*eph.vy + eph.vz*eph.vz) * FT2KM * 3600;
     const dx = moon.x - cx, dy = moon.y - cy, dz = moon.z - cz;
     const d_moon = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
-    lastGoodTelemetry = { d_earth, d_moon, vel_kmh: vel_ms * 3.6, fetchedAt: now };
+    lastGoodTelemetry = { d_earth, d_moon, vel_kmh, fetchedAt: now };
 
     document.getElementById('dist-earth').textContent = formatKm(d_earth);
     document.getElementById('dist-moon').textContent  = formatKm(d_moon);
-    document.getElementById('velocity').textContent   = Math.round(vel_ms * 3.6).toLocaleString() + ' km/h';
+    document.getElementById('velocity').textContent   = Math.round(vel_kmh).toLocaleString() + ' km/h';
     document.getElementById('hud-date').textContent   = now.toUTCString().slice(0, 25) + ' UTC';
     setTelemetryStatus(true, 'live');
 
