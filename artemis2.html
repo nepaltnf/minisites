@@ -207,6 +207,14 @@
       animation: pulse 2s infinite;
     }
     #status-dot.offline { background: #6a2a2a; }
+    #sun-bloom {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      background: white;
+      opacity: 0;
+    }
     #unit-toggle {
       position: fixed;
       bottom: 40px;
@@ -262,6 +270,7 @@
 
 <div id="planet-labels"></div>
 
+<div id="sun-bloom"></div>
 <button id="unit-toggle">km</button>
 
 <div id="telemetry-status">
@@ -468,12 +477,13 @@ const STAR_VERT = `
   }
 `;
 const STAR_FRAG = `
+  uniform float u_opacity;
   varying vec3 vColor;
   void main() {
     float d = length(gl_PointCoord - vec2(0.5)) * 2.0;
     if (d > 1.0) discard;
     float a = exp(-d * d * 4.0); // Gaussian glow
-    gl_FragColor = vec4(vColor, a);
+    gl_FragColor = vec4(vColor, a * u_opacity);
   }
 `;
 
@@ -512,6 +522,7 @@ function buildAccurateStarField(features) {
   const mat = new THREE.ShaderMaterial({
     vertexShader:   STAR_VERT,
     fragmentShader: STAR_FRAG,
+    uniforms:       { u_opacity: { value: 1.0 } },
     transparent: true,
     depthWrite:  false,
   });
@@ -540,7 +551,9 @@ function buildRandomStarField(count = 6000) {
   geo.setAttribute('starColor', new THREE.BufferAttribute(col, 3));
   geo.setAttribute('starSize',  new THREE.BufferAttribute(sz,  1));
   return new THREE.Points(geo, new THREE.ShaderMaterial({
-    vertexShader: STAR_VERT, fragmentShader: STAR_FRAG, transparent: true, depthWrite: false,
+    vertexShader: STAR_VERT, fragmentShader: STAR_FRAG,
+    uniforms: { u_opacity: { value: 1.0 } },
+    transparent: true, depthWrite: false,
   }));
 }
 
@@ -768,6 +781,7 @@ Promise.all([
     ? buildAccurateStarField(starData.features)
     : buildRandomStarField();
   scene.add(stars);
+  starsPoints = stars;
 
   buildEarth(dayTex);
   buildMoon(moonTex);
@@ -873,6 +887,38 @@ async function fetchAndApply() {
   }
 }
 
+// ─── PUPIL ADAPTATION ────────────────────────────────────────────────────────
+// Simulates eye response to the Sun's extreme brightness in space.
+// currentExposure 0 = dark-adapted (stars vivid), 1 = sun-saturated (stars washed out).
+
+let starsPoints = null;
+let currentExposure = 0;
+const bloomEl = document.getElementById('sun-bloom');
+
+function updatePupilEffect(delta) {
+  if (!sunMesh) return;
+
+  // Camera look direction from yaw/pitch (YXZ euler)
+  const lx = -Math.sin(yaw) * Math.cos(pitch);
+  const ly =  Math.sin(pitch);
+  const lz = -Math.cos(yaw) * Math.cos(pitch);
+
+  // Normalized sun direction
+  const sp = sunMesh.position, sl = sp.length();
+  const dot = Math.max(-1, Math.min(1, (lx*sp.x + ly*sp.y + lz*sp.z) / sl));
+  const angleDeg = Math.acos(dot) * 180 / Math.PI;
+
+  // Influence: peaks at 0°, zero beyond 80° — sun doesn't need to be in FOV to affect pupil
+  const target = Math.max(0, (1 - angleDeg / 80) ** 2);
+
+  // Asymmetric time constants: iris contracts fast (sun appears), dilates slowly (sun leaves)
+  const tau = target > currentExposure ? 0.6 : 3.5;
+  currentExposure += (target - currentExposure) * (1 - Math.exp(-delta / tau));
+
+  bloomEl.style.opacity = (currentExposure * 0.62).toFixed(3);
+  if (starsPoints) starsPoints.material.uniforms.u_opacity.value = 1.0 - currentExposure * 0.92;
+}
+
 let useImperial = false;
 
 function formatDist(km) {
@@ -902,7 +948,7 @@ document.getElementById('unit-toggle').addEventListener('click', () => {
 function startPositionUpdates() {
   applyFallbackPositions(); // show something immediately
   fetchAndApply();          // then replace with live data
-  setInterval(fetchAndApply, 300000); // every 5 minutes
+  setInterval(fetchAndApply, 60000); // every 60s (GCS has no proxy throttling)
 }
 
 // ─── LENS SELECTOR ───────────────────────────────────────────────────────────
@@ -1021,6 +1067,7 @@ function render() {
     camera.quaternion.setFromEuler(euler);
   }
 
+  updatePupilEffect(delta);
   updatePlanetLabels();
   renderer.render(scene, camera);
 }
