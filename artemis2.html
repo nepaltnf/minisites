@@ -545,7 +545,8 @@ function buildPlanetMarkers(date) {
     // Place far out on the star sphere, size scaled by magnitude
     const dist = 45000;
     sprite.position.copy(dir.clone().multiplyScalar(dist));
-    const glowSize = Math.max(300, 1200 - p.mag * 280);
+    // Planets look like very bright stars — tight point, barely a disc
+    const glowSize = Math.max(60, 180 - p.mag * 45);
     sprite.scale.setScalar(glowSize);
     scene.add(sprite);
 
@@ -565,9 +566,12 @@ function makePlanetGlowTexture(hexColor) {
   const ctx = c.getContext('2d');
   const r = new THREE.Color(hexColor);
   const grad = ctx.createRadialGradient(32,32,0, 32,32,32);
-  grad.addColorStop(0.0,  `rgba(${Math.round(r.r*255)},${Math.round(r.g*255)},${Math.round(r.b*255)},1.0)`);
-  grad.addColorStop(0.3,  `rgba(${Math.round(r.r*255)},${Math.round(r.g*255)},${Math.round(r.b*255)},0.5)`);
-  grad.addColorStop(1.0,  `rgba(${Math.round(r.r*255)},${Math.round(r.g*255)},${Math.round(r.b*255)},0.0)`);
+  const R2 = Math.round(r.r*255), G2 = Math.round(r.g*255), B2 = Math.round(r.b*255);
+  grad.addColorStop(0.00, `rgba(255,255,255,1.0)`);           // white hot core
+  grad.addColorStop(0.12, `rgba(${R2},${G2},${B2},0.9)`);    // planet colour
+  grad.addColorStop(0.30, `rgba(${R2},${G2},${B2},0.25)`);   // fast falloff
+  grad.addColorStop(0.55, `rgba(${R2},${G2},${B2},0.04)`);
+  grad.addColorStop(1.00, `rgba(${R2},${G2},${B2},0.0)`);
   ctx.fillStyle = grad;
   ctx.fillRect(0,0,64,64);
   return new THREE.CanvasTexture(c);
