@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>ISS — View From the Station</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      overflow: hidden;
+      font-family: 'Courier New', monospace;
+      color: #fff;
+      touch-action: none;
+    }
+
+    #canvas-container { position: fixed; inset: 0; }
+
+    /* Vignette */
+    #window-frame {
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 10;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.85) 100%);
+    }
+
+    /* HUD */
+    #hud {
+      position: fixed; bottom: 40px; left: 50%;
+      transform: translateX(-50%);
+      z-index: 20; display: flex; gap: 40px; align-items: flex-end;
+    }
+    .hud-block { text-align: center; opacity: 0.5; transition: opacity 0.2s; }
+    .hud-block:hover { opacity: 1; }
+    .hud-label { font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #aaa; margin-bottom: 4px; }
+    .hud-value { font-size: 16px; color: #fff; letter-spacing: 0.05em; }
+    #hud-date  { font-size: 11px; color: #666; letter-spacing: 0.15em; }
+
+    /* Lens selector */
+    #lens-select { position: fixed; top: 36px; right: 44px; z-index: 20; }
+    #lens-toggle {
+      background: none; border: 1px solid #2a2a2a; color: #444;
+      font-family: 'Courier New', monospace; font-size: 11px;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 7px 10px; cursor: pointer; border-radius: 3px;
+      transition: all 0.15s; display: flex; align-items: center; gap: 6px;
+    }
+    #lens-toggle:hover, #lens-toggle.open { border-color: #555; color: #ccc; }
+    #lens-dropdown {
+      display: none; flex-direction: column; gap: 4px;
+      position: absolute; top: calc(100% + 4px); right: 0;
+      background: rgba(0,0,0,0.85); padding: 4px; border-radius: 3px; min-width: 100%;
+    }
+    #lens-dropdown.open { display: flex; }
+    .lens-option {
+      background: none; border: 1px solid #2a2a2a; color: #444;
+      font-family: 'Courier New', monospace; font-size: 11px;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      padding: 7px 10px; cursor: pointer; border-radius: 3px;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .lens-option:hover { border-color: #666; color: #bbb; }
+    .lens-option.active { border-color: #555; color: #ccc; background: rgba(255,255,255,0.04); }
+
+    /* VR button */
+    #vr-btn {
+      position: fixed; top: 36px; left: 44px; z-index: 20;
+      background: none; border: 1px solid #333; color: #555;
+      font-family: 'Courier New', monospace; font-size: 9px;
+      letter-spacing: 0.2em; text-transform: uppercase;
+      padding: 8px 14px; cursor: pointer; border-radius: 3px; transition: all 0.2s;
+    }
+    #vr-btn:hover { border-color: #888; color: #ccc; }
+    #vr-btn.hidden { display: none; }
+
+    /* Loading */
+    #loading {
+      position: fixed; inset: 0; z-index: 50;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; background: #000; gap: 16px;
+    }
+    #loading-title { font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: #555; }
+    #loading-status { font-size: 10px; letter-spacing: 0.15em; color: #333; }
+
+    /* Title */
+    #met {
+      position: fixed; top: 36px; left: 50%;
+      transform: translateX(-50%); z-index: 20; text-align: center;
+    }
+    #met-title { font-size: 20px; letter-spacing: 0.2em; color: #333; text-transform: uppercase; }
+    #met-phase { font-size: 18px; letter-spacing: 0.15em; color: #2a4a2a; text-transform: uppercase; margin-top: 4px; }
+
+    /* Planet labels */
+    #planet-labels { position: fixed; inset: 0; pointer-events: none; z-index: 15; }
+    .planet-label {
+      position: absolute; font-size: 8px; letter-spacing: 0.18em;
+      color: #666; text-transform: uppercase;
+      transform: translate(-50%, 14px); white-space: nowrap;
+    }
+
+    /* Telemetry status */
+    #telemetry-status {
+      position: fixed; bottom: 40px; right: 44px; z-index: 20;
+      display: flex; align-items: center; gap: 7px; opacity: 0.6;
+    }
+    #status-dot { width: 5px; height: 5px; border-radius: 50%; background: #2a4a2a; }
+    #status-dot.live { background: #3a7a3a; box-shadow: 0 0 6px #3a7a3a; animation: pulse 2s infinite; }
+    #status-dot.offline { background: #6a2a2a; }
+    #status-label { font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: #555; }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50%      { opacity: 0.4; }
+    }
+
+    #sun-bloom { position: fixed; inset: 0; pointer-events: none; z-index: 5; background: white; opacity: 0; }
+
+    /* Mobile */
+    @media (max-width: 700px) {
+      #window-frame { border: none; border-radius: 0; box-shadow: none; }
+      #hud { left: 16px; right: 16px; transform: none; bottom: 24px; gap: 0; justify-content: space-between; align-items: flex-end; }
+      .hud-label { font-size: 9px; }
+      .hud-value { font-size: 13px; }
+      #hud-date  { font-size: 9px; }
+      #lens-select { top: 20px; right: 16px; }
+      #vr-btn      { top: 20px; left: 16px; }
+      #met         { top: 20px; }
+      #met-title   { font-size: 15px; }
+      #met-phase   { font-size: 13px; }
+      #telemetry-status { bottom: auto; right: auto; top: 20px; left: 16px; }
+    }
+
+    /* Welcome overlay */
+    #welcome {
+      position: fixed; inset: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.92); transition: opacity 0.6s ease;
+    }
+    #welcome.hidden { opacity: 0; pointer-events: none; }
+    #welcome-card {
+      max-width: 480px; width: 90%; max-height: 90vh; overflow-y: auto;
+      border: 1px solid #222; border-radius: 6px; padding: 44px 48px; position: relative;
+    }
+    #welcome-mission { font-size: 11px; letter-spacing: 0.3em; color: #3a7a3a; text-transform: uppercase; margin-bottom: 18px; }
+    #welcome-title { font-size: 29px; letter-spacing: 0.12em; color: #ddd; text-transform: uppercase; margin-bottom: 28px; line-height: 1.3; }
+    #welcome-body { font-size: 15px; letter-spacing: 0.04em; color: #999; line-height: 1.8; margin-bottom: 36px; }
+    #welcome-body p + p { margin-top: 14px; }
+    #welcome-enter {
+      display: block; width: 100%; background: none; border: 1px solid #2a2a2a;
+      color: #555; font-family: 'Courier New', monospace; font-size: 12px;
+      letter-spacing: 0.25em; text-transform: uppercase; padding: 13px;
+      cursor: pointer; border-radius: 3px; transition: all 0.15s; margin-bottom: 24px;
+    }
+    #welcome-enter:hover { border-color: #555; color: #aaa; }
+    #welcome-credit { font-size: 11px; letter-spacing: 0.2em; color: #555; text-transform: uppercase; }
+    @media (max-width: 700px) {
+      #welcome-card { width: 100%; max-height: 100dvh; padding: 28px 20px; border-left: none; border-right: none; border-radius: 0; }
+      #welcome-title { font-size: 22px; margin-bottom: 16px; }
+      #welcome-body  { font-size: 13px; line-height: 1.7; margin-bottom: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="planet-labels"></div>
+<div id="sun-bloom"></div>
+
+<div id="telemetry-status">
+  <div id="status-dot"></div>
+  <div id="status-label">—</div>
+</div>
+
+<div id="hud">
+  <div class="hud-block">
+    <div class="hud-label">Altitude</div>
+    <div class="hud-value" id="altitude">—</div>
+  </div>
+  <div class="hud-block">
+    <div class="hud-label">Velocity</div>
+    <div class="hud-value" id="velocity">—</div>
+    <div id="hud-date">—</div>
+  </div>
+  <div class="hud-block">
+    <div class="hud-label">Position</div>
+    <div class="hud-value" id="position">—</div>
+  </div>
+</div>
+
+<div id="met">
+  <div id="met-title">ISS — View From the Station</div>
+  <div id="met-phase">—</div>
+</div>
+
+<div id="lens-select">
+  <button id="lens-toggle">Eye <span id="lens-chevron">▾</span></button>
+  <div id="lens-dropdown">
+    <button class="lens-option active" data-fov="39">Eye</button>
+    <button class="lens-option" data-fov="27">50mm</button>
+    <button class="lens-option" data-fov="16">85mm</button>
+    <button class="lens-option" data-fov="7">200mm</button>
+  </div>
+</div>
+
+<button id="vr-btn" class="hidden">Enter VR</button>
+
+<div id="welcome">
+  <div id="welcome-card">
+    <div id="welcome-mission">NASA · ISS · Live</div>
+    <div id="welcome-title">View From the Station</div>
+    <div id="welcome-body">
+      <p>This is a simulation of the live view from the International Space Station (within 5 seconds). Position and velocity are supplied by live telemetry. The Earth, Stars, Moon, Sun, and planets are placed using real orbital mechanics.</p>
+      <p>The ISS orbits at approximately 408 km altitude, completing one orbit every 90 minutes. Day and night cycle every 45 minutes.</p>
+      <p>Drag to look around. Select a camera lens to zoom. The Eye view is set to a 35mm equivalent lens.</p>
+    </div>
+    <button id="welcome-enter">Enter the station</button>
+    <div id="welcome-credit">Made by Ian Allen</div>
+  </div>
+</div>
+
+<div id="loading">
+  <div id="loading-title">ISS</div>
+  <div id="loading-status">Loading textures...</div>
+</div>
+
+<div id="canvas-container"></div>
+<div id="window-frame"></div>
+
+<!-- Three.js r128 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+
+const EARTH_RADIUS_KM  = 6371;
+const MOON_RADIUS_KM   = 1737;
+const SCENE_SCALE      = 1 / 10000;
+const FOV_DEFAULT      = 39; // ~35mm full-frame equivalent
+
+const TEXTURES = {
+  earthDay:     'images/4k_earth_daymap.jpg',
+  earthNight:   'images/8k_earth_nightmap.jpg', // always 8k — ISS is always close
+  earthSpec:    'images/8081_earthspec4k.jpg',
+  earthCloud:   'images/2k_earth_clouds.jpg',
+  moon2k:       'images/2k_moon.jpg',
+};
+
+// ─── TELEMETRY ───────────────────────────────────────────────────────────────
+// wheretheiss.at — returns lat, lon, altitude (km), velocity (km/h), visibility
+
+const ISS_API = 'https://api.wheretheiss.at/v1/satellites/25544';
+
+function fetchWithTimeout(url, ms = 8000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+// ECEF → ECI (rotate around Z by GMST)
+function ecefToECI(x, y, z, gmst) {
+  return {
+    x:  x * Math.cos(gmst) - y * Math.sin(gmst),
+    y:  x * Math.sin(gmst) + y * Math.cos(gmst),
+    z,
+  };
+}
+
+// Approximate Moon position (geocentric equatorial, km)
+function approxMoonPos(date) {
+  const D = (date - new Date('2000-01-01T12:00:00Z')) / 86400000;
+  const L = (218.316 + 13.176396 * D) * Math.PI / 180;
+  const M = (134.963 + 13.064993 * D) * Math.PI / 180;
+  const F = (93.272  + 13.229350 * D) * Math.PI / 180;
+  const lon = L + 6.289 * Math.sin(M) * Math.PI / 180;
+  const lat = 5.128 * Math.sin(F) * Math.PI / 180;
+  const r   = 385001 - 20905 * Math.cos(M);
+  const eps = 23.44 * Math.PI / 180;
+  return {
+    x: r * Math.cos(lat) * Math.cos(lon),
+    y: r * (Math.cos(eps) * Math.cos(lat) * Math.sin(lon) - Math.sin(eps) * Math.sin(lat)),
+    z: r * (Math.sin(eps) * Math.cos(lat) * Math.sin(lon) + Math.cos(eps) * Math.sin(lat)),
+  };
+}
+
+function approxSunDirection(date) {
+  const D = (date - new Date('2000-01-01T12:00:00Z')) / 86400000;
+  const L = (280.46 + 0.9856474 * D) * Math.PI / 180;
+  const g = (357.528 + 0.9856003 * D) * Math.PI / 180;
+  const lon = L + 1.915 * Math.sin(g) * Math.PI / 180 + 0.020 * Math.sin(2 * g) * Math.PI / 180;
+  const eps = 23.44 * Math.PI / 180;
+  return new THREE.Vector3(
+    Math.cos(lon),
+    Math.sin(eps) * Math.sin(lon),
+    -Math.cos(eps) * Math.sin(lon)
+  ).normalize();
+}
+
+function computeGMST(date) {
+  const D = (date - new Date('2000-01-01T12:00:00Z')) / 86400000;
+  return (280.46061837 + 360.98564736629 * D) * Math.PI / 180;
+}
+
+// ─── SCENE ───────────────────────────────────────────────────────────────────
+
+const scene    = new THREE.Scene();
+const camera   = new THREE.PerspectiveCamera(FOV_DEFAULT, innerWidth / innerHeight, 0.0001, 1e8);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputEncoding = THREE.sRGBEncoding;
+document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+const sunLight = new THREE.DirectionalLight(0xffffff, 3.2);
+scene.add(sunLight);
+const ambientLight = new THREE.AmbientLight(0x111122, 0.05);
+scene.add(ambientLight);
+
+// ─── STARS ───────────────────────────────────────────────────────────────────
+
+const STAR_CATALOG_URL = 'https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/stars.6.json';
+
+function bvToRGB(bv) {
+  bv = parseFloat(bv);
+  if (isNaN(bv)) return [1.0, 1.0, 1.0];
+  if (bv < -0.2) return [0.60, 0.75, 1.00];
+  if (bv <  0.0) return [0.75, 0.88, 1.00];
+  if (bv <  0.3) return [0.96, 0.97, 1.00];
+  if (bv <  0.6) return [1.00, 0.96, 0.86];
+  if (bv <  1.0) return [1.00, 0.84, 0.58];
+  if (bv <  1.5) return [1.00, 0.63, 0.32];
+  return               [1.00, 0.42, 0.18];
+}
+
+const STAR_VERT = `
+  attribute float starSize;
+  attribute vec3  starColor;
+  varying   vec3  vColor;
+  void main() {
+    vColor = starColor;
+    gl_PointSize = starSize;
+    gl_Position  = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+const STAR_FRAG = `
+  uniform float u_opacity;
+  varying vec3 vColor;
+  void main() {
+    float d = length(gl_PointCoord - vec2(0.5)) * 2.0;
+    if (d > 1.0) discard;
+    float a = exp(-d * d * 4.0);
+    gl_FragColor = vec4(vColor, a * u_opacity);
+  }
+`;
+
+function buildAccurateStarField(features) {
+  const R = 50000, n = features.length;
+  const pos = new Float32Array(n * 3);
+  const col = new Float32Array(n * 3);
+  const sz  = new Float32Array(n);
+  features.forEach((f, i) => {
+    const [ra_deg, dec_deg] = f.geometry.coordinates;
+    const ra  = ra_deg  * Math.PI / 180;
+    const dec = dec_deg * Math.PI / 180;
+    pos[i*3]   =  R * Math.cos(dec) * Math.cos(ra);
+    pos[i*3+1] =  R * Math.sin(dec);
+    pos[i*3+2] = -R * Math.cos(dec) * Math.sin(ra);
+    const [r, g, b] = bvToRGB(f.properties.bv);
+    col[i*3] = r; col[i*3+1] = g; col[i*3+2] = b;
+    sz[i] = Math.max(1.0, 5.5 - f.properties.mag * 0.75);
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position',  new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('starColor', new THREE.BufferAttribute(col, 3));
+  geo.setAttribute('starSize',  new THREE.BufferAttribute(sz,  1));
+  return new THREE.Points(geo, new THREE.ShaderMaterial({
+    vertexShader: STAR_VERT, fragmentShader: STAR_FRAG,
+    uniforms: { u_opacity: { value: 1.0 } },
+    transparent: true, depthWrite: false,
+  }));
+}
+
+function buildRandomStarField(count = 6000) {
+  const pos = new Float32Array(count * 3);
+  const col = new Float32Array(count * 3);
+  const sz  = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi   = Math.acos(2 * Math.random() - 1);
+    const r = 50000;
+    pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    pos[i*3+2] = r * Math.cos(phi);
+    const w = Math.random();
+    col[i*3] = 0.85+w*0.15; col[i*3+1] = 0.85+w*0.05; col[i*3+2] = 0.95-w*0.15;
+    sz[i] = 1.0 + Math.random();
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position',  new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('starColor', new THREE.BufferAttribute(col, 3));
+  geo.setAttribute('starSize',  new THREE.BufferAttribute(sz,  1));
+  return new THREE.Points(geo, new THREE.ShaderMaterial({
+    vertexShader: STAR_VERT, fragmentShader: STAR_FRAG,
+    uniforms: { u_opacity: { value: 1.0 } },
+    transparent: true, depthWrite: false,
+  }));
+}
+
+// ─── PLANETS ─────────────────────────────────────────────────────────────────
+
+const PLANET_ELEMS = [
+  { name:'Mercury', col:0xcccccc, L0:252.251, L1:149472.675, a:0.38710, e0:0.20563, e1: 2.1e-5, i0:7.005, i1:-5.9e-3, om0: 77.458, om1:0.1594, O0: 48.340, O1:-0.1221, mag:-0.5 },
+  { name:'Venus',   col:0xfff5cc, L0:181.980, L1: 58517.816, a:0.72333, e0:0.00677, e1:-5.1e-5, i0:3.395, i1: 4.3e-4, om0:131.768, om1:0.0568, O0: 76.673, O1:-0.2727, mag:-4.0 },
+  { name:'Mars',    col:0xff7744, L0: -4.568, L1: 19140.299, a:1.52371, e0:0.09337, e1: 9.1e-5, i0:1.852, i1:-7.2e-3, om0:-23.917, om1:0.4522, O0: 49.713, O1:-0.2685, mag: 0.5 },
+  { name:'Jupiter', col:0xffddaa, L0: 34.335, L1:  3034.904, a:5.20248, e0:0.04854, e1: 1.8e-4, i0:1.299, i1:-3.2e-3, om0: 14.275, om1:0.1820, O0:100.293, O1: 0.1302, mag:-2.0 },
+  { name:'Saturn',  col:0xfff0cc, L0: 50.076, L1:  1222.115, a:9.54150, e0:0.05551, e1:-3.2e-4, i0:2.494, i1: 4.5e-3, om0: 92.861, om1:0.5418, O0:113.640, O1:-0.2502, mag: 0.7 },
+];
+
+function planetHelioEcl(p, T) {
+  const d2r = Math.PI / 180;
+  const L = (p.L0 + p.L1 * T) * d2r;
+  const e =  p.e0 + p.e1 * T;
+  const inc = (p.i0 + p.i1 * T) * d2r;
+  const om = (p.om0 + p.om1 * T) * d2r;
+  const Om = (p.O0  + p.O1  * T) * d2r;
+  let M = L - om, E = M;
+  for (let k = 0; k < 8; k++) E = M + e * Math.sin(E);
+  const nu = 2 * Math.atan2(Math.sqrt(1+e)*Math.sin(E/2), Math.sqrt(1-e)*Math.cos(E/2));
+  const r  = p.a * (1 - e * Math.cos(E));
+  const u  = nu + om - Om;
+  return {
+    x: r*(Math.cos(Om)*Math.cos(u) - Math.sin(Om)*Math.sin(u)*Math.cos(inc)),
+    y: r*(Math.sin(Om)*Math.cos(u) + Math.cos(Om)*Math.sin(u)*Math.cos(inc)),
+    z: r*(Math.sin(u)*Math.sin(inc)),
+  };
+}
+
+function eclToScene(x, y, z) {
+  const eps = 23.44 * Math.PI / 180;
+  return new THREE.Vector3(x, y*Math.sin(eps)+z*Math.cos(eps), -y*Math.cos(eps)+z*Math.sin(eps));
+}
+
+const EARTH_ELEM = { L0:100.467, L1:35999.373, a:1.00000, e0:0.01671, e1:-3.6e-5, i0:0.0, i1:0.0, om0:102.930, om1:0.3195, O0:0.0, O1:0.0 };
+let planetMarkers = [];
+
+function buildPlanetMarkers(date) {
+  planetMarkers.forEach(m => { scene.remove(m.sprite); m.labelEl.remove(); });
+  planetMarkers = [];
+  const T = (date - new Date('2000-01-01T12:00:00Z')) / (365.25 * 86400000 * 100);
+  const earth = planetHelioEcl(EARTH_ELEM, T);
+  const labelContainer = document.getElementById('planet-labels');
+  PLANET_ELEMS.forEach(p => {
+    const hel = planetHelioEcl(p, T);
+    const dir = eclToScene(hel.x-earth.x, hel.y-earth.y, hel.z-earth.z).normalize();
+    const glowTex = makePlanetGlowTexture(p.col);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTex, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
+    }));
+    sprite.position.copy(dir.clone().multiplyScalar(45000));
+    sprite.scale.setScalar(Math.max(60, 180 - p.mag * 45));
+    scene.add(sprite);
+    const labelEl = document.createElement('div');
+    labelEl.className = 'planet-label';
+    labelEl.textContent = p.name;
+    labelContainer.appendChild(labelEl);
+    planetMarkers.push({ sprite, labelEl, dir });
+  });
+}
+
+function makePlanetGlowTexture(hexColor) {
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const ctx = c.getContext('2d');
+  const r = new THREE.Color(hexColor);
+  const grad = ctx.createRadialGradient(32,32,0, 32,32,32);
+  const R2=Math.round(r.r*255), G2=Math.round(r.g*255), B2=Math.round(r.b*255);
+  grad.addColorStop(0.00, `rgba(255,255,255,1.0)`);
+  grad.addColorStop(0.12, `rgba(${R2},${G2},${B2},0.9)`);
+  grad.addColorStop(0.30, `rgba(${R2},${G2},${B2},0.25)`);
+  grad.addColorStop(0.55, `rgba(${R2},${G2},${B2},0.04)`);
+  grad.addColorStop(1.00, `rgba(${R2},${G2},${B2},0.0)`);
+  ctx.fillStyle = grad; ctx.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(c);
+}
+
+function updatePlanetLabels() {
+  const w = window.innerWidth, h = window.innerHeight;
+  planetMarkers.forEach(({ sprite, labelEl }) => {
+    const pos = sprite.position.clone().project(camera);
+    if (pos.z > 1) { labelEl.style.display = 'none'; return; }
+    labelEl.style.display = 'block';
+    labelEl.style.left = ((pos.x * 0.5 + 0.5) * w) + 'px';
+    labelEl.style.top  = ((-pos.y * 0.5 + 0.5) * h) + 'px';
+  });
+}
+
+// ─── SUN ─────────────────────────────────────────────────────────────────────
+
+const SUN_SCENE_DIST = 30000;
+const SUN_SPHERE_R   = SUN_SCENE_DIST * Math.tan(0.00464);
+let sunMesh, sunGlowSprite;
+
+function makeSunGlowTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(128,128,0, 128,128,128);
+  grad.addColorStop(0.00, 'rgba(255,255,255,1.0)');
+  grad.addColorStop(0.08, 'rgba(255,250,220,1.0)');
+  grad.addColorStop(0.20, 'rgba(255,230,120,0.85)');
+  grad.addColorStop(0.45, 'rgba(255,170, 50,0.40)');
+  grad.addColorStop(0.70, 'rgba(255,110, 10,0.12)');
+  grad.addColorStop(1.00, 'rgba(255, 80,  0,0.0)');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,256,256);
+  return new THREE.CanvasTexture(canvas);
+}
+
+function buildSun() {
+  sunMesh = new THREE.Mesh(
+    new THREE.SphereGeometry(SUN_SPHERE_R, 32, 32),
+    new THREE.MeshBasicMaterial({ color: 0xfffde0 })
+  );
+  scene.add(sunMesh);
+  sunGlowSprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: makeSunGlowTexture(), blending: THREE.AdditiveBlending,
+    transparent: true, depthWrite: false,
+  }));
+  sunGlowSprite.scale.setScalar(SUN_SPHERE_R * 26);
+  scene.add(sunGlowSprite);
+}
+
+function placeSun(dir) {
+  const pos = dir.clone().multiplyScalar(SUN_SCENE_DIST);
+  sunMesh.position.copy(pos);
+  sunGlowSprite.position.copy(pos);
+  sunLight.position.copy(pos);
+}
+
+buildSun();
+placeSun(approxSunDirection(new Date()));
+
+// ─── EARTH ────────────────────────────────────────────────────────────────────
+
+const loader = new THREE.TextureLoader();
+let earthMesh, moonMesh, earthMat;
+let positionsReady = false;
+
+function buildEarth(dayTex, nightTex, specTex, cloudTex) {
+  const geo = new THREE.SphereGeometry(EARTH_RADIUS_KM * SCENE_SCALE, 64, 64);
+  earthMat = new THREE.ShaderMaterial({
+    uniforms: {
+      u_day:         { value: dayTex },
+      u_night:       { value: nightTex },
+      u_spec:        { value: specTex },
+      u_clouds:      { value: cloudTex },
+      u_cloudOffset: { value: 0.0 },
+      u_sunDir:      { value: new THREE.Vector3(1, 0, 0) },
+      u_cameraPos:   { value: new THREE.Vector3() },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vWorldNormal;
+      varying vec3 vWorldPos;
+      void main() {
+        vUv = uv;
+        vWorldNormal = normalize(mat3(modelMatrix) * normal);
+        vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D u_day;
+      uniform sampler2D u_night;
+      uniform sampler2D u_spec;
+      uniform sampler2D u_clouds;
+      uniform float u_cloudOffset;
+      uniform vec3 u_sunDir;
+      uniform vec3 u_cameraPos;
+      varying vec2 vUv;
+      varying vec3 vWorldNormal;
+      varying vec3 vWorldPos;
+      void main() {
+        vec3 N = normalize(vWorldNormal);
+        vec3 S = normalize(u_sunDir);
+        vec3 V = normalize(u_cameraPos - vWorldPos);
+        float NdotS = dot(N, S);
+        float NdotV = max(0.0, dot(N, V));
+        float blend = smoothstep(-0.28, 0.15, NdotS);
+        vec4 day   = texture2D(u_day,   vUv);
+        vec4 night = texture2D(u_night, vUv);
+        float lightsFade = smoothstep(-0.08, -0.30, NdotS);
+        vec3 nightLights = pow(night.rgb, vec3(1.8)) * 3.5 * lightsFade;
+        vec3 surface = mix(vec3(0.0), day.rgb, blend) + nightLights;
+        float oceanMask = texture2D(u_spec, vUv).r;
+        vec3 H = normalize(S + V);
+        float spec = pow(max(0.0, dot(N, H)), 180.0);
+        surface += vec3(1.0, 0.97, 0.93) * spec * oceanMask * blend;
+        vec2 cloudUV = vec2(mod(vUv.x + u_cloudOffset, 1.0), vUv.y);
+        float cloud = texture2D(u_clouds, cloudUV).r;
+        vec3 cloudColor = mix(vec3(0.06), vec3(1.0), blend);
+        surface = mix(surface, cloudColor, cloud * 0.88);
+        float rim = pow(1.0 - NdotV, 4.0);
+        float atmosLit = smoothstep(-0.15, 0.35, NdotS);
+        vec3 atmosColor = mix(vec3(0.4, 0.7, 1.0), vec3(0.8, 0.9, 1.0), rim);
+        float atmosIntensity = rim * atmosLit * 0.6;
+        gl_FragColor = vec4(surface + atmosColor * atmosIntensity, 1.0);
+      }
+    `,
+  });
+  earthMesh = new THREE.Mesh(geo, earthMat);
+  scene.add(earthMesh);
+}
+
+function buildMoon(moonTex) {
+  const geo = new THREE.SphereGeometry(MOON_RADIUS_KM * SCENE_SCALE, 48, 48);
+  moonMesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({
+    map: moonTex, specular: new THREE.Color(0x000000), shininess: 1,
+    emissive: new THREE.Color(0x000000),
+  }));
+  scene.add(moonMesh);
+}
+
+const setStatus = s => { document.getElementById('loading-status').textContent = s; };
+
+Promise.all([
+  new Promise(r => loader.load(TEXTURES.earthDay,   t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthNight, t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthSpec,  t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthCloud, t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.moon2k,     t => r(t), undefined, () => r(null))),
+  fetch(STAR_CATALOG_URL).then(r => r.json()).catch(() => null),
+]).then(([dayTex, nightTex, specTex, cloudTex, moonTex, starData]) => {
+  setStatus('Building scene...');
+
+  if (!dayTex) {
+    dayTex = new THREE.DataTexture(new Uint8Array([30, 80, 160, 255]), 1, 1, THREE.RGBAFormat);
+    dayTex.needsUpdate = true;
+  }
+  if (!nightTex) {
+    nightTex = new THREE.DataTexture(new Uint8Array([5, 5, 20, 255]), 1, 1, THREE.RGBAFormat);
+    nightTex.needsUpdate = true;
+  }
+  if (!moonTex) {
+    moonTex = new THREE.DataTexture(new Uint8Array([160, 155, 145, 255]), 1, 1, THREE.RGBAFormat);
+    moonTex.needsUpdate = true;
+  }
+
+  const stars = (starData && starData.features)
+    ? buildAccurateStarField(starData.features)
+    : buildRandomStarField();
+  scene.add(stars);
+  starsPoints = stars;
+
+  buildEarth(dayTex, nightTex, specTex, cloudTex);
+  buildMoon(moonTex);
+
+  document.getElementById('loading').style.display = 'none';
+  positionsReady = true;
+
+  buildPlanetMarkers(new Date());
+  startPositionUpdates();
+  checkVRSupport();
+});
+
+// ─── POSITION UPDATES ────────────────────────────────────────────────────────
+
+let cameraInitialized = false;
+let liveAimDone = false;
+let lastGoodTelemetry = null;
+
+function setTelemetryStatus(live, label) {
+  const dot = document.getElementById('status-dot');
+  dot.className = live ? 'live' : 'offline';
+  document.getElementById('status-label').textContent = label;
+}
+
+function aimCameraAt(x, y, z) {
+  const len = Math.sqrt(x*x + y*y + z*z);
+  if (len === 0) return;
+  pitch = Math.asin(Math.max(-1, Math.min(1, y/len)));
+  yaw   = Math.atan2(-x/len, -z/len);
+}
+
+function applyFallbackPositions() {
+  // Place Earth roughly below — ISS is at ~408km over some point on Earth
+  const now = new Date();
+  const gmst = computeGMST(now);
+  const R = EARTH_RADIUS_KM + 408;
+  // ISS over prime meridian at equator as placeholder
+  const ecef = { x: R, y: 0, z: 0 };
+  const eci  = ecefToECI(ecef.x, ecef.y, ecef.z, gmst);
+  const eRel = {
+    x:  (0 - eci.x) * SCENE_SCALE,
+    y:  (0 - eci.z) * SCENE_SCALE,
+    z: -(0 - eci.y) * SCENE_SCALE,
+  };
+  earthMesh.position.set(eRel.x, eRel.y, eRel.z);
+  const moon = approxMoonPos(now);
+  const mRel = {
+    x:  (moon.x - eci.x) * SCENE_SCALE,
+    y:  (moon.z - eci.z) * SCENE_SCALE,
+    z: -(moon.y - eci.y) * SCENE_SCALE,
+  };
+  moonMesh.position.set(mRel.x, mRel.y, mRel.z);
+  if (!cameraInitialized) { aimCameraAt(eRel.x, eRel.y, eRel.z); cameraInitialized = true; }
+  placeSun(approxSunDirection(now));
+}
+
+function formatLatLon(lat, lon) {
+  const latStr = Math.abs(lat).toFixed(1) + '° ' + (lat >= 0 ? 'N' : 'S');
+  const lonStr = Math.abs(lon).toFixed(1) + '° ' + (lon >= 0 ? 'E' : 'W');
+  return latStr + '  ' + lonStr;
+}
+
+async function fetchAndApply() {
+  const now = new Date();
+  try {
+    const res = await fetchWithTimeout(ISS_API);
+    if (!res.ok) throw new Error('ISS API unavailable');
+    const data = await res.json();
+
+    const lat = data.latitude  * Math.PI / 180;
+    const lon = data.longitude * Math.PI / 180;
+    const R   = EARTH_RADIUS_KM + data.altitude;
+
+    const gmst = computeGMST(now);
+
+    // Lat/lon → ECEF
+    const x_ecef = R * Math.cos(lat) * Math.cos(lon);
+    const y_ecef = R * Math.cos(lat) * Math.sin(lon);
+    const z_ecef = R * Math.sin(lat);
+
+    // ECEF → ECI (J2000: x=vernal equinox, y=RA90°, z=north pole)
+    const { x: cx, y: cy, z: cz } = ecefToECI(x_ecef, y_ecef, z_ecef, gmst);
+
+    const moon = approxMoonPos(now);
+    placeSun(approxSunDirection(now));
+
+    // ECI → scene (scene: x=eci_x, y=eci_z, z=-eci_y) relative to ISS
+    const eciRelToScene = (eci) => ({
+      x:  (eci.x - cx) * SCENE_SCALE,
+      y:  (eci.z - cz) * SCENE_SCALE,
+      z: -(eci.y - cy) * SCENE_SCALE,
+    });
+
+    const eRel = eciRelToScene({ x: 0,      y: 0,      z: 0      });
+    const mRel = eciRelToScene({ x: moon.x, y: moon.y, z: moon.z });
+
+    earthMesh.position.set(eRel.x, eRel.y, eRel.z);
+    moonMesh.position.set(mRel.x, mRel.y, mRel.z);
+
+    // Always aim at Earth — ISS is always in low Earth orbit
+    if (!hasDragged && !liveAimDone) {
+      aimCameraAt(eRel.x, eRel.y, eRel.z);
+      liveAimDone = true;
+      cameraInitialized = true;
+    }
+
+    document.getElementById('altitude').textContent = Math.round(data.altitude).toLocaleString() + ' km';
+    document.getElementById('velocity').textContent = Math.round(data.velocity).toLocaleString() + ' km/h';
+    document.getElementById('position').textContent = formatLatLon(data.latitude, data.longitude);
+    document.getElementById('hud-date').textContent = now.toUTCString().slice(0, 25) + ' UTC';
+
+    // Show daylight/eclipse status from API
+    const vis = data.visibility;
+    document.getElementById('met-phase').textContent =
+      vis === 'daylight' ? 'Daylight' : vis === 'eclipsed' ? 'Eclipse' : vis || '—';
+
+    lastGoodTelemetry = { ...data, fetchedAt: now };
+    setTelemetryStatus(true, 'live');
+
+  } catch (e) {
+    console.warn('ISS telemetry failed:', e);
+    if (lastGoodTelemetry) {
+      const secsAgo = Math.round((now - lastGoodTelemetry.fetchedAt) / 1000);
+      setTelemetryStatus(false, `last data ${secsAgo}s ago`);
+    } else {
+      setTelemetryStatus(false, 'telemetry unavailable');
+      if (!cameraInitialized) applyFallbackPositions();
+    }
+  }
+}
+
+// ─── PUPIL ADAPTATION ────────────────────────────────────────────────────────
+
+let starsPoints = null;
+let currentExposure = 0;
+const bloomEl = document.getElementById('sun-bloom');
+
+function updatePupilEffect(delta) {
+  if (!sunMesh) return;
+  const lx = -Math.sin(yaw) * Math.cos(pitch);
+  const ly =  Math.sin(pitch);
+  const lz = -Math.cos(yaw) * Math.cos(pitch);
+  const sp = sunMesh.position, sl = sp.length();
+  const dot = Math.max(-1, Math.min(1, (lx*sp.x + ly*sp.y + lz*sp.z) / sl));
+  const angleDeg = Math.acos(dot) * 180 / Math.PI;
+  const target = Math.max(0, 1 - angleDeg / 30) ** 3;
+  const tau = target > currentExposure ? 0.6 : 3.5;
+  currentExposure += (target - currentExposure) * (1 - Math.exp(-delta / tau));
+  bloomEl.style.opacity = (currentExposure * 0.62).toFixed(3);
+  if (starsPoints) starsPoints.material.uniforms.u_opacity.value = 1.0 - currentExposure * 0.92;
+}
+
+// ─── WELCOME OVERLAY ─────────────────────────────────────────────────────────
+
+function dismissWelcome() {
+  const el = document.getElementById('welcome');
+  el.classList.add('hidden');
+  setTimeout(() => el.style.display = 'none', 600);
+}
+document.getElementById('welcome-enter').addEventListener('click', dismissWelcome);
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') dismissWelcome();
+});
+
+function startPositionUpdates() {
+  applyFallbackPositions();
+  fetchAndApply();
+  setInterval(fetchAndApply, 5000); // ISS moves fast — poll every 5 seconds
+}
+
+// ─── LENS SELECTOR ───────────────────────────────────────────────────────────
+
+let targetFOV = FOV_DEFAULT;
+
+const lensToggle   = document.getElementById('lens-toggle');
+const lensDropdown = document.getElementById('lens-dropdown');
+const lensChevron  = document.getElementById('lens-chevron');
+
+lensToggle.addEventListener('click', e => {
+  e.stopPropagation();
+  const open = lensDropdown.classList.toggle('open');
+  lensToggle.classList.toggle('open', open);
+  lensChevron.textContent = open ? '▴' : '▾';
+});
+
+document.querySelectorAll('.lens-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    targetFOV = parseFloat(btn.dataset.fov);
+    document.querySelectorAll('.lens-option').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    lensToggle.childNodes[0].textContent = btn.textContent + ' ';
+    lensDropdown.classList.remove('open');
+    lensToggle.classList.remove('open');
+    lensChevron.textContent = '▾';
+  });
+});
+
+document.addEventListener('click', () => {
+  lensDropdown.classList.remove('open');
+  lensToggle.classList.remove('open');
+  lensChevron.textContent = '▾';
+});
+
+// ─── MOUSE + TOUCH LOOK ──────────────────────────────────────────────────────
+
+let isDragging = false;
+let hasDragged = false;
+let prevMouse  = { x: 0, y: 0 };
+let yaw = 0, pitch = 0;
+
+renderer.domElement.addEventListener('mousedown', e => {
+  isDragging = true;
+  prevMouse = { x: e.clientX, y: e.clientY };
+});
+window.addEventListener('mouseup', () => { isDragging = false; });
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = e.clientX - prevMouse.x;
+  const dy = e.clientY - prevMouse.y;
+  hasDragged = true;
+  yaw   -= dx * 0.002;
+  pitch -= dy * 0.002;
+  pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+  prevMouse = { x: e.clientX, y: e.clientY };
+});
+
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+
+renderer.domElement.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    isDragging = true;
+    prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }
+}, { passive: true });
+window.addEventListener('touchend',    () => { isDragging = false; }, { passive: true });
+window.addEventListener('touchcancel', () => { isDragging = false; }, { passive: true });
+window.addEventListener('touchmove', e => {
+  if (!isDragging || e.touches.length !== 1) return;
+  const dx = e.touches[0].clientX - prevMouse.x;
+  const dy = e.touches[0].clientY - prevMouse.y;
+  hasDragged = true;
+  yaw   -= dx * 0.003;
+  pitch -= dy * 0.003;
+  pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+  prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+}, { passive: true });
+
+// ─── VR SUPPORT ──────────────────────────────────────────────────────────────
+
+function checkVRSupport() {
+  if (navigator.xr) {
+    navigator.xr.isSessionSupported('immersive-vr').then(supported => {
+      if (supported) {
+        const btn = document.getElementById('vr-btn');
+        btn.classList.remove('hidden');
+        btn.addEventListener('click', enterVR);
+      }
+    });
+  }
+}
+
+let xrSession = null;
+async function enterVR() {
+  if (xrSession) { xrSession.end(); return; }
+  try {
+    renderer.xr.enabled = true;
+    xrSession = await navigator.xr.requestSession('immersive-vr', {
+      optionalFeatures: ['local-floor', 'bounded-floor']
+    });
+    renderer.xr.setSession(xrSession);
+    document.getElementById('vr-btn').textContent = 'Exit VR';
+    xrSession.addEventListener('end', () => {
+      xrSession = null;
+      renderer.xr.enabled = false;
+      document.getElementById('vr-btn').textContent = 'Enter VR';
+    });
+  } catch (e) { console.warn('VR not available:', e); }
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ─── ANIMATION LOOP ──────────────────────────────────────────────────────────
+
+const clock = new THREE.Clock();
+
+function render() {
+  const delta   = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  const refAspect = 16 / 9;
+  const adaptedFOV = camera.aspect > refAspect
+    ? targetFOV * (refAspect / camera.aspect)
+    : targetFOV;
+  camera.fov += (adaptedFOV - camera.fov) * 0.12;
+  camera.updateProjectionMatrix();
+
+  if (earthMesh) {
+    const D    = (Date.now() - Date.UTC(2000, 0, 1, 12, 0, 0)) / 86400000;
+    const GMST = (280.46061837 + 360.98564736629 * D) * Math.PI / 180;
+    earthMesh.rotation.y = GMST;
+    if (earthMat && sunMesh) {
+      earthMat.uniforms.u_sunDir.value.copy(sunMesh.position).normalize();
+      earthMat.uniforms.u_cameraPos.value.copy(camera.position);
+      earthMat.uniforms.u_cloudOffset.value = (GMST * 0.00015) % 1.0;
+    }
+  }
+
+  if (moonMesh) moonMesh.rotation.y += delta * 0.001;
+
+  if (!renderer.xr.enabled) {
+    camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+  }
+
+  updatePupilEffect(delta);
+  updatePlanetLabels();
+  renderer.render(scene, camera);
+}
+
+renderer.setAnimationLoop(render);
+</script>
+</body>
+</html>
