@@ -195,7 +195,7 @@
 <div id="lens-select">
   <button id="lens-toggle">Eye <span id="lens-chevron">▾</span></button>
   <div id="lens-dropdown">
-    <button class="lens-option active" data-fov="39">Eye</button>
+    <button class="lens-option active" data-fov="70">Eye</button>
     <button class="lens-option" data-fov="27">50mm</button>
     <button class="lens-option" data-fov="16">85mm</button>
     <button class="lens-option" data-fov="7">200mm</button>
@@ -211,7 +211,7 @@
     <div id="welcome-body">
       <p>This is a simulation of the live view from the International Space Station (within 5 seconds). Position and velocity are supplied by live telemetry. The Earth, Stars, Moon, Sun, and planets are placed using real orbital mechanics.</p>
       <p>The ISS orbits at approximately 408 km altitude, completing one orbit every 90 minutes. Day and night cycle every 45 minutes.</p>
-      <p>Drag to look around. Select a camera lens to zoom. The Eye view is set to a 35mm equivalent lens.</p>
+      <p>Drag to look around. Select a camera lens to zoom. The Eye view is set to a 25mm equivalent lens.</p>
     </div>
     <button id="welcome-enter">Enter the station</button>
     <div id="welcome-credit">Made by Ian Allen</div>
@@ -235,7 +235,7 @@
 const EARTH_RADIUS_KM  = 6371;
 const MOON_RADIUS_KM   = 1737;
 const SCENE_SCALE      = 1 / 10000;
-const FOV_DEFAULT      = 39; // ~35mm full-frame equivalent
+const FOV_DEFAULT      = 70; // ~25mm full-frame equivalent (wide — Earth fills the view)
 
 const TEXTURES = {
   earthDay:     'images/4k_earth_daymap.jpg',
