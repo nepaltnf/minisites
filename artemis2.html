@@ -279,10 +279,24 @@
     #welcome-card {
       max-width: 480px;
       width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
       border: 1px solid #222;
       border-radius: 6px;
       padding: 44px 48px;
       position: relative;
+    }
+    @media (max-width: 700px) {
+      #welcome-card {
+        width: 100%;
+        max-height: 100dvh;
+        padding: 28px 20px;
+        border-left: none;
+        border-right: none;
+        border-radius: 0;
+      }
+      #welcome-title { font-size: 22px; margin-bottom: 16px; }
+      #welcome-body  { font-size: 13px; line-height: 1.7; margin-bottom: 20px; }
     }
     #welcome-mission {
       font-size: 11px;
