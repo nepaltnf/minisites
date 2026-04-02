@@ -431,7 +431,6 @@ const TEXTURES = {
   earthNight2k: 'images/2k_earth_nightmap.jpg',
   earthDay8k:   'images/8k_earth_daymap.jpg',
   earthNight8k: 'images/8k_earth_nightmap.jpg',
-  earthCloud:   'images/2k_earth_clouds.jpg',
   moon2k:       'images/2k_moon.jpg',
   moon8k:       'images/8k_moon.jpg',
 };
@@ -861,8 +860,6 @@ let earth8kLoaded = false;
 let positionsReady = false;
 
 let earthMat = null;
-let cloudMesh = null;
-
 function buildEarth(dayTex, nightTex) {
   const geo = new THREE.SphereGeometry(EARTH_RADIUS_KM * SCENE_SCALE, 64, 64);
   earthMat = new THREE.ShaderMaterial({
@@ -901,20 +898,6 @@ function buildEarth(dayTex, nightTex) {
   scene.add(earthMesh);
 }
 
-function buildClouds(cloudTex) {
-  const r = EARTH_RADIUS_KM * SCENE_SCALE * 1.005;
-  const geo = new THREE.SphereGeometry(r, 64, 64);
-  const mat = new THREE.MeshPhongMaterial({
-    map:         cloudTex,
-    transparent: true,
-    opacity:     0.85,
-    alphaMap:    cloudTex,  // cloud texture red channel drives alpha
-    depthWrite:  false,
-  });
-  cloudMesh = new THREE.Mesh(geo, mat);
-  scene.add(cloudMesh);
-}
-
 function buildMoon(moonTex) {
   const geo = new THREE.SphereGeometry(MOON_RADIUS_KM * SCENE_SCALE, 48, 48);
   const mat = new THREE.MeshPhongMaterial({
@@ -945,10 +928,9 @@ Promise.all([
   // Try 2k earth first (fast startup), fall back to 8k if 2k not yet downloaded
   loadTexWithFallback(TEXTURES.earthDay2k,   TEXTURES.earthDay8k),
   loadTexWithFallback(TEXTURES.earthNight2k, TEXTURES.earthNight8k),
-  new Promise(r => loader.load(TEXTURES.earthCloud, t => r(t), undefined, () => r(null))),
   new Promise(r => loader.load(TEXTURES.moon2k,     t => r(t), undefined, () => r(null))),
   fetch(STAR_CATALOG_URL).then(r => r.json()).catch(() => null),
-]).then(([dayTex, nightTex, cloudTex, moonTex, starData]) => {
+]).then(([dayTex, nightTex, moonTex, starData]) => {
   setStatus('Building scene...');
 
   if (!dayTex) {
@@ -971,7 +953,6 @@ Promise.all([
   starsPoints = stars;
 
   buildEarth(dayTex, nightTex);
-  if (cloudTex) buildClouds(cloudTex);
   buildMoon(moonTex);
 
   document.getElementById('loading').style.display = 'none';
@@ -1008,7 +989,6 @@ function applyFallbackPositions() {
   const eScene = -22000 * SCENE_SCALE;
   const mScene =  369000 * SCENE_SCALE;
   earthMesh.position.set(0, 0, eScene);
-  if (cloudMesh) cloudMesh.position.copy(earthMesh.position);
   moonMesh.position.set(0, 0, mScene);
   if (!cameraInitialized) { aimCameraAt(0, 0, eScene); cameraInitialized = true; }
   placeSun(approxSunDirection(new Date()));
@@ -1040,7 +1020,6 @@ async function fetchAndApply() {
     const mRel = eciRelToScene(moon);
 
     earthMesh.position.set(eRel.x, eRel.y, eRel.z);
-    if (cloudMesh) cloudMesh.position.copy(earthMesh.position);
     moonMesh.position.set(mRel.x, mRel.y, mRel.z);
 
     if (!hasDragged && !cameraInitialized) {
@@ -1282,10 +1261,6 @@ function render() {
     const D = (Date.now() - Date.UTC(2000, 0, 1, 12, 0, 0)) / 86400000;
     const GMST = (280.46061837 + 360.98564736629 * D) * Math.PI / 180;
     earthMesh.rotation.y = GMST;
-    // Keep cloud layer in sync with Earth rotation + gentle drift
-    if (cloudMesh) {
-      cloudMesh.rotation.y = GMST + elapsed * 0.002;
-    }
     // Update sun direction uniform for day/night shader
     if (earthMat && sunMesh) {
       const sd = sunMesh.position.clone().normalize();
