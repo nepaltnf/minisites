@@ -925,7 +925,7 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
         // Ocean specular glint
         float oceanMask = texture2D(u_spec, vUv).r;
         vec3 H = normalize(S + V);
-        float spec = pow(max(0.0, dot(N, H)), 180.0);
+        float spec = pow(max(0.0, dot(N, H)), 60.0);
         surface += vec3(1.0, 0.97, 0.93) * spec * oceanMask * blend * 0.3;
 
         // Cloud layer — longitude-shifted UV for gentle drift
