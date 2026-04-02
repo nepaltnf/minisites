@@ -391,10 +391,16 @@ const MOON_RADIUS_KM   = 1737;
 const SCENE_SCALE      = 1 / 10000; // 1 scene unit = 10,000 km
 const FOV_DEFAULT = 60; // human eye
 
-// Textures from CORS-friendly CDNs
+// Local textures (served alongside the HTML)
+// Earth: 2k for fast initial load, 8k lazy-loaded in background for close approach
 const TEXTURES = {
-  earthDay: 'https://unpkg.com/three-globe@2.31.1/example/img/earth-blue-marble.jpg',
-  moon:     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg',
+  earthDay2k:   'images/2k_earth_daymap.jpg',
+  earthNight2k: 'images/2k_earth_nightmap.jpg',
+  earthDay8k:   'images/8k_earth_daymap.jpg',
+  earthNight8k: 'images/8k_earth_nightmap.jpg',
+  earthCloud:   'images/2k_earth_clouds.jpg',
+  moon2k:       'images/2k_moon.jpg',
+  moon8k:       'images/8k_moon.jpg',
 };
 
 // ─── LIVE TELEMETRY ──────────────────────────────────────────────────────────
@@ -817,17 +823,63 @@ placeSun(approxSunDirection(new Date()));
 const loader = new THREE.TextureLoader();
 
 let earthMesh, moonMesh;
+let moon8kLoaded = false;
+let earth8kLoaded = false;
 let positionsReady = false;
 
-function buildEarth(dayTex) {
+let earthMat = null;
+let cloudMesh = null;
+
+function buildEarth(dayTex, nightTex) {
   const geo = new THREE.SphereGeometry(EARTH_RADIUS_KM * SCENE_SCALE, 64, 64);
-  const mat = new THREE.MeshPhongMaterial({
-    map:       dayTex,
-    specular:  new THREE.Color(0x224488),
-    shininess: 12,
+  earthMat = new THREE.ShaderMaterial({
+    uniforms: {
+      u_day:    { value: dayTex },
+      u_night:  { value: nightTex },
+      u_sunDir: { value: new THREE.Vector3(1, 0, 0) },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vWorldNormal;
+      void main() {
+        vUv = uv;
+        vWorldNormal = normalize(mat3(modelMatrix) * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform sampler2D u_day;
+      uniform sampler2D u_night;
+      uniform vec3 u_sunDir;
+      varying vec2 vUv;
+      varying vec3 vWorldNormal;
+      void main() {
+        float NdotS = dot(normalize(vWorldNormal), normalize(u_sunDir));
+        float blend = smoothstep(-0.12, 0.12, NdotS);
+        vec4 day   = texture2D(u_day,   vUv);
+        vec4 night = texture2D(u_night, vUv);
+        // boost city lights on night side
+        vec3 nightBoosted = night.rgb * 2.2;
+        gl_FragColor = vec4(mix(nightBoosted, day.rgb, blend), 1.0);
+      }
+    `,
   });
-  earthMesh = new THREE.Mesh(geo, mat);
+  earthMesh = new THREE.Mesh(geo, earthMat);
   scene.add(earthMesh);
+}
+
+function buildClouds(cloudTex) {
+  const r = EARTH_RADIUS_KM * SCENE_SCALE * 1.005;
+  const geo = new THREE.SphereGeometry(r, 64, 64);
+  const mat = new THREE.MeshPhongMaterial({
+    map:         cloudTex,
+    transparent: true,
+    opacity:     0.85,
+    alphaMap:    cloudTex,  // cloud texture red channel drives alpha
+    depthWrite:  false,
+  });
+  cloudMesh = new THREE.Mesh(geo, mat);
+  scene.add(cloudMesh);
 }
 
 function buildMoon(moonTex) {
@@ -836,7 +888,7 @@ function buildMoon(moonTex) {
     map:       moonTex,
     specular:  new THREE.Color(0x000000),
     shininess: 1,
-    emissive:  new THREE.Color(0x000000), // no self-illumination — dark side truly dark
+    emissive:  new THREE.Color(0x000000),
   });
   moonMesh = new THREE.Mesh(geo, mat);
   scene.add(moonMesh);
@@ -847,16 +899,32 @@ function buildMoon(moonTex) {
 
 const setStatus = s => { document.getElementById('loading-status').textContent = s; };
 
+// Helper: try preferred path, fall back to fallback path
+function loadTexWithFallback(preferred, fallback) {
+  return new Promise(r =>
+    loader.load(preferred, r, undefined, () =>
+      loader.load(fallback, r, undefined, () => r(null))
+    )
+  );
+}
+
 Promise.all([
-  new Promise(r => loader.load(TEXTURES.earthDay, t => r(t), undefined, () => r(null))),
-  new Promise(r => loader.load(TEXTURES.moon,     t => r(t), undefined, () => r(null))),
+  // Try 2k earth first (fast startup), fall back to 8k if 2k not yet downloaded
+  loadTexWithFallback(TEXTURES.earthDay2k,   TEXTURES.earthDay8k),
+  loadTexWithFallback(TEXTURES.earthNight2k, TEXTURES.earthNight8k),
+  new Promise(r => loader.load(TEXTURES.earthCloud, t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.moon2k,     t => r(t), undefined, () => r(null))),
   fetch(STAR_CATALOG_URL).then(r => r.json()).catch(() => null),
-]).then(([dayTex, moonTex, starData]) => {
+]).then(([dayTex, nightTex, cloudTex, moonTex, starData]) => {
   setStatus('Building scene...');
 
   if (!dayTex) {
     dayTex = new THREE.DataTexture(new Uint8Array([30, 80, 160, 255]), 1, 1, THREE.RGBAFormat);
     dayTex.needsUpdate = true;
+  }
+  if (!nightTex) {
+    nightTex = new THREE.DataTexture(new Uint8Array([5, 5, 20, 255]), 1, 1, THREE.RGBAFormat);
+    nightTex.needsUpdate = true;
   }
   if (!moonTex) {
     moonTex = new THREE.DataTexture(new Uint8Array([160, 155, 145, 255]), 1, 1, THREE.RGBAFormat);
@@ -869,7 +937,8 @@ Promise.all([
   scene.add(stars);
   starsPoints = stars;
 
-  buildEarth(dayTex);
+  buildEarth(dayTex, nightTex);
+  if (cloudTex) buildClouds(cloudTex);
   buildMoon(moonTex);
 
   document.getElementById('loading').style.display = 'none';
@@ -878,6 +947,8 @@ Promise.all([
   buildPlanetMarkers(new Date());
   startPositionUpdates();
   checkVRSupport();
+
+  // 8k Earth textures loaded on-demand when close (see render loop LOD)
 });
 
 // ─── POSITION UPDATES ────────────────────────────────────────────────────────
@@ -1153,11 +1224,64 @@ function render() {
     const D = (Date.now() - Date.UTC(2000, 0, 1, 12, 0, 0)) / 86400000;
     const GMST = (280.46061837 + 360.98564736629 * D) * Math.PI / 180;
     earthMesh.rotation.y = GMST;
+    // Keep cloud layer in sync with Earth rotation + gentle drift
+    if (cloudMesh) {
+      cloudMesh.rotation.y = GMST + elapsed * 0.002;
+    }
+    // Update sun direction uniform for day/night shader
+    if (earthMat && sunMesh) {
+      const sd = sunMesh.position.clone().normalize();
+      // Transform from scene space into Earth's local space (inverse of Earth rotation)
+      const invY = -GMST;
+      const cosY = Math.cos(invY), sinY = Math.sin(invY);
+      earthMat.uniforms.u_sunDir.value.set(
+        sd.x * cosY + sd.z * sinY,
+        sd.y,
+        -sd.x * sinY + sd.z * cosY,
+      );
+    }
   }
 
   // Moon is tidally locked — keeps same face toward Earth (slow for visual interest)
   if (moonMesh) {
     moonMesh.rotation.y += delta * 0.001;
+    // LOD thresholds: upgrade to 8k within 160,934 km (~100k miles), downgrade beyond 200,000 km
+    const MOON_DIST = moonMesh.position.length();
+    if (!moon8kLoaded && MOON_DIST < 160934 * SCENE_SCALE) {
+      moon8kLoaded = true;
+      loader.load(TEXTURES.moon8k, tex => {
+        if (moonMesh) { moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
+      });
+    } else if (moon8kLoaded && MOON_DIST > 200000 * SCENE_SCALE) {
+      moon8kLoaded = false;
+      loader.load(TEXTURES.moon2k, tex => {
+        if (moonMesh) { moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
+      });
+    }
+  }
+
+  // Earth LOD: upgrade to 8k within 160,934 km (~100k miles), downgrade beyond 200,000 km
+  if (earthMat && earthMesh) {
+    const EARTH_DIST = earthMesh.position.length();
+    if (!earth8kLoaded && EARTH_DIST < 160934 * SCENE_SCALE) {
+      earth8kLoaded = true;
+      Promise.all([
+        new Promise(r => loader.load(TEXTURES.earthDay8k,   t => r(t), undefined, () => r(null))),
+        new Promise(r => loader.load(TEXTURES.earthNight8k, t => r(t), undefined, () => r(null))),
+      ]).then(([d8k, n8k]) => {
+        if (earthMat && d8k) earthMat.uniforms.u_day.value   = d8k;
+        if (earthMat && n8k) earthMat.uniforms.u_night.value = n8k;
+      });
+    } else if (earth8kLoaded && EARTH_DIST > 200000 * SCENE_SCALE) {
+      earth8kLoaded = false;
+      Promise.all([
+        new Promise(r => loader.load(TEXTURES.earthDay2k,   t => r(t), undefined, () => r(null))),
+        new Promise(r => loader.load(TEXTURES.earthNight2k, t => r(t), undefined, () => r(null))),
+      ]).then(([d2k, n2k]) => {
+        if (earthMat && d2k) earthMat.uniforms.u_day.value   = d2k;
+        if (earthMat && n2k) earthMat.uniforms.u_night.value = n2k;
+      });
+    }
   }
 
   // Apply mouse look rotation to camera
