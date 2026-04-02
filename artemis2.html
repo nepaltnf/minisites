@@ -1115,7 +1115,11 @@ async function fetchAndApply() {
       setTelemetryStatus(false, `last data ${age}`);
     } else {
       setTelemetryStatus(false, 'telemetry unavailable');
-      document.getElementById('met-phase').textContent = '—';
+      document.getElementById('met-phase').textContent  = 'awaiting';
+      document.getElementById('dist-earth').textContent = 'awaiting';
+      document.getElementById('dist-moon').textContent  = 'awaiting';
+      document.getElementById('velocity').textContent   = 'awaiting';
+      document.getElementById('hud-date').textContent   = 'awaiting telemetry';
       if (!cameraInitialized) applyFallbackPositions();
     }
   }
