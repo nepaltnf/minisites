@@ -858,9 +858,9 @@ function buildEarth(dayTex, nightTex) {
         float blend = smoothstep(-0.12, 0.12, NdotS);
         vec4 day   = texture2D(u_day,   vUv);
         vec4 night = texture2D(u_night, vUv);
-        // boost city lights on night side
-        vec3 nightBoosted = night.rgb * 2.2;
-        gl_FragColor = vec4(mix(nightBoosted, day.rgb, blend), 1.0);
+        // Power curve: crushes dim ocean/land to near-black, preserves bright city lights
+        vec3 nightLights = pow(night.rgb, vec3(2.5)) * 8.0;
+        gl_FragColor = vec4(mix(nightLights, day.rgb, blend), 1.0);
       }
     `,
   });
