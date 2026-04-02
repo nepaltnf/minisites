@@ -445,6 +445,7 @@
 <div id="snap-btns">
   <button class="snap-btn" id="snap-earth">Earth</button>
   <button class="snap-btn" id="snap-moon">Moon</button>
+  <button class="snap-btn" id="snap-prograde">Prograde</button>
 </div>
 
 <div id="planet-labels"></div>
@@ -1161,7 +1162,14 @@ async function fetchAndApply() {
     const dx = moon.x - cx, dy = moon.y - cy, dz = moon.z - cz;
     const d_moon = Math.sqrt(dx*dx + dy*dy + dz*dz);
 
-    lastGoodTelemetry = { d_earth, d_moon, vel_kmh, fetchedAt: now };
+    // Prograde: velocity ECI → scene (same transform, no position offset needed)
+    const vLen = Math.sqrt(eph.vx**2 + eph.vy**2 + eph.vz**2) || 1;
+    const prograde = {
+      x:  eph.vx / vLen,
+      y:  eph.vz / vLen,
+      z: -eph.vy / vLen,
+    };
+    lastGoodTelemetry = { d_earth, d_moon, vel_kmh, prograde, fetchedAt: now };
 
     document.getElementById('dist-earth').textContent = formatDist(d_earth);
     document.getElementById('dist-moon').textContent  = formatDist(d_moon);
@@ -1307,6 +1315,10 @@ document.getElementById('snap-earth').addEventListener('click', () => {
 });
 document.getElementById('snap-moon').addEventListener('click', () => {
   if (moonMesh) aimCameraAt(moonMesh.position.x, moonMesh.position.y, moonMesh.position.z);
+});
+document.getElementById('snap-prograde').addEventListener('click', () => {
+  const p = lastGoodTelemetry?.prograde;
+  if (p) aimCameraAt(p.x, p.y, p.z);
 });
 
 // ─── MOUSE LOOK ──────────────────────────────────────────────────────────────
