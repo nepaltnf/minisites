@@ -974,6 +974,7 @@ Promise.all([
 // ─── POSITION UPDATES ────────────────────────────────────────────────────────
 
 let cameraInitialized = false;
+let liveAimDone = false;
 let lastGoodTelemetry  = null; // cache last successful fetch
 
 function setTelemetryStatus(live, label) {
@@ -1028,8 +1029,16 @@ async function fetchAndApply() {
     earthMesh.position.set(eRel.x, eRel.y, eRel.z);
     moonMesh.position.set(mRel.x, mRel.y, mRel.z);
 
-    if (!hasDragged && !cameraInitialized) {
-      aimCameraAt(eRel.x, eRel.y, eRel.z);
+    // On first live data, aim at whichever body is closer (regardless of fallback flag)
+    if (!hasDragged && !liveAimDone) {
+      const dEarth = Math.sqrt(eRel.x**2 + eRel.y**2 + eRel.z**2);
+      const dMoon  = Math.sqrt(mRel.x**2 + mRel.y**2 + mRel.z**2);
+      if (dMoon < dEarth) {
+        aimCameraAt(mRel.x, mRel.y, mRel.z);
+      } else {
+        aimCameraAt(eRel.x, eRel.y, eRel.z);
+      }
+      liveAimDone = true;
       cameraInitialized = true;
     }
 
