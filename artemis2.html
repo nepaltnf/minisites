@@ -420,12 +420,12 @@ const SCENE_SCALE      = 1 / 10000; // 1 scene unit = 10,000 km
 const FOV_DEFAULT = 50; // human eye
 
 // Local textures (served alongside the HTML)
-// Earth: 2k for fast initial load, 8k lazy-loaded in background for close approach
 const TEXTURES = {
-  earthDay2k:   'images/2k_earth_daymap.jpg',
+  earthDay:     'images/4k_earth_daymap.jpg',
   earthNight2k: 'images/2k_earth_nightmap.jpg',
-  earthDay8k:   'images/8k_earth_daymap.jpg',
   earthNight8k: 'images/8k_earth_nightmap.jpg',
+  earthSpec:    'images/8081_earthspec4k.jpg',
+  earthCloud:   'images/2k_earth_clouds.jpg',
   moon2k:       'images/2k_moon.jpg',
   moon8k:       'images/8k_moon.jpg',
 };
@@ -855,14 +855,17 @@ let earth8kLoaded = false;
 let positionsReady = false;
 
 let earthMat = null;
-function buildEarth(dayTex, nightTex) {
+function buildEarth(dayTex, nightTex, specTex, cloudTex) {
   const geo = new THREE.SphereGeometry(EARTH_RADIUS_KM * SCENE_SCALE, 64, 64);
   earthMat = new THREE.ShaderMaterial({
     uniforms: {
-      u_day:       { value: dayTex },
-      u_night:     { value: nightTex },
-      u_sunDir:    { value: new THREE.Vector3(1, 0, 0) },
-      u_cameraPos: { value: new THREE.Vector3() },
+      u_day:         { value: dayTex },
+      u_night:       { value: nightTex },
+      u_spec:        { value: specTex },
+      u_clouds:      { value: cloudTex },
+      u_cloudOffset: { value: 0.0 },
+      u_sunDir:      { value: new THREE.Vector3(1, 0, 0) },
+      u_cameraPos:   { value: new THREE.Vector3() },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -878,6 +881,9 @@ function buildEarth(dayTex, nightTex) {
     fragmentShader: `
       uniform sampler2D u_day;
       uniform sampler2D u_night;
+      uniform sampler2D u_spec;
+      uniform sampler2D u_clouds;
+      uniform float u_cloudOffset;
       uniform vec3 u_sunDir;
       uniform vec3 u_cameraPos;
       varying vec2 vUv;
@@ -899,9 +905,22 @@ function buildEarth(dayTex, nightTex) {
         vec3 nightLights = pow(night.rgb, vec3(1.8)) * 5.0;
         vec3 surface = mix(nightLights, day.rgb, blend);
 
+        // Ocean specular glint
+        float oceanMask = texture2D(u_spec, vUv).r;
+        vec3 H = normalize(S + V);
+        float spec = pow(max(0.0, dot(N, H)), 180.0);
+        surface += vec3(1.0, 0.97, 0.93) * spec * oceanMask * blend;
+
+        // Cloud layer — longitude-shifted UV for gentle drift
+        vec2 cloudUV = vec2(mod(vUv.x + u_cloudOffset, 1.0), vUv.y);
+        float cloud = texture2D(u_clouds, cloudUV).r;
+        // Day clouds: white; night clouds: dim (block city lights slightly)
+        vec3 cloudColor = mix(vec3(0.06), vec3(1.0), blend);
+        surface = mix(surface, cloudColor, cloud * 0.88);
+
         // Atmospheric limb glow — blue-white rim, strongest when backlit
         float rim = pow(1.0 - NdotV, 4.0);
-        float backlitStrength = smoothstep(0.0, -0.6, NdotS); // ramps up as sun goes behind
+        float backlitStrength = smoothstep(0.0, -0.6, NdotS);
         vec3 atmosColor = mix(vec3(0.4, 0.7, 1.0), vec3(0.8, 0.9, 1.0), rim);
         float atmosIntensity = rim * (0.18 + backlitStrength * 0.55);
 
@@ -940,12 +959,13 @@ function loadTexWithFallback(preferred, fallback) {
 }
 
 Promise.all([
-  // Try 2k earth first (fast startup), fall back to 8k if 2k not yet downloaded
-  loadTexWithFallback(TEXTURES.earthDay2k,   TEXTURES.earthDay8k),
-  loadTexWithFallback(TEXTURES.earthNight2k, TEXTURES.earthNight8k),
-  new Promise(r => loader.load(TEXTURES.moon2k,     t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthDay,     t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthNight2k, t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthSpec,    t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthCloud,   t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.moon2k,       t => r(t), undefined, () => r(null))),
   fetch(STAR_CATALOG_URL).then(r => r.json()).catch(() => null),
-]).then(([dayTex, nightTex, moonTex, starData]) => {
+]).then(([dayTex, nightTex, specTex, cloudTex, moonTex, starData]) => {
   setStatus('Building scene...');
 
   if (!dayTex) {
@@ -967,7 +987,7 @@ Promise.all([
   scene.add(stars);
   starsPoints = stars;
 
-  buildEarth(dayTex, nightTex);
+  buildEarth(dayTex, nightTex, specTex, cloudTex);
   buildMoon(moonTex);
 
   document.getElementById('loading').style.display = 'none';
@@ -1302,6 +1322,8 @@ function render() {
     if (earthMat && sunMesh) {
       earthMat.uniforms.u_sunDir.value.copy(sunMesh.position).normalize();
       earthMat.uniforms.u_cameraPos.value.copy(camera.position);
+      // Cloud drift: slightly faster than Earth rotation
+      earthMat.uniforms.u_cloudOffset.value = (GMST * 0.00015) % 1.0;
     }
   }
 
@@ -1326,23 +1348,16 @@ function render() {
   // Earth LOD: upgrade to 8k within 160,934 km (~100k miles), downgrade beyond 200,000 km
   if (earthMat && earthMesh) {
     const EARTH_DIST = earthMesh.position.length();
+    // Night texture LOD only (day stays at 4k)
     if (!earth8kLoaded && EARTH_DIST < 160934 * SCENE_SCALE) {
       earth8kLoaded = true;
-      Promise.all([
-        new Promise(r => loader.load(TEXTURES.earthDay8k,   t => r(t), undefined, () => r(null))),
-        new Promise(r => loader.load(TEXTURES.earthNight8k, t => r(t), undefined, () => r(null))),
-      ]).then(([d8k, n8k]) => {
-        if (earthMat && d8k) earthMat.uniforms.u_day.value   = d8k;
-        if (earthMat && n8k) earthMat.uniforms.u_night.value = n8k;
+      loader.load(TEXTURES.earthNight8k, t => {
+        if (earthMat) earthMat.uniforms.u_night.value = t;
       });
     } else if (earth8kLoaded && EARTH_DIST > 200000 * SCENE_SCALE) {
       earth8kLoaded = false;
-      Promise.all([
-        new Promise(r => loader.load(TEXTURES.earthDay2k,   t => r(t), undefined, () => r(null))),
-        new Promise(r => loader.load(TEXTURES.earthNight2k, t => r(t), undefined, () => r(null))),
-      ]).then(([d2k, n2k]) => {
-        if (earthMat && d2k) earthMat.uniforms.u_day.value   = d2k;
-        if (earthMat && n2k) earthMat.uniforms.u_night.value = n2k;
+      loader.load(TEXTURES.earthNight2k, t => {
+        if (earthMat) earthMat.uniforms.u_night.value = t;
       });
     }
   }
