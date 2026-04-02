@@ -256,6 +256,25 @@
       animation: pulse 2s infinite;
     }
     #status-dot.offline { background: #aa3333; box-shadow: 0 0 5px #aa3333; }
+    #unit-toggle {
+      position: fixed;
+      bottom: 40px;
+      left: 44px;
+      z-index: 20;
+      background: none;
+      border: 1px solid #333;
+      color: #555;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.2s;
+    }
+    #unit-toggle:hover { border-color: #888; color: #ccc; }
+    @media (max-width: 700px) { #unit-toggle { display: none; } }
     #sun-bloom {
       position: fixed;
       inset: 0;
@@ -431,6 +450,8 @@
 <div id="planet-labels"></div>
 
 <div id="sun-bloom"></div>
+
+<button id="unit-toggle">km</button>
 
 <div id="telemetry-status">
   <div id="status-dot"></div>
@@ -1214,13 +1235,32 @@ window.addEventListener('keydown', e => {
   if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') dismissWelcome();
 });
 
+const isMobile = window.innerWidth <= 700;
+let useImperial = isMobile;
+
 function formatDist(km) {
-  return Math.round(km).toLocaleString() + ' km';
+  return useImperial
+    ? Math.round(km * 0.621371).toLocaleString() + ' mi'
+    : Math.round(km).toLocaleString() + ' km';
 }
 
 function formatVel(kmh) {
-  return Math.round(kmh).toLocaleString() + ' km/h';
+  return useImperial
+    ? Math.round(kmh * 0.621371).toLocaleString() + ' mph'
+    : Math.round(kmh).toLocaleString() + ' km/h';
 }
+
+const unitToggleBtn = document.getElementById('unit-toggle');
+unitToggleBtn.textContent = useImperial ? 'mi' : 'km';
+unitToggleBtn.addEventListener('click', () => {
+  useImperial = !useImperial;
+  unitToggleBtn.textContent = useImperial ? 'mi' : 'km';
+  if (lastGoodTelemetry) {
+    document.getElementById('dist-earth').textContent = formatDist(lastGoodTelemetry.d_earth);
+    document.getElementById('dist-moon').textContent  = formatDist(lastGoodTelemetry.d_moon);
+    document.getElementById('velocity').textContent   = formatVel(lastGoodTelemetry.vel_kmh);
+  }
+});
 
 function startPositionUpdates() {
   applyFallbackPositions(); // show something immediately
