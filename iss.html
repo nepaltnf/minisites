@@ -549,7 +549,7 @@ let earthMesh, moonMesh, earthMat;
 let positionsReady = false;
 
 function buildEarth(dayTex, nightTex, specTex, cloudTex) {
-  const geo = new THREE.SphereGeometry(EARTH_RADIUS_KM * SCENE_SCALE, 64, 64);
+  const geo = new THREE.SphereGeometry(EARTH_RADIUS_KM * SCENE_SCALE, 128, 128);
   earthMat = new THREE.ShaderMaterial({
     uniforms: {
       u_day:         { value: dayTex },
