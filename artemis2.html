@@ -345,53 +345,116 @@ const sunLight = new THREE.DirectionalLight(0xffffff, 2.2);
 sunLight.position.set(150000000 * SCENE_SCALE, 0, 0); // Sun on +X roughly
 scene.add(sunLight);
 
-// Tiny ambient so dark sides aren't pure black
-const ambientLight = new THREE.AmbientLight(0x111122, 0.15);
+// Very faint ambient — Earth/Moon dark sides near-black, not grey
+const ambientLight = new THREE.AmbientLight(0x111122, 0.05);
 scene.add(ambientLight);
 
 // ─── STARS ────────────────────────────────────────────────────────────────────
 
-function buildStarField(count = 8000) {
-  const positions = new Float32Array(count * 3);
-  const colors    = new Float32Array(count * 3);
-  const sizes     = new Float32Array(count);
+// ─── STAR CATALOG (Hipparcos / d3-celestial, mag ≤ 6) ────────────────────────
 
-  for (let i = 0; i < count; i++) {
-    // Uniform random on sphere surface
-    const theta = Math.random() * Math.PI * 2;
-    const phi   = Math.acos(2 * Math.random() - 1);
-    const r     = 50000; // far away
+const STAR_CATALOG_URL = 'https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/stars.6.json';
 
-    positions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-    positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-    positions[i * 3 + 2] = r * Math.cos(phi);
+// B-V color index → approximate RGB (blackbody: blue-hot → red-cool)
+function bvToRGB(bv) {
+  bv = parseFloat(bv);
+  if (isNaN(bv)) return [1.0, 1.0, 1.0];
+  if (bv < -0.2) return [0.60, 0.75, 1.00]; // O — blue
+  if (bv <  0.0) return [0.75, 0.88, 1.00]; // B — blue-white
+  if (bv <  0.3) return [0.96, 0.97, 1.00]; // A — white
+  if (bv <  0.6) return [1.00, 0.96, 0.86]; // F — yellow-white
+  if (bv <  1.0) return [1.00, 0.84, 0.58]; // G/K — yellow-orange
+  if (bv <  1.5) return [1.00, 0.63, 0.32]; // K/M — orange
+  return               [1.00, 0.42, 0.18];  // M — red
+}
 
-    // Slight color variation: blue-white to warm white
-    const warmth = Math.random();
-    colors[i * 3]     = 0.85 + warmth * 0.15;
-    colors[i * 3 + 1] = 0.85 + warmth * 0.05;
-    colors[i * 3 + 2] = 0.95 - warmth * 0.15;
-
-    sizes[i] = 0.5 + Math.random() * 1.5;
+// Custom shader so each star has its own magnitude-based size and a soft disc shape
+const STAR_VERT = `
+  attribute float starSize;
+  attribute vec3  starColor;
+  varying   vec3  vColor;
+  void main() {
+    vColor = starColor;
+    gl_PointSize = starSize;
+    gl_Position  = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
+`;
+const STAR_FRAG = `
+  varying vec3 vColor;
+  void main() {
+    float d = length(gl_PointCoord - vec2(0.5)) * 2.0;
+    if (d > 1.0) discard;
+    float a = exp(-d * d * 4.0); // Gaussian glow
+    gl_FragColor = vec4(vColor, a);
+  }
+`;
+
+function buildAccurateStarField(features) {
+  const R   = 50000;
+  const n   = features.length;
+  const pos = new Float32Array(n * 3);
+  const col = new Float32Array(n * 3);
+  const sz  = new Float32Array(n);
+
+  features.forEach((f, i) => {
+    const [ra_deg, dec_deg] = f.geometry.coordinates;
+    const mag = f.properties.mag;
+    const bv  = f.properties.bv;
+
+    const ra  = ra_deg  * Math.PI / 180;
+    const dec = dec_deg * Math.PI / 180;
+
+    // Equatorial → scene XYZ (Y=north pole, X=vernal equinox, Z=-RA90°)
+    pos[i*3]   =  R * Math.cos(dec) * Math.cos(ra);
+    pos[i*3+1] =  R * Math.sin(dec);
+    pos[i*3+2] = -R * Math.cos(dec) * Math.sin(ra);
+
+    const [r, g, b] = bvToRGB(bv);
+    col[i*3] = r; col[i*3+1] = g; col[i*3+2] = b;
+
+    // Pixel size: brighter = larger (mag scale is log)
+    sz[i] = Math.max(1.0, 5.5 - mag * 0.75);
+  });
 
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
-  geo.setAttribute('size',     new THREE.BufferAttribute(sizes, 1));
+  geo.setAttribute('position',  new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('starColor', new THREE.BufferAttribute(col, 3));
+  geo.setAttribute('starSize',  new THREE.BufferAttribute(sz,  1));
 
-  const mat = new THREE.PointsMaterial({
-    size: 1.2,
-    sizeAttenuation: false,
-    vertexColors: true,
+  const mat = new THREE.ShaderMaterial({
+    vertexShader:   STAR_VERT,
+    fragmentShader: STAR_FRAG,
     transparent: true,
-    opacity: 0.9,
+    depthWrite:  false,
   });
 
   return new THREE.Points(geo, mat);
 }
 
-scene.add(buildStarField());
+// Fallback random field (shown only if catalog fails to load)
+function buildRandomStarField(count = 6000) {
+  const pos = new Float32Array(count * 3);
+  const col = new Float32Array(count * 3);
+  const sz  = new Float32Array(count);
+  for (let i = 0; i < count; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi   = Math.acos(2 * Math.random() - 1);
+    const r     = 50000;
+    pos[i*3]   = r * Math.sin(phi) * Math.cos(theta);
+    pos[i*3+1] = r * Math.sin(phi) * Math.sin(theta);
+    pos[i*3+2] = r * Math.cos(phi);
+    const w = Math.random();
+    col[i*3] = 0.85 + w*0.15; col[i*3+1] = 0.85 + w*0.05; col[i*3+2] = 0.95 - w*0.15;
+    sz[i] = 1.0 + Math.random();
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position',  new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('starColor', new THREE.BufferAttribute(col, 3));
+  geo.setAttribute('starSize',  new THREE.BufferAttribute(sz,  1));
+  return new THREE.Points(geo, new THREE.ShaderMaterial({
+    vertexShader: STAR_VERT, fragmentShader: STAR_FRAG, transparent: true, depthWrite: false,
+  }));
+}
 
 // ─── SUN ─────────────────────────────────────────────────────────────────────
 // Sun is ~150M km away — placed at 30,000 scene units in the correct direction.
@@ -473,6 +536,7 @@ function buildMoon(moonTex) {
     map:       moonTex,
     specular:  new THREE.Color(0x000000),
     shininess: 1,
+    emissive:  new THREE.Color(0x000000), // no self-illumination — dark side truly dark
   });
   moonMesh = new THREE.Mesh(geo, mat);
   scene.add(moonMesh);
@@ -486,7 +550,8 @@ const setStatus = s => { document.getElementById('loading-status').textContent =
 Promise.all([
   new Promise(r => loader.load(TEXTURES.earthDay, t => r(t), undefined, () => r(null))),
   new Promise(r => loader.load(TEXTURES.moon,     t => r(t), undefined, () => r(null))),
-]).then(([dayTex, moonTex]) => {
+  fetch(STAR_CATALOG_URL).then(r => r.json()).catch(() => null),
+]).then(([dayTex, moonTex, starData]) => {
   setStatus('Building scene...');
 
   if (!dayTex) {
@@ -497,6 +562,11 @@ Promise.all([
     moonTex = new THREE.DataTexture(new Uint8Array([160, 155, 145, 255]), 1, 1, THREE.RGBAFormat);
     moonTex.needsUpdate = true;
   }
+
+  const stars = (starData && starData.features)
+    ? buildAccurateStarField(starData.features)
+    : buildRandomStarField();
+  scene.add(stars);
 
   buildEarth(dayTex);
   buildMoon(moonTex);
