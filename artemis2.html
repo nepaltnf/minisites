@@ -918,11 +918,11 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
         vec3 cloudColor = mix(vec3(0.06), vec3(1.0), blend);
         surface = mix(surface, cloudColor, cloud * 0.88);
 
-        // Atmospheric limb glow — blue-white rim, strongest when backlit
+        // Atmospheric limb glow — only where sunlight reaches the atmosphere
         float rim = pow(1.0 - NdotV, 4.0);
-        float backlitStrength = smoothstep(0.0, -0.6, NdotS);
+        float atmosLit = smoothstep(-0.15, 0.35, NdotS); // zero on dark side, full on lit side
         vec3 atmosColor = mix(vec3(0.4, 0.7, 1.0), vec3(0.8, 0.9, 1.0), rim);
-        float atmosIntensity = rim * (0.18 + backlitStrength * 0.55);
+        float atmosIntensity = rim * atmosLit * 0.6;
 
         gl_FragColor = vec4(surface + atmosColor * atmosIntensity, 1.0);
       }
