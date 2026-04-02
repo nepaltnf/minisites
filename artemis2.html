@@ -233,6 +233,77 @@
       transition: all 0.15s;
     }
     #unit-toggle:hover { border-color: #555; color: #888; }
+    /* Welcome overlay */
+    #welcome {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.92);
+      transition: opacity 0.6s ease;
+    }
+    #welcome.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #welcome-card {
+      max-width: 480px;
+      width: 90%;
+      border: 1px solid #222;
+      border-radius: 6px;
+      padding: 44px 48px;
+      position: relative;
+    }
+    #welcome-mission {
+      font-size: 8px;
+      letter-spacing: 0.3em;
+      color: #3a7a3a;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    #welcome-title {
+      font-size: 22px;
+      letter-spacing: 0.12em;
+      color: #ddd;
+      text-transform: uppercase;
+      margin-bottom: 28px;
+      line-height: 1.3;
+    }
+    #welcome-body {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: #555;
+      line-height: 2.0;
+      text-transform: uppercase;
+      margin-bottom: 36px;
+    }
+    #welcome-body p + p { margin-top: 14px; }
+    #welcome-enter {
+      display: block;
+      width: 100%;
+      background: none;
+      border: 1px solid #2a2a2a;
+      color: #555;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      padding: 13px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.15s;
+      margin-bottom: 24px;
+    }
+    #welcome-enter:hover { border-color: #555; color: #aaa; }
+    #welcome-credit {
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      color: #2a2a2a;
+      text-transform: uppercase;
+      text-align: center;
+    }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50%       { opacity: 0.4; }
@@ -246,6 +317,19 @@
   </style>
 </head>
 <body>
+
+<div id="welcome">
+  <div id="welcome-card">
+    <div id="welcome-mission">NASA · Artemis II · Live</div>
+    <div id="welcome-title">Window View</div>
+    <div id="welcome-body">
+      <p>This is the current view of Earth from the Orion spacecraft — live, right now. Position and velocity are supplied by NASA AROW telemetry. Stars, Moon, Sun, and planets are placed using real orbital mechanics.</p>
+      <p>Drag to look around. Select a lens to zoom. The view adapts as you look toward the Sun — your eyes contract in the glare, then slowly open as you turn back into the dark.</p>
+    </div>
+    <button id="welcome-enter">Enter the spacecraft</button>
+    <div id="welcome-credit">Made by Ian Allen</div>
+  </div>
+</div>
 
 <div id="loading">
   <div id="loading-title">Artemis II</div>
@@ -918,6 +1002,19 @@ function updatePupilEffect(delta) {
   bloomEl.style.opacity = (currentExposure * 0.62).toFixed(3);
   if (starsPoints) starsPoints.material.uniforms.u_opacity.value = 1.0 - currentExposure * 0.92;
 }
+
+// ─── WELCOME OVERLAY ─────────────────────────────────────────────────────────
+
+function dismissWelcome() {
+  const el = document.getElementById('welcome');
+  el.classList.add('hidden');
+  setTimeout(() => el.style.display = 'none', 600);
+}
+
+document.getElementById('welcome-enter').addEventListener('click', dismissWelcome);
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') dismissWelcome();
+});
 
 let useImperial = false;
 
