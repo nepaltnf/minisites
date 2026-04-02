@@ -677,6 +677,7 @@ function aimCameraAt(x, y, z) {
   const len = Math.sqrt(x*x + y*y + z*z);
   if (len === 0) return;
   pitch = Math.asin(Math.max(-1, Math.min(1, y/len)));
+  pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
   yaw   = Math.atan2(-x/len, -z/len);
 }
 
@@ -871,7 +872,7 @@ window.addEventListener('mousemove', e => {
   hasDragged = true;
   yaw   -= dx * 0.002;
   pitch -= dy * 0.002;
-  pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+  pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
   prevMouse = { x: e.clientX, y: e.clientY };
 });
 
@@ -894,7 +895,7 @@ window.addEventListener('touchmove', e => {
   hasDragged = true;
   yaw   -= dx * 0.003;
   pitch -= dy * 0.003;
-  pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+  pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
   prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
 }, { passive: true });
 
