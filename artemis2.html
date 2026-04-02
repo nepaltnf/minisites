@@ -166,6 +166,40 @@
       text-transform: uppercase;
       margin-top: 4px;
     }
+
+    /* Telemetry status dot */
+    #telemetry-status {
+      position: fixed;
+      bottom: 40px;
+      right: 44px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      opacity: 0.6;
+    }
+    #status-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #2a4a2a;
+    }
+    #status-dot.live {
+      background: #3a7a3a;
+      box-shadow: 0 0 6px #3a7a3a;
+      animation: pulse 2s infinite;
+    }
+    #status-dot.offline { background: #6a2a2a; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+    #status-label {
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #444;
+    }
   </style>
 </head>
 <body>
@@ -190,6 +224,11 @@
 </div>
 
 <button id="vr-btn" class="hidden">Enter VR</button>
+
+<div id="telemetry-status">
+  <div id="status-dot"></div>
+  <div id="status-label">—</div>
+</div>
 
 <div id="hud">
   <div class="hud-block">
@@ -472,6 +511,13 @@ Promise.all([
 // ─── POSITION UPDATES ────────────────────────────────────────────────────────
 
 let cameraInitialized = false;
+let lastGoodTelemetry  = null; // cache last successful fetch
+
+function setTelemetryStatus(live, label) {
+  const dot = document.getElementById('status-dot');
+  dot.className = live ? 'live' : 'offline';
+  document.getElementById('status-label').textContent = label;
+}
 
 // Set yaw/pitch so the render loop points camera toward a scene position
 function aimCameraAt(x, y, z) {
@@ -483,7 +529,6 @@ function aimCameraAt(x, y, z) {
 }
 
 function applyFallbackPositions() {
-  // Demo: Earth 22,000 km behind, Moon 369,000 km ahead
   const eScene = -22000 * SCENE_SCALE;
   const mScene =  369000 * SCENE_SCALE;
   earthMesh.position.set(0, 0, eScene);
@@ -498,45 +543,52 @@ async function fetchAndApply() {
     const status = await fetchArtemisStatus();
     const { lat, lon, d_earth, d_moon, vel } = status.telemetry;
 
-    // Spacecraft XYZ relative to Earth center
+    lastGoodTelemetry = { status, d_earth, d_moon, vel, fetchedAt: now };
+
     const craft = geocentricToXYZ(lat, lon, d_earth);
+    const moon  = approxMoonPos(now);
 
-    // Moon XYZ relative to Earth center (approximate)
-    const moon = approxMoonPos(now);
-
-    // Update Sun position and lighting
     placeSun(approxSunDirection(now));
 
-    // Place everything relative to spacecraft (camera stays at origin)
     const toScene = (abs) => ({
       x: (abs.x - craft.x) * SCENE_SCALE,
       y: (abs.y - craft.y) * SCENE_SCALE,
       z: (abs.z - craft.z) * SCENE_SCALE,
     });
 
-    const eRel = toScene({ x: 0, y: 0, z: 0 }); // Earth at geocenter
+    const eRel = toScene({ x: 0, y: 0, z: 0 });
     const mRel = toScene(moon);
 
     earthMesh.position.set(eRel.x, eRel.y, eRel.z);
     moonMesh.position.set(mRel.x, mRel.y, mRel.z);
 
-    // Aim camera at Earth on first load (sets yaw/pitch so render loop agrees)
     if (!hasDragged && !cameraInitialized) {
       aimCameraAt(eRel.x, eRel.y, eRel.z);
       cameraInitialized = true;
     }
 
-    // HUD
     document.getElementById('dist-earth').textContent = formatKm(d_earth);
     document.getElementById('dist-moon').textContent  = formatKm(d_moon);
     document.getElementById('velocity').textContent   = Math.round(vel).toLocaleString() + ' km/h';
     document.getElementById('hud-date').textContent   = now.toUTCString().slice(0, 25) + ' UTC';
     document.getElementById('met-phase').textContent  = status.current_phase;
+    setTelemetryStatus(true, 'live');
 
   } catch (e) {
-    console.warn('Telemetry fetch failed, using fallback:', e);
-    document.getElementById('met-phase').textContent = 'no telemetry — open via http';
-    if (!cameraInitialized) applyFallbackPositions();
+    console.warn('Telemetry fetch failed:', e);
+
+    if (lastGoodTelemetry) {
+      // Keep last known values, show how stale they are
+      const minsAgo = Math.round((now - lastGoodTelemetry.fetchedAt) / 60000);
+      const age = minsAgo < 2 ? 'moments ago' : `${minsAgo}m ago`;
+      setTelemetryStatus(false, `last data ${age}`);
+      document.getElementById('met-phase').textContent = lastGoodTelemetry.status.current_phase;
+    } else {
+      // Never had data
+      setTelemetryStatus(false, 'telemetry unavailable');
+      document.getElementById('met-phase').textContent = '—';
+      if (!cameraInitialized) applyFallbackPositions();
+    }
   }
 }
 
@@ -547,7 +599,7 @@ function formatKm(km) {
 function startPositionUpdates() {
   applyFallbackPositions(); // show something immediately
   fetchAndApply();          // then replace with live data
-  setInterval(fetchAndApply, 30000);
+  setInterval(fetchAndApply, 300000); // every 5 minutes
 }
 
 // ─── LENS SELECTOR ───────────────────────────────────────────────────────────
