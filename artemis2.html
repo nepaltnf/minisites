@@ -1041,12 +1041,24 @@ function aimCameraAt(x, y, z) {
 }
 
 function applyFallbackPositions() {
-  const eScene = -22000 * SCENE_SCALE;
-  const mScene =  369000 * SCENE_SCALE;
-  earthMesh.position.set(0, 0, eScene);
-  moonMesh.position.set(0, 0, mScene);
-  if (!cameraInitialized) { aimCameraAt(0, 0, eScene); cameraInitialized = true; }
-  placeSun(approxSunDirection(new Date()));
+  const now = new Date();
+  let cx = 0, cy = 0, cz = -22000; // default: ~22,000km along ECI -Y (Earth ahead)
+  try {
+    const saved = JSON.parse(localStorage.getItem('artemis2_pos'));
+    if (saved) { cx = saved.cx; cy = saved.cy; cz = saved.cz; }
+  } catch (_) {}
+  const moon = approxMoonPos(now);
+  const eciRelToScene = (eci) => ({
+    x:  (eci.x - cx) * SCENE_SCALE,
+    y:  (eci.z - cz) * SCENE_SCALE,
+    z: -(eci.y - cy) * SCENE_SCALE,
+  });
+  const eRel = eciRelToScene({ x: 0, y: 0, z: 0 });
+  const mRel = eciRelToScene(moon);
+  earthMesh.position.set(eRel.x, eRel.y, eRel.z);
+  moonMesh.position.set(mRel.x, mRel.y, mRel.z);
+  if (!cameraInitialized) { aimCameraAt(eRel.x, eRel.y, eRel.z); cameraInitialized = true; }
+  placeSun(approxSunDirection(now));
 }
 
 async function fetchAndApply() {
@@ -1057,6 +1069,7 @@ async function fetchAndApply() {
     // ECI position in km — parameters are in feet, convert to km
     const FT2KM = 0.0003048;
     const cx = eph.x * FT2KM, cy = eph.y * FT2KM, cz = eph.z * FT2KM;
+    try { localStorage.setItem('artemis2_pos', JSON.stringify({ cx, cy, cz })); } catch (_) {}
 
     // Moon ECI position in km (same frame — x=vernal equinox, y=RA90°, z=north pole)
     const moon = approxMoonPos(now);
