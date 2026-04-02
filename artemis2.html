@@ -75,17 +75,14 @@
       letter-spacing: 0.15em;
     }
 
-    /* Lens selector */
+    /* Lens selector — dropdown */
     #lens-select {
       position: fixed;
       top: 36px;
       right: 44px;
       z-index: 20;
-      display: flex;
-      gap: 6px;
     }
-
-    .lens-btn {
+    #lens-toggle {
       background: none;
       border: 1px solid #2a2a2a;
       color: #444;
@@ -97,9 +94,40 @@
       cursor: pointer;
       border-radius: 3px;
       transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .lens-btn:hover { border-color: #666; color: #bbb; }
-    .lens-btn.active { border-color: #555; color: #ccc; background: rgba(255,255,255,0.04); }
+    #lens-toggle:hover, #lens-toggle.open { border-color: #555; color: #ccc; }
+    #lens-dropdown {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: rgba(0,0,0,0.85);
+      padding: 4px;
+      border-radius: 3px;
+      min-width: 100%;
+    }
+    #lens-dropdown.open { display: flex; }
+    .lens-option {
+      background: none;
+      border: 1px solid #2a2a2a;
+      color: #444;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 7px 10px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .lens-option:hover { border-color: #666; color: #bbb; }
+    .lens-option.active { border-color: #555; color: #ccc; background: rgba(255,255,255,0.04); }
 
     /* VR button */
     #vr-btn {
@@ -217,24 +245,27 @@
       background: white;
       opacity: 0;
     }
-    #unit-toggle {
-      position: fixed;
-      bottom: 40px;
-      right: 100px;
-      z-index: 20;
-      background: none;
-      border: 1px solid #2a2a2a;
-      color: #444;
-      font-family: 'Courier New', monospace;
-      font-size: 9px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      padding: 7px 10px;
-      cursor: pointer;
-      border-radius: 3px;
-      transition: all 0.15s;
+    /* ─── MOBILE ────────────────────────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      #hud {
+        left: 16px;
+        right: 16px;
+        transform: none;
+        bottom: 24px;
+        gap: 0;
+        justify-content: space-between;
+        align-items: flex-end;
+      }
+      .hud-label { font-size: 9px; }
+      .hud-value { font-size: 13px; }
+      #hud-date  { font-size: 9px; }
+      #lens-select { top: 20px; right: 16px; }
+      #vr-btn      { top: 20px; left: 16px; }
+      #met         { top: 20px; }
+      #met-title   { font-size: 15px; }
+      #met-phase   { font-size: 13px; }
+      #telemetry-status { bottom: 24px; right: 16px; }
     }
-    #unit-toggle:hover { border-color: #555; color: #888; }
     /* Welcome overlay */
     #welcome {
       position: fixed;
@@ -346,10 +377,13 @@
   <div id="met-phase">—</div>
 </div>
 <div id="lens-select">
-  <button class="lens-btn active" data-fov="60">Eye</button>
-  <button class="lens-btn" data-fov="27">50mm</button>
-  <button class="lens-btn" data-fov="16">85mm</button>
-  <button class="lens-btn" data-fov="7">200mm</button>
+  <button id="lens-toggle">Eye <span id="lens-chevron">▾</span></button>
+  <div id="lens-dropdown">
+    <button class="lens-option active" data-fov="60">Eye</button>
+    <button class="lens-option" data-fov="27">50mm</button>
+    <button class="lens-option" data-fov="16">85mm</button>
+    <button class="lens-option" data-fov="7">200mm</button>
+  </div>
 </div>
 
 <button id="vr-btn" class="hidden">Enter VR</button>
@@ -357,7 +391,6 @@
 <div id="planet-labels"></div>
 
 <div id="sun-bloom"></div>
-<button id="unit-toggle">km</button>
 
 <div id="telemetry-status">
   <div id="status-dot"></div>
@@ -859,7 +892,7 @@ function buildEarth(dayTex, nightTex) {
         vec4 day   = texture2D(u_day,   vUv);
         vec4 night = texture2D(u_night, vUv);
         // Power curve: crushes dim ocean/land to near-black, preserves bright city lights
-        vec3 nightLights = pow(night.rgb, vec3(2.2)) * 7.0;
+        vec3 nightLights = pow(night.rgb, vec3(1.8)) * 5.0;
         gl_FragColor = vec4(mix(nightLights, day.rgb, blend), 1.0);
       }
     `,
@@ -975,6 +1008,7 @@ function applyFallbackPositions() {
   const eScene = -22000 * SCENE_SCALE;
   const mScene =  369000 * SCENE_SCALE;
   earthMesh.position.set(0, 0, eScene);
+  if (cloudMesh) cloudMesh.position.copy(earthMesh.position);
   moonMesh.position.set(0, 0, mScene);
   if (!cameraInitialized) { aimCameraAt(0, 0, eScene); cameraInitialized = true; }
   placeSun(approxSunDirection(new Date()));
@@ -1006,6 +1040,7 @@ async function fetchAndApply() {
     const mRel = eciRelToScene(moon);
 
     earthMesh.position.set(eRel.x, eRel.y, eRel.z);
+    if (cloudMesh) cloudMesh.position.copy(earthMesh.position);
     moonMesh.position.set(mRel.x, mRel.y, mRel.z);
 
     if (!hasDragged && !cameraInitialized) {
@@ -1089,31 +1124,13 @@ window.addEventListener('keydown', e => {
   if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') dismissWelcome();
 });
 
-let useImperial = false;
-
 function formatDist(km) {
-  if (useImperial) return Math.round(km / 1.60934).toLocaleString() + ' mi';
   return Math.round(km).toLocaleString() + ' km';
 }
 
 function formatVel(kmh) {
-  if (useImperial) return Math.round(kmh / 1.60934).toLocaleString() + ' mph';
   return Math.round(kmh).toLocaleString() + ' km/h';
 }
-
-function refreshHUDUnits() {
-  if (!lastGoodTelemetry) return;
-  document.getElementById('dist-earth').textContent = formatDist(lastGoodTelemetry.d_earth);
-  document.getElementById('dist-moon').textContent  = formatDist(lastGoodTelemetry.d_moon);
-  document.getElementById('velocity').textContent   = formatVel(lastGoodTelemetry.vel_kmh);
-}
-
-document.getElementById('unit-toggle').addEventListener('click', () => {
-  useImperial = !useImperial;
-  const btn = document.getElementById('unit-toggle');
-  btn.textContent = useImperial ? 'mi' : 'km';
-  refreshHUDUnits();
-});
 
 function startPositionUpdates() {
   applyFallbackPositions(); // show something immediately
@@ -1125,12 +1142,33 @@ function startPositionUpdates() {
 
 let targetFOV = FOV_DEFAULT;
 
-document.querySelectorAll('.lens-btn').forEach(btn => {
+const lensToggle   = document.getElementById('lens-toggle');
+const lensDropdown = document.getElementById('lens-dropdown');
+const lensChevron  = document.getElementById('lens-chevron');
+
+lensToggle.addEventListener('click', e => {
+  e.stopPropagation();
+  const open = lensDropdown.classList.toggle('open');
+  lensToggle.classList.toggle('open', open);
+  lensChevron.textContent = open ? '▴' : '▾';
+});
+
+document.querySelectorAll('.lens-option').forEach(btn => {
   btn.addEventListener('click', () => {
     targetFOV = parseFloat(btn.dataset.fov);
-    document.querySelectorAll('.lens-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.lens-option').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    lensToggle.childNodes[0].textContent = btn.textContent + ' ';
+    lensDropdown.classList.remove('open');
+    lensToggle.classList.remove('open');
+    lensChevron.textContent = '▾';
   });
+});
+
+document.addEventListener('click', () => {
+  lensDropdown.classList.remove('open');
+  lensToggle.classList.remove('open');
+  lensChevron.textContent = '▾';
 });
 
 // ─── MOUSE LOOK ──────────────────────────────────────────────────────────────
@@ -1156,6 +1194,26 @@ window.addEventListener('mousemove', e => {
   pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
   prevMouse = { x: e.clientX, y: e.clientY };
 });
+
+// Touch look (single finger drag)
+renderer.domElement.addEventListener('touchstart', e => {
+  if (e.touches.length === 1) {
+    isDragging = true;
+    prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }
+}, { passive: true });
+window.addEventListener('touchend',   () => { isDragging = false; }, { passive: true });
+window.addEventListener('touchcancel',() => { isDragging = false; }, { passive: true });
+window.addEventListener('touchmove', e => {
+  if (!isDragging || e.touches.length !== 1) return;
+  const dx = e.touches[0].clientX - prevMouse.x;
+  const dy = e.touches[0].clientY - prevMouse.y;
+  hasDragged = true;
+  yaw   -= dx * 0.003;
+  pitch -= dy * 0.003;
+  pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
+  prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+}, { passive: true });
 
 // ─── VR SUPPORT ──────────────────────────────────────────────────────────────
 
