@@ -220,20 +220,12 @@ const CORS_PROXIES = [
 ];
 
 async function fetchArtemisStatus() {
-  // Try direct first (works when deployed to same-origin or if server allows CORS)
-  try {
-    const res = await fetch(BASE_TELEMETRY_URL);
-    if (res.ok) return res.json();
-  } catch (_) {}
-
-  // Fall through proxy chain
   for (const makeUrl of CORS_PROXIES) {
     try {
       const res = await fetch(makeUrl(BASE_TELEMETRY_URL));
       if (res.ok) return res.json();
     } catch (_) {}
   }
-
   throw new Error('All telemetry sources failed');
 }
 
@@ -657,7 +649,7 @@ function render() {
   if (earthMesh) {
     const D = (Date.now() - Date.UTC(2000, 0, 1, 12, 0, 0)) / 86400000;
     const GMST = (280.46061837 + 360.98564736629 * D) * Math.PI / 180;
-    earthMesh.rotation.y = -GMST;
+    earthMesh.rotation.y = GMST;
   }
 
   // Moon is tidally locked — keeps same face toward Earth (slow for visual interest)
