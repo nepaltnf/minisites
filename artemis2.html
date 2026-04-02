@@ -167,6 +167,23 @@
       margin-top: 4px;
     }
 
+    /* Planet labels */
+    #planet-labels {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 15;
+    }
+    .planet-label {
+      position: absolute;
+      font-size: 8px;
+      letter-spacing: 0.18em;
+      color: #666;
+      text-transform: uppercase;
+      transform: translate(-50%, 14px);
+      white-space: nowrap;
+    }
+
     /* Telemetry status dot */
     #telemetry-status {
       position: fixed;
@@ -224,6 +241,8 @@
 </div>
 
 <button id="vr-btn" class="hidden">Enter VR</button>
+
+<div id="planet-labels"></div>
 
 <div id="telemetry-status">
   <div id="status-dot"></div>
@@ -456,6 +475,115 @@ function buildRandomStarField(count = 6000) {
   }));
 }
 
+// ─── PLANETS ─────────────────────────────────────────────────────────────────
+// Orbital elements from JPL (epoch J2000). L,omega,Omega in degrees/century.
+
+const PLANET_ELEMS = [
+  { name:'Mercury', col:0xcccccc, L0:252.251, L1:149472.675, a:0.38710, e0:0.20563, e1: 2.1e-5, i0:7.005, i1:-5.9e-3, om0: 77.458, om1:0.1594, O0: 48.340, O1:-0.1221, mag:-0.5 },
+  { name:'Venus',   col:0xfff5cc, L0:181.980, L1: 58517.816, a:0.72333, e0:0.00677, e1:-5.1e-5, i0:3.395, i1: 4.3e-4, om0:131.768, om1:0.0568, O0: 76.673, O1:-0.2727, mag:-4.0 },
+  { name:'Mars',    col:0xff7744, L0: -4.568, L1: 19140.299, a:1.52371, e0:0.09337, e1: 9.1e-5, i0:1.852, i1:-7.2e-3, om0:-23.917, om1:0.4522, O0: 49.713, O1:-0.2685, mag: 0.5 },
+  { name:'Jupiter', col:0xffddaa, L0: 34.335, L1:  3034.904, a:5.20248, e0:0.04854, e1: 1.8e-4, i0:1.299, i1:-3.2e-3, om0: 14.275, om1:0.1820, O0:100.293, O1: 0.1302, mag:-2.0 },
+  { name:'Saturn',  col:0xfff0cc, L0: 50.076, L1:  1222.115, a:9.54150, e0:0.05551, e1:-3.2e-4, i0:2.494, i1: 4.5e-3, om0: 92.861, om1:0.5418, O0:113.640, O1:-0.2502, mag: 0.7 },
+];
+
+function planetHelioEcl(p, T) {
+  const d2r = Math.PI / 180;
+  const L   = (p.L0  + p.L1  * T) * d2r;
+  const e   =  p.e0  + p.e1  * T;
+  const inc = (p.i0  + p.i1  * T) * d2r;
+  const om  = (p.om0 + p.om1 * T) * d2r;
+  const Om  = (p.O0  + p.O1  * T) * d2r;
+  let M = L - om;
+  // Solve Kepler's equation iteratively
+  let E = M;
+  for (let k = 0; k < 8; k++) E = M + e * Math.sin(E);
+  const nu = 2 * Math.atan2(Math.sqrt(1+e)*Math.sin(E/2), Math.sqrt(1-e)*Math.cos(E/2));
+  const r  = p.a * (1 - e * Math.cos(E));
+  const u  = nu + om - Om;
+  return {
+    x: r*(Math.cos(Om)*Math.cos(u) - Math.sin(Om)*Math.sin(u)*Math.cos(inc)),
+    y: r*(Math.sin(Om)*Math.cos(u) + Math.cos(Om)*Math.sin(u)*Math.cos(inc)),
+    z: r*(Math.sin(u)*Math.sin(inc)),
+  };
+}
+
+function eclToScene(x, y, z) {
+  // Heliocentric ecliptic → our scene equatorial (Y=north, X=vernal equinox, -Z=RA90°)
+  const eps = 23.44 * Math.PI / 180;
+  return new THREE.Vector3(x, y*Math.sin(eps)+z*Math.cos(eps), -y*Math.cos(eps)+z*Math.sin(eps));
+}
+
+// Earth orbital elements (same machinery, used to get geocentric positions)
+const EARTH_ELEM = { L0:100.467, L1:35999.373, a:1.00000, e0:0.01671, e1:-3.6e-5, i0:0.0, i1:0.0, om0:102.930, om1:0.3195, O0:0.0, O1:0.0 };
+
+let planetMarkers = []; // { sprite, labelEl, scenePosNorm }
+
+function buildPlanetMarkers(date) {
+  // Remove old
+  planetMarkers.forEach(m => { scene.remove(m.sprite); m.labelEl.remove(); });
+  planetMarkers = [];
+
+  const T = (date - new Date('2000-01-01T12:00:00Z')) / (365.25 * 86400000 * 100);
+  const earth = planetHelioEcl(EARTH_ELEM, T);
+
+  const labelContainer = document.getElementById('planet-labels');
+
+  PLANET_ELEMS.forEach(p => {
+    const hel = planetHelioEcl(p, T);
+    // Geocentric ecliptic
+    const gx = hel.x - earth.x, gy = hel.y - earth.y, gz = hel.z - earth.z;
+    const dir = eclToScene(gx, gy, gz).normalize();
+
+    // Glow sprite
+    const glowTex = makePlanetGlowTexture(p.col);
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTex,
+      blending: THREE.AdditiveBlending,
+      transparent: true,
+      depthWrite: false,
+    }));
+    // Place far out on the star sphere, size scaled by magnitude
+    const dist = 45000;
+    sprite.position.copy(dir.clone().multiplyScalar(dist));
+    const glowSize = Math.max(300, 1200 - p.mag * 280);
+    sprite.scale.setScalar(glowSize);
+    scene.add(sprite);
+
+    // DOM label
+    const labelEl = document.createElement('div');
+    labelEl.className = 'planet-label';
+    labelEl.textContent = p.name;
+    labelContainer.appendChild(labelEl);
+
+    planetMarkers.push({ sprite, labelEl, dir });
+  });
+}
+
+function makePlanetGlowTexture(hexColor) {
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const ctx = c.getContext('2d');
+  const r = new THREE.Color(hexColor);
+  const grad = ctx.createRadialGradient(32,32,0, 32,32,32);
+  grad.addColorStop(0.0,  `rgba(${Math.round(r.r*255)},${Math.round(r.g*255)},${Math.round(r.b*255)},1.0)`);
+  grad.addColorStop(0.3,  `rgba(${Math.round(r.r*255)},${Math.round(r.g*255)},${Math.round(r.b*255)},0.5)`);
+  grad.addColorStop(1.0,  `rgba(${Math.round(r.r*255)},${Math.round(r.g*255)},${Math.round(r.b*255)},0.0)`);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,64,64);
+  return new THREE.CanvasTexture(c);
+}
+
+function updatePlanetLabels() {
+  const w = window.innerWidth, h = window.innerHeight;
+  planetMarkers.forEach(({ sprite, labelEl }) => {
+    const pos = sprite.position.clone().project(camera);
+    if (pos.z > 1) { labelEl.style.display = 'none'; return; }
+    labelEl.style.display = 'block';
+    labelEl.style.left = ((pos.x * 0.5 + 0.5) * w) + 'px';
+    labelEl.style.top  = ((-pos.y * 0.5 + 0.5) * h) + 'px';
+  });
+}
+
 // ─── SUN ─────────────────────────────────────────────────────────────────────
 // Sun is ~150M km away — placed at 30,000 scene units in the correct direction.
 // Angular size from Earth: ~0.53°, same as the Moon (hence total solar eclipses).
@@ -574,6 +702,7 @@ Promise.all([
   document.getElementById('loading').style.display = 'none';
   positionsReady = true;
 
+  buildPlanetMarkers(new Date());
   startPositionUpdates();
   checkVRSupport();
 });
@@ -788,6 +917,7 @@ function render() {
     camera.quaternion.setFromEuler(euler);
   }
 
+  updatePlanetLabels();
   renderer.render(scene, camera);
 }
 
