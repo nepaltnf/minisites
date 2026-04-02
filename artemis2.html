@@ -987,6 +987,10 @@ Promise.all([
 ]).then(([dayTex, nightTex, specTex, cloudTex, moonTex, starData]) => {
   setStatus('Building scene...');
 
+  [dayTex, nightTex, specTex, cloudTex].forEach(t => {
+    if (t) t.wrapS = THREE.RepeatWrapping;
+  });
+
   if (!dayTex) {
     dayTex = new THREE.DataTexture(new Uint8Array([30, 80, 160, 255]), 1, 1, THREE.RGBAFormat);
     dayTex.needsUpdate = true;
