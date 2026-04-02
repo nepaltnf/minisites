@@ -204,9 +204,8 @@ const ZOOM_SPEED       = 0.08;
 
 // Textures from CORS-friendly CDNs
 const TEXTURES = {
-  earthDay:   'https://unpkg.com/three-globe@2.31.1/example/img/earth-blue-marble.jpg',
-  earthCloud: null, // generated procedurally below
-  moon:       'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg',
+  earthDay: 'https://unpkg.com/three-globe@2.31.1/example/img/earth-blue-marble.jpg',
+  moon:     'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/planets/moon_1024.jpg',
 };
 
 // ─── LIVE TELEMETRY ──────────────────────────────────────────────────────────
@@ -407,29 +406,18 @@ placeSun(approxSunDirection(new Date()));
 
 const loader = new THREE.TextureLoader();
 
-let earthMesh, cloudMesh, moonMesh;
+let earthMesh, moonMesh;
 let positionsReady = false;
 
-function buildEarth(dayTex, cloudTex) {
+function buildEarth(dayTex) {
   const geo = new THREE.SphereGeometry(EARTH_RADIUS_KM * SCENE_SCALE, 64, 64);
   const mat = new THREE.MeshPhongMaterial({
     map:       dayTex,
-    specular:  new THREE.Color(0x222222),
-    shininess: 8,
+    specular:  new THREE.Color(0x224488),
+    shininess: 12,
   });
   earthMesh = new THREE.Mesh(geo, mat);
   scene.add(earthMesh);
-
-  // Cloud layer — slightly larger sphere on top
-  const cloudGeo = new THREE.SphereGeometry(EARTH_RADIUS_KM * SCENE_SCALE * 1.005, 64, 64);
-  const cloudMat = new THREE.MeshPhongMaterial({
-    map:         cloudTex,
-    transparent: true,
-    opacity:     0.6,
-    depthWrite:  false,
-  });
-  cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
-  scene.add(cloudMesh);
 }
 
 function buildMoon(moonTex) {
@@ -445,31 +433,6 @@ function buildMoon(moonTex) {
 
 // ─── TEXTURE LOADING ─────────────────────────────────────────────────────────
 
-function makeCloudTexture() {
-  const size = 1024;
-  const canvas = document.createElement('canvas');
-  canvas.width = size; canvas.height = size / 2;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'black';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  // Scatter soft white blobs for cloud cover
-  for (let i = 0; i < 1800; i++) {
-    const x = Math.random() * canvas.width;
-    const y = Math.random() * canvas.height;
-    const r = 6 + Math.random() * 28;
-    const alpha = 0.06 + Math.random() * 0.18;
-    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, `rgba(255,255,255,${alpha})`);
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = THREE.RepeatWrapping;
-  return tex;
-}
 
 const setStatus = s => { document.getElementById('loading-status').textContent = s; };
 
@@ -488,7 +451,7 @@ Promise.all([
     moonTex.needsUpdate = true;
   }
 
-  buildEarth(dayTex, makeCloudTexture());
+  buildEarth(dayTex);
   buildMoon(moonTex);
 
   document.getElementById('loading').style.display = 'none';
@@ -516,7 +479,6 @@ function applyFallbackPositions() {
   const eScene = -22000 * SCENE_SCALE;
   const mScene =  369000 * SCENE_SCALE;
   earthMesh.position.set(0, 0, eScene);
-  cloudMesh.position.set(0, 0, eScene);
   moonMesh.position.set(0, 0, mScene);
   if (!cameraInitialized) { aimCameraAt(0, 0, eScene); cameraInitialized = true; }
   placeSun(approxSunDirection(new Date()));
@@ -548,7 +510,6 @@ async function fetchAndApply() {
     const mRel = toScene(moon);
 
     earthMesh.position.set(eRel.x, eRel.y, eRel.z);
-    cloudMesh.position.set(eRel.x, eRel.y, eRel.z);
     moonMesh.position.set(mRel.x, mRel.y, mRel.z);
 
     // Aim camera at Earth on first load (sets yaw/pitch so render loop agrees)
@@ -692,13 +653,14 @@ function render() {
   camera.fov += (targetFOV - camera.fov) * 0.12;
   camera.updateProjectionMatrix();
 
-  // Slow Earth rotation
+  // Real-time Earth rotation using Greenwich Mean Sidereal Time (GMST)
   if (earthMesh) {
-    earthMesh.rotation.y += delta * 0.005;
-    cloudMesh.rotation.y += delta * 0.006; // clouds drift slightly faster
+    const D = (Date.now() - Date.UTC(2000, 0, 1, 12, 0, 0)) / 86400000;
+    const GMST = (280.46061837 + 360.98564736629 * D) * Math.PI / 180;
+    earthMesh.rotation.y = -GMST;
   }
 
-  // Moon rotation (tidally locked — but we spin very slowly for visual interest)
+  // Moon is tidally locked — keeps same face toward Earth (slow for visual interest)
   if (moonMesh) {
     moonMesh.rotation.y += delta * 0.001;
   }
