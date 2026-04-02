@@ -995,7 +995,7 @@ function updatePupilEffect(delta) {
   const angleDeg = Math.acos(dot) * 180 / Math.PI;
 
   // Influence: peaks at 0°, zero beyond 80° — sun doesn't need to be in FOV to affect pupil
-  const target = Math.max(0, 1 - angleDeg / 80) ** 2;
+  const target = Math.max(0, 1 - angleDeg / 30) ** 3;
 
   // Asymmetric time constants: iris contracts fast (sun appears), dilates slowly (sun leaves)
   const tau = target > currentExposure ? 0.6 : 3.5;
