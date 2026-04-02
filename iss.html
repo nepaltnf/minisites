@@ -636,7 +636,11 @@ Promise.all([
   setStatus('Building scene...');
 
   [dayTex, nightTex, specTex, cloudTex].forEach(t => {
-    if (t) { t.wrapS = THREE.RepeatWrapping; t.needsUpdate = true; }
+    if (t) {
+      t.wrapS = THREE.RepeatWrapping;
+      t.minFilter = THREE.LinearFilter;
+      t.needsUpdate = true;
+    }
   });
 
   if (!dayTex) {
