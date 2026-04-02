@@ -1263,8 +1263,13 @@ function render() {
   const delta = clock.getDelta();
   const elapsed = clock.getElapsedTime();
 
-  // Smooth FOV
-  camera.fov += (targetFOV - camera.fov) * 0.12;
+  // Smooth FOV — scale down vertical FOV when wider than 16:9 to keep
+  // horizontal FOV consistent with desktop (landscape mobile fix)
+  const refAspect = 16 / 9;
+  const adaptedFOV = camera.aspect > refAspect
+    ? targetFOV * (refAspect / camera.aspect)
+    : targetFOV;
+  camera.fov += (adaptedFOV - camera.fov) * 0.12;
   camera.updateProjectionMatrix();
 
   // Real-time Earth rotation using Greenwich Mean Sidereal Time (GMST)
