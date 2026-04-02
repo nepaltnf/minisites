@@ -859,7 +859,7 @@ function buildEarth(dayTex, nightTex) {
         vec4 day   = texture2D(u_day,   vUv);
         vec4 night = texture2D(u_night, vUv);
         // Power curve: crushes dim ocean/land to near-black, preserves bright city lights
-        vec3 nightLights = pow(night.rgb, vec3(2.5)) * 8.0;
+        vec3 nightLights = pow(night.rgb, vec3(2.2)) * 7.0;
         gl_FragColor = vec4(mix(nightLights, day.rgb, blend), 1.0);
       }
     `,
