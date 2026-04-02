@@ -212,12 +212,30 @@ const TEXTURES = {
 // ─── LIVE TELEMETRY ──────────────────────────────────────────────────────────
 // Source: launchwatch.modelotech.com — proxies NASA AROW telemetry
 
-const TELEMETRY_URL = 'https://corsproxy.io/?https://launchwatch.modelotech.com/api/artemis2/status';
+const BASE_TELEMETRY_URL = 'https://launchwatch.modelotech.com/api/artemis2/status';
+
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${url}`,
+  url => `https://thingproxy.freeboard.io/fetch/${url}`,
+];
 
 async function fetchArtemisStatus() {
-  const res = await fetch(TELEMETRY_URL);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  // Try direct first (works when deployed to same-origin or if server allows CORS)
+  try {
+    const res = await fetch(BASE_TELEMETRY_URL);
+    if (res.ok) return res.json();
+  } catch (_) {}
+
+  // Fall through proxy chain
+  for (const makeUrl of CORS_PROXIES) {
+    try {
+      const res = await fetch(makeUrl(BASE_TELEMETRY_URL));
+      if (res.ok) return res.json();
+    } catch (_) {}
+  }
+
+  throw new Error('All telemetry sources failed');
 }
 
 // Convert geocentric lat/lon + radius to Cartesian (Y-up)
