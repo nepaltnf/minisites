@@ -144,6 +144,30 @@
     }
     #vr-btn:hover { border-color: #888; color: #ccc; }
     #vr-btn.hidden { display: none; }
+    #snap-btns {
+      position: fixed;
+      top: 80px;
+      right: 44px;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .snap-btn {
+      background: none;
+      border: 1px solid #333;
+      color: #555;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.2s;
+    }
+    .snap-btn:hover { border-color: #888; color: #ccc; }
+    @media (max-width: 700px) { #snap-btns { display: none; } }
 
     /* Loading */
     #loading {
@@ -398,6 +422,11 @@
 </div>
 
 <button id="vr-btn" class="hidden">Enter VR</button>
+
+<div id="snap-btns">
+  <button class="snap-btn" id="snap-earth">Earth</button>
+  <button class="snap-btn" id="snap-moon">Moon</button>
+</div>
 
 <div id="planet-labels"></div>
 
@@ -1237,6 +1266,14 @@ document.addEventListener('click', () => {
   lensDropdown.classList.remove('open');
   lensToggle.classList.remove('open');
   lensChevron.textContent = '▾';
+});
+
+// ─── SNAP BUTTONS ────────────────────────────────────────────────────────────
+document.getElementById('snap-earth').addEventListener('click', () => {
+  if (earthMesh) aimCameraAt(earthMesh.position.x, earthMesh.position.y, earthMesh.position.z);
+});
+document.getElementById('snap-moon').addEventListener('click', () => {
+  if (moonMesh) aimCameraAt(moonMesh.position.x, moonMesh.position.y, moonMesh.position.z);
 });
 
 // ─── MOUSE LOOK ──────────────────────────────────────────────────────────────
