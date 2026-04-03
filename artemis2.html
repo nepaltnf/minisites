@@ -169,15 +169,8 @@
     .snap-btn:hover { border-color: #888; color: #ccc; }
     @media (max-width: 700px) { #snap-btns { display: none; } }
 
-    /* Mobile target lock dropdown */
-    #target-select {
-      display: none;
-      position: fixed;
-      top: 50px;
-      left: 16px;
-      z-index: 19;
-    }
-    @media (max-width: 700px) { #target-select { display: block; } }
+    /* Mobile target lock dropdown (standalone — hidden on mobile, replaced by bar) */
+    #target-select { display: none; }
     #target-toggle {
       background: rgba(0,0,0,0.7);
       border: 1px solid #2a2a2a;
@@ -338,6 +331,116 @@
       background: white;
       opacity: 0;
     }
+    /* ─── MOBILE TOP BAR ────────────────────────────────────────────────────── */
+    #mobile-bar {
+      display: none;
+    }
+    @media (max-width: 700px) {
+      #mobile-bar {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 25;
+        background: rgba(255,255,255,0.03);
+        border-bottom: 1px solid rgba(255,255,255,0.04);
+        padding: 10px 16px 8px;
+        gap: 6px;
+      }
+      #mobile-bar-row1 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      #mobile-bar-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: #2a4a2a;
+      }
+      #mobile-bar-dot.live {
+        background: #3a7a3a;
+        box-shadow: 0 0 6px #3a7a3a;
+        animation: pulse 2s infinite;
+      }
+      #mobile-bar-dot.offline { background: #aa3333; box-shadow: 0 0 5px #aa3333; }
+      #mobile-bar-title {
+        flex: 1;
+        font-size: 9px;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #444;
+      }
+      /* shared mini-dropdown style inside bar */
+      .bar-select { position: relative; }
+      .bar-toggle {
+        background: none;
+        border: 1px solid #2a2a2a;
+        color: #444;
+        font-family: 'Courier New', monospace;
+        font-size: 9px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        padding: 5px 9px;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: all 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+      }
+      .bar-toggle.open, .bar-toggle:hover { border-color: #555; color: #aaa; }
+      .bar-dropdown {
+        display: none;
+        flex-direction: column;
+        gap: 3px;
+        position: absolute;
+        top: calc(100% + 4px);
+        right: 0;
+        background: rgba(0,0,0,0.92);
+        padding: 4px;
+        border-radius: 3px;
+        min-width: 100%;
+        z-index: 30;
+      }
+      .bar-dropdown.open { display: flex; }
+      .bar-option {
+        background: none;
+        border: 1px solid #2a2a2a;
+        color: #444;
+        font-family: 'Courier New', monospace;
+        font-size: 9px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        padding: 6px 9px;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .bar-option:hover { border-color: #666; color: #bbb; }
+      .bar-option.active { border-color: #555; color: #ccc; background: rgba(255,255,255,0.04); }
+      #mobile-bar-row2 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      #mobile-bar-subtitle {
+        font-size: 9px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #333;
+      }
+      #mobile-bar-phase {
+        font-size: 9px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: #2a4a2a;
+      }
+    }
+
     /* ─── MOBILE ────────────────────────────────────────────────────────────── */
     @media (max-width: 700px) {
       #hud {
@@ -352,13 +455,11 @@
       .hud-label { font-size: 9px; }
       .hud-value { font-size: 13px; }
       #hud-date  { font-size: 9px; }
-      #lens-select { top: 20px; right: 16px; }
-      #vr-btn      { top: 20px; left: 16px; }
-      #met         { top: 20px; }
-      #met-title   { font-size: 15px; }
-      #met-phase   { font-size: 13px; }
-      #telemetry-status { bottom: auto; right: auto; top: 20px; left: 16px; }
-      #status-label { display: none; }
+      #lens-select { display: none; }
+      #vr-btn      { display: none; }
+      #met         { display: none; }
+      #telemetry-status { display: none; }
+      #hud         { bottom: 24px; top: auto; padding-top: 0; }
     }
     /* Welcome overlay */
     #welcome {
@@ -475,6 +576,35 @@
 <div id="loading">
   <div id="loading-title">Artemis II</div>
   <div id="loading-status">Loading textures...</div>
+</div>
+
+<div id="mobile-bar">
+  <div id="mobile-bar-row1">
+    <div id="mobile-bar-dot"></div>
+    <span id="mobile-bar-title">View From Orion</span>
+    <div class="bar-select" id="bar-target-select">
+      <button class="bar-toggle" id="bar-target-toggle">Target <span class="bar-chevron">▾</span></button>
+      <div class="bar-dropdown" id="bar-target-dropdown">
+        <button class="bar-option" data-target="earth">Earth</button>
+        <button class="bar-option" data-target="moon">Moon</button>
+        <button class="bar-option" data-target="prograde">Prograde</button>
+      </div>
+    </div>
+    <div class="bar-select" id="bar-lens-select">
+      <button class="bar-toggle" id="bar-lens-toggle">Eye <span class="bar-chevron">▾</span></button>
+      <div class="bar-dropdown" id="bar-lens-dropdown">
+        <button class="bar-option active" data-fov="39">Eye</button>
+        <button class="bar-option" data-fov="62">20mm</button>
+        <button class="bar-option" data-fov="27">50mm</button>
+        <button class="bar-option" data-fov="16">85mm</button>
+        <button class="bar-option" data-fov="7">200mm</button>
+      </div>
+    </div>
+  </div>
+  <div id="mobile-bar-row2">
+    <span id="mobile-bar-subtitle">Artemis II</span>
+    <span id="mobile-bar-phase">—</span>
+  </div>
 </div>
 
 <div id="canvas-container"></div>
@@ -617,7 +747,11 @@ async function fetchPhaseText() {
       const res = await fetchWithTimeout(makeUrl(LAUNCHWATCH_URL), 6000);
       if (res.ok) {
         const data = await res.json();
-        if (data.current_phase) document.getElementById('met-phase').textContent = data.current_phase;
+        if (data.current_phase) {
+          document.getElementById('met-phase').textContent = data.current_phase;
+          const bp = document.getElementById('mobile-bar-phase');
+          if (bp) bp.textContent = data.current_phase;
+        }
         return;
       }
     } catch (_) {}
@@ -1146,6 +1280,8 @@ function setTelemetryStatus(live, label) {
   const dot = document.getElementById('status-dot');
   dot.className = live ? 'live' : 'offline';
   document.getElementById('status-label').textContent = label;
+  const barDot = document.getElementById('mobile-bar-dot');
+  if (barDot) barDot.className = live ? 'live' : 'offline';
 }
 
 // Set yaw/pitch so the render loop points camera toward a scene position
@@ -1253,6 +1389,8 @@ async function fetchAndApply() {
     } else {
       setTelemetryStatus(false, 'telemetry unavailable');
       document.getElementById('met-phase').textContent  = 'awaiting';
+      const bp = document.getElementById('mobile-bar-phase');
+      if (bp) bp.textContent = 'awaiting';
       document.getElementById('dist-earth').textContent = 'awaiting';
       document.getElementById('dist-moon').textContent  = 'awaiting';
       document.getElementById('velocity').textContent   = 'awaiting';
@@ -1433,6 +1571,52 @@ document.addEventListener('click', () => {
   targetDropdown.classList.remove('open');
   targetToggle.classList.remove('open');
   targetChevron.textContent = '▾';
+});
+
+// ─── MOBILE BAR DROPDOWNS ────────────────────────────────────────────────────
+function makeBarDropdown(toggleId, dropdownId, onSelect) {
+  const toggle = document.getElementById(toggleId);
+  const dropdown = document.getElementById(dropdownId);
+  if (!toggle || !dropdown) return;
+  const chevron = toggle.querySelector('.bar-chevron');
+  toggle.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = dropdown.classList.toggle('open');
+    toggle.classList.toggle('open', open);
+    if (chevron) chevron.textContent = open ? '▴' : '▾';
+  });
+  dropdown.querySelectorAll('.bar-option').forEach(btn => {
+    btn.addEventListener('click', () => {
+      onSelect(btn);
+      dropdown.classList.remove('open');
+      toggle.classList.remove('open');
+      if (chevron) chevron.textContent = '▾';
+    });
+  });
+}
+
+makeBarDropdown('bar-target-toggle', 'bar-target-dropdown', btn => {
+  const t = btn.dataset.target;
+  if (t === 'earth' && earthMesh) aimCameraAt(earthMesh.position.x, earthMesh.position.y, earthMesh.position.z);
+  else if (t === 'moon' && moonMesh) aimCameraAt(moonMesh.position.x, moonMesh.position.y, moonMesh.position.z);
+  else if (t === 'prograde') { const p = lastGoodTelemetry?.prograde; if (p) aimCameraAt(p.x, p.y, p.z); }
+});
+
+makeBarDropdown('bar-lens-toggle', 'bar-lens-dropdown', btn => {
+  const fov = parseFloat(btn.dataset.fov);
+  if (!isNaN(fov)) {
+    targetFOV = fov;
+    // sync active state in both bar and desktop dropdowns
+    document.querySelectorAll('#bar-lens-dropdown .bar-option').forEach(b => b.classList.toggle('active', b === btn));
+    document.querySelectorAll('#lens-dropdown .lens-option').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.fov) === fov));
+    const toggle = document.getElementById('bar-lens-toggle');
+    if (toggle) toggle.childNodes[0].textContent = btn.textContent + ' ';
+  }
+});
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.bar-dropdown').forEach(d => d.classList.remove('open'));
+  document.querySelectorAll('.bar-toggle').forEach(t => { t.classList.remove('open'); const c = t.querySelector('.bar-chevron'); if (c) c.textContent = '▾'; });
 });
 
 // ─── MOUSE LOOK ──────────────────────────────────────────────────────────────
