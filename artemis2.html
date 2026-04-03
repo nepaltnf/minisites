@@ -2025,15 +2025,16 @@ function render() {
 // Apply camera transform
   if (!renderer.xr.enabled) {
     if (missionViewActive) {
-      // Orbit camera around Earth origin
+      // Orbit camera around midpoint between Earth and Orion
+      const mid = orionMarker.visible ? orionMarker.position.clone().multiplyScalar(0.5) : new THREE.Vector3();
       const cp = Math.cos(mvPitch), sp = Math.sin(mvPitch);
       const cy2 = Math.cos(mvYaw),  sy2 = Math.sin(mvYaw);
       camera.position.set(
-        mvRadius * cp * sy2,
-        mvRadius * sp,
-        mvRadius * cp * cy2,
+        mid.x + mvRadius * cp * sy2,
+        mid.y + mvRadius * sp,
+        mid.z + mvRadius * cp * cy2,
       );
-      camera.lookAt(0, 0, 0);
+      camera.lookAt(mid);
     } else {
       camera.position.set(0, 0, 0);
       _euler.set(pitch, yaw, 0);
@@ -2104,7 +2105,7 @@ function enterMissionView() {
     const op = mvEciToScene({ x: cx, y: cy, z: cz });
     orionMarker.position.copy(op);
     const d = op.length();
-    orionMarker.scale.setScalar(Math.max(0.5, d * 0.012));
+    orionMarker.scale.setScalar(Math.max(1.5, d * 0.04));
     orionMarker.visible = true;
 
     // Camera orbits around midpoint between Earth and Orion, pulled back to see both
