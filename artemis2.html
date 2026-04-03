@@ -1846,6 +1846,8 @@ let hasDragged = false;
 let prevMouse  = { x: 0, y: 0 };
 let yaw = 0, pitch = 0;
 let targetYaw = 0, targetPitch = 0, isAiming = false;
+let missionViewActive = false;
+let mvYaw = 0, mvPitch = 0.3, mvRadius = 50;
 const _euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
 renderer.domElement.addEventListener('mousedown', e => {
@@ -2051,9 +2053,6 @@ function render() {
 }
 
 // ─── MISSION VIEW ────────────────────────────────────────────────────────────
-let missionViewActive = false;
-let mvYaw = 0, mvPitch = 0.3, mvRadius = 50;
-
 // Orion marker — glowing green orb
 let orionMarker = null, orionGlow = null, orionLight = null;
 
