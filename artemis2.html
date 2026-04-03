@@ -1622,71 +1622,17 @@ unitToggleBtn.addEventListener('click', toggleUnits);
 if (mobileUnitBtn) mobileUnitBtn.addEventListener('click', toggleUnits);
 
 // ─── TRAJECTORY ───────────────────────────────────────────────────────────────
+// Artemis II trajectory — 32 points, fetched 2026-04-03T23:35:10.973Z
+// Run fetch-trajectory.js to update (node fetch-trajectory.js)
+const TRAJECTORY_POINTS = [-26827.28957931617,-17611.33552121793,-9568.549241101793,-27310.45009738475,-57806.00980972699,-31268.81248262674,-9600.177392892716,-65122.96923482179,-35145.6116956096,11906.49404215679,-40890.66762126026,-21952.92966371179,-37467.73535713353,-23472.94438883177,-13416.4427691544,-64564.73355319291,-74199.7939635485,-41327.67626638074,-79368.24558746436,-112044.2323360951,-62041.85519096175,-89606.55596502265,-143557.7936005979,-79247.49095554464,-97245.69846478796,-170899.6700966975,-94151.8545310657,-103147.7125504877,-195138.2269557394,-107347.9955200377,-107787.3020339149,-216902.9620616672,-119184.912949144,-111462.0480959844,-236604.0419688036,-129890.1802653409,-114378.4912652445,-254528.040500897,-139622.996171277,-116693.4508320731,-270884.8957892562,-148500.4281838714,-118538.53343245,-285833.6008775802,-156611.9198226728,-120039.68303885,-299496.8771822804,-164027.9268228183,-121341.625832272,-311968.5116937037,-170805.1559541785,-122657.6756421309,-323310.8798775962,-176988.5491788145,-124427.1999087552,-333513.1860191657,-182601.4028250512,-128178.2925962001,-341975.3164919549,-187463.2922315617,-133804.9514368264,-339082.2481523765,-187347.2997750187,-130633.3816741953,-330035.6537269173,-183985.7958342009,-125116.359368203,-320738.7984387567,-180296.8940379594,-118546.210441145,-310791.3951282029,-176160.9716749141,-111232.5763431599,-299969.0155054794,-171482.9114426961,-103288.5106118776,-288112.8852921076,-166183.5731506919,-94758.93305117196,-275078.239994503,-160182.7622417075,-85656.54824472824,-260710.3113382743,-153389.0853036075,-75974.54459962092,-244826.7022382189,-145690.6092551975,-65691.28090221525,-227197.6108692491,-136942.7283398026,-54771.48211384661,-207516.7656866828,-126949.0334990824,-43165.77852853749,-185351.2271241155,-115427.0991983605];
+const TRAJECTORY_FETCHED = '2026-04-03T23:35:10.973Z';
+
 let trajectoryLine = null;
 let trajectoryVisible = false;
 
-// Horizons API — Orion spacecraft is body -60
-// Returns J2000 ECI vectors in km, same frame as our telemetry
-async function fetchHorizonsTrajectory() {
-  const cached = localStorage.getItem('artemis2_trajectory');
-  if (cached) {
-    try {
-      const parsed = JSON.parse(cached);
-      // Use cache if less than 12 hours old
-      if (Date.now() - parsed.ts < 12 * 3600 * 1000) return parsed.points;
-    } catch (_) {}
-  }
-
-  // Query from launch (Apr 1 2026) to end of mission — Horizons stops at last available data
-  const baseUrl = 'https://ssd.jpl.nasa.gov/api/horizons.api'
-    + '?format=json&COMMAND=-1024&OBJ_DATA=NO&MAKE_EPHEM=YES'
-    + '&EPHEM_TYPE=VECTORS&CENTER=500@399&REF_PLANE=FRAME'
-    + '&START_TIME=2026-Apr-01 23:00&STOP_TIME=2026-Apr-25&STEP_SIZE=6h'
-    + '&VEC_TABLE=1&CSV_FORMAT=YES';
-  // Try direct first (JPL supports CORS), then proxies
-  const horizonsUrls = [
-    baseUrl,
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(baseUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(baseUrl)}`,
-  ];
-  let json = null;
-  for (const url of horizonsUrls) {
-    try {
-      console.log('Trying:', url.slice(0, 80));
-      const res = await fetchWithTimeout(url, 30000);
-      console.log('Status:', res.status);
-      if (!res.ok) continue;
-      const text = await res.text();
-      console.log('Raw (first 200):', text.slice(0, 200));
-      json = JSON.parse(text);
-      break;
-    } catch (e) { console.warn('Failed:', e.message); }
-  }
-  if (!json) throw new Error('All Horizons attempts failed');
-  console.log('Horizons result (first 500):', (json.result || '').slice(0, 500));
-  const raw = json.result || '';
-
-  // Parse CSV rows between $$SOE and $$EOE markers
-  const soe = raw.indexOf('$$SOE');
-  const eoe = raw.indexOf('$$EOE');
-  if (soe < 0 || eoe < 0) throw new Error('No ephemeris data in Horizons response');
-  const lines = raw.slice(soe + 5, eoe).trim().split('\n');
-
-  const points = [];
-  for (const line of lines) {
-    const cols = line.split(',').map(s => s.trim());
-    // CSV_FORMAT vector table: JDTDB, Cal, X, Y, Z, VX, VY, VZ ...
-    if (cols.length < 5) continue;
-    const x = parseFloat(cols[2]);
-    const y = parseFloat(cols[3]);
-    const z = parseFloat(cols[4]);
-    if (isNaN(x) || isNaN(y) || isNaN(z)) continue;
-    points.push(x, y, z); // ECI km
-  }
-
-  if (points.length === 0) throw new Error('Horizons returned no points');
-  try { localStorage.setItem('artemis2_trajectory', JSON.stringify({ ts: Date.now(), points })); } catch (_) {}
-  return points;
+function fetchHorizonsTrajectory() {
+  // Static data baked in — run fetch-trajectory.js to update
+  return Promise.resolve(TRAJECTORY_POINTS);
 }
 
 function buildTrajectoryLine(eciPoints_km, spacecraftPos_km) {
