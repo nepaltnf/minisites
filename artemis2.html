@@ -1657,21 +1657,20 @@ function fetchHorizonsTrajectory() {
   return Promise.resolve(TRAJECTORY_POINTS);
 }
 
-function buildTrajectoryLine(eciPoints_km, spacecraftPos_km) {
-  // eciPoints_km: flat array [x,y,z, x,y,z, ...]  (geocentric ECI, km)
-  // spacecraftPos_km: { cx, cy, cz } — current spacecraft ECI position
-  // Apply same ECI→scene transform as telemetry: scene = (eci_x-cx, eci_z-cz, -(eci_y-cy)) * SCENE_SCALE
-  const { cx, cy, cz } = spacecraftPos_km;
-  const verts = [];
+function buildTrajectoryLine(eciPoints_km) {
+  // ECI→scene: scene_x=eci_x, scene_y=eci_z, scene_z=-eci_y (geocentric, Earth at origin)
+  const controlPoints = [];
   for (let i = 0; i < eciPoints_km.length; i += 3) {
-    verts.push(
-      (eciPoints_km[i]   - cx) * SCENE_SCALE,
-      (eciPoints_km[i+2] - cz) * SCENE_SCALE,
-     -(eciPoints_km[i+1] - cy) * SCENE_SCALE,
-    );
+    controlPoints.push(new THREE.Vector3(
+       eciPoints_km[i]   * SCENE_SCALE,
+       eciPoints_km[i+2] * SCENE_SCALE,
+      -eciPoints_km[i+1] * SCENE_SCALE,
+    ));
   }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  // Smooth curve through control points
+  const curve = new THREE.CatmullRomCurve3(controlPoints);
+  const points = curve.getPoints(300);
+  const geo = new THREE.BufferGeometry().setFromPoints(points);
   const mat = new THREE.LineBasicMaterial({ color: 0x4488aa, opacity: 0.5, transparent: true });
   if (trajectoryLine) { trajectoryLine.geometry.dispose(); scene.remove(trajectoryLine); }
   trajectoryLine = new THREE.Line(geo, mat);
@@ -1690,10 +1689,7 @@ async function toggleTrajectory() {
   btn.textContent = 'Loading…';
   try {
     const points = await fetchHorizonsTrajectory();
-    const pos = lastGoodTelemetry
-      ? { cx: lastGoodTelemetry.cx, cy: lastGoodTelemetry.cy, cz: lastGoodTelemetry.cz }
-      : (() => { try { return JSON.parse(localStorage.getItem('artemis2_pos')); } catch(_){} return { cx:0, cy:-22000, cz:0 }; })();
-    buildTrajectoryLine(points, pos);
+    buildTrajectoryLine(points);
     if (trajectoryLine) trajectoryLine.visible = true;
     trajectoryVisible = true;
     btn.classList.add('active');
@@ -2083,7 +2079,7 @@ function enterMissionView() {
   } else { mvYaw = 0; mvPitch = 0.3; }
   if (orionMarker && lastGoodTelemetry) {
     const { cx, cy, cz } = lastGoodTelemetry;
-    orionMarker.position.set(-cx * SCENE_SCALE, -cz * SCENE_SCALE, cy * SCENE_SCALE);
+    orionMarker.position.set(cx * SCENE_SCALE, cz * SCENE_SCALE, -cy * SCENE_SCALE);
     orionMarker.scale.setScalar(mvRadius * 0.015);
     orionMarker.visible = true;
   }
