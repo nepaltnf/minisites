@@ -1594,7 +1594,9 @@ function startPositionUpdates() {
 
 // ─── LENS SELECTOR ───────────────────────────────────────────────────────────
 
-let targetFOV = FOV_DEFAULT;
+// On small screens boost FOV so Earth appears closer to desktop apparent size
+const _mobileBoost = Math.max(screen.width, screen.height) < 1000;
+let targetFOV = _mobileBoost ? FOV_DEFAULT * 1.4 : FOV_DEFAULT;
 
 const lensToggle   = document.getElementById('lens-toggle');
 const lensDropdown = document.getElementById('lens-dropdown');
