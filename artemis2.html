@@ -1206,6 +1206,24 @@ let starsPoints = null;
 let currentExposure = 0;
 const bloomEl = document.getElementById('sun-bloom');
 
+function sunOccludedByEarth() {
+  if (!earthMesh || !sunMesh) return false;
+  // Ray from camera (origin) toward sun; check if Earth sphere intersects it.
+  const sp = sunMesh.position;
+  const sl = sp.length();
+  const rdx = sp.x / sl, rdy = sp.y / sl, rdz = sp.z / sl; // ray direction (unit)
+  const ep = earthMesh.position;
+  // Project Earth center onto ray
+  const t = ep.x * rdx + ep.y * rdy + ep.z * rdz;
+  if (t <= 0) return false; // Earth is behind camera
+  if (t >= sl) return false; // Earth is beyond the sun
+  // Closest point on ray to Earth center
+  const cx = rdx * t - ep.x, cy = rdy * t - ep.y, cz = rdz * t - ep.z;
+  const dist2 = cx*cx + cy*cy + cz*cz;
+  const r = EARTH_RADIUS_KM * SCENE_SCALE;
+  return dist2 < r * r;
+}
+
 function updatePupilEffect(delta) {
   if (!sunMesh) return;
 
@@ -1220,7 +1238,9 @@ function updatePupilEffect(delta) {
   const angleDeg = Math.acos(dot) * 180 / Math.PI;
 
   // Influence: peaks at 0°, zero beyond 80° — sun doesn't need to be in FOV to affect pupil
-  const target = Math.max(0, 1 - angleDeg / 30) ** 3;
+  // Zero out if Earth is blocking the sun from the camera's position
+  const occluded = sunOccludedByEarth();
+  const target = occluded ? 0 : Math.max(0, 1 - angleDeg / 30) ** 3;
 
   // Asymmetric time constants: iris contracts fast (sun appears), dilates slowly (sun leaves)
   const tau = target > currentExposure ? 0.6 : 3.5;
