@@ -311,6 +311,27 @@
       animation: pulse 2s infinite;
     }
     #status-dot.offline { background: #aa3333; box-shadow: 0 0 5px #aa3333; }
+    #trajectory-toggle {
+      position: fixed;
+      bottom: 70px;
+      left: 44px;
+      z-index: 20;
+      background: none;
+      border: 1px solid #333;
+      color: #555;
+      font-family: inherit;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      padding: 4px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    #trajectory-toggle:hover { border-color: #888; color: #ccc; }
+    #trajectory-toggle.active { border-color: #3a7a3a; color: #4a9a4a; }
+    @media (max-width: 900px) and (orientation: portrait) { #trajectory-toggle { display: none; } }
+    @media (max-width: 900px) and (orientation: landscape) { #trajectory-toggle { left: 16px; bottom: 60px; } }
+
     #unit-toggle {
       position: fixed;
       bottom: 40px;
@@ -720,6 +741,7 @@
 
 <div id="sun-bloom"></div>
 
+<button id="trajectory-toggle">Path</button>
 <button id="unit-toggle">Units km</button>
 
 <div id="telemetry-status">
@@ -1467,7 +1489,7 @@ async function fetchAndApply() {
       y:  eph.vz / vLen,
       z: -eph.vy / vLen,
     };
-    lastGoodTelemetry = { d_earth, d_moon, vel_kmh, prograde, fetchedAt: now };
+    lastGoodTelemetry = { d_earth, d_moon, vel_kmh, prograde, fetchedAt: now, cx, cy, cz };
 
     document.getElementById('dist-earth').textContent = formatDist(d_earth);
     document.getElementById('dist-moon').textContent  = formatDist(d_moon);
@@ -1598,6 +1620,120 @@ function toggleUnits() {
 }
 unitToggleBtn.addEventListener('click', toggleUnits);
 if (mobileUnitBtn) mobileUnitBtn.addEventListener('click', toggleUnits);
+
+// ─── TRAJECTORY ───────────────────────────────────────────────────────────────
+let trajectoryLine = null;
+let trajectoryVisible = false;
+
+// Horizons API — Orion spacecraft is body -60
+// Returns J2000 ECI vectors in km, same frame as our telemetry
+async function fetchHorizonsTrajectory() {
+  const cached = localStorage.getItem('artemis2_trajectory');
+  if (cached) {
+    try {
+      const parsed = JSON.parse(cached);
+      // Use cache if less than 6 hours old
+      if (Date.now() - parsed.ts < 6 * 3600 * 1000) return parsed.points;
+    } catch (_) {}
+  }
+
+  // Launch: April 7 2026. Query from launch to ~20 days out (splashdown TBD)
+  const START = '2026-Apr-07 00:00';
+  const STOP  = '2026-Apr-27 00:00';
+  const params = new URLSearchParams({
+    format:      'json',
+    COMMAND:     "'-60'",
+    OBJ_DATA:    'NO',
+    MAKE_EPHEM:  'YES',
+    EPHEM_TYPE:  'VECTORS',
+    CENTER:      '500@399',   // Geocentric
+    REF_PLANE:   'FRAME',
+    COORD_TYPE:  'G',
+    START_TIME:  START,
+    STOP_TIME:   STOP,
+    STEP_SIZE:   '30m',       // one point every 30 minutes
+    VEC_TABLE:   '1',         // position only
+    CSV_FORMAT:  'YES',
+  });
+
+  const url = `https://ssd.jpl.nasa.gov/api/horizons.api?${params}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Horizons ${res.status}`);
+  const json = await res.json();
+  const raw = json.result || '';
+
+  // Parse CSV rows between $$SOE and $$EOE markers
+  const soe = raw.indexOf('$$SOE');
+  const eoe = raw.indexOf('$$EOE');
+  if (soe < 0 || eoe < 0) throw new Error('No ephemeris data in Horizons response');
+  const lines = raw.slice(soe + 5, eoe).trim().split('\n');
+
+  const points = [];
+  for (const line of lines) {
+    const cols = line.split(',').map(s => s.trim());
+    // CSV_FORMAT vector table: JDTDB, Cal, X, Y, Z, VX, VY, VZ ...
+    if (cols.length < 5) continue;
+    const x = parseFloat(cols[2]);
+    const y = parseFloat(cols[3]);
+    const z = parseFloat(cols[4]);
+    if (isNaN(x) || isNaN(y) || isNaN(z)) continue;
+    points.push(x, y, z); // ECI km
+  }
+
+  if (points.length === 0) throw new Error('Horizons returned no points');
+  try { localStorage.setItem('artemis2_trajectory', JSON.stringify({ ts: Date.now(), points })); } catch (_) {}
+  return points;
+}
+
+function buildTrajectoryLine(eciPoints_km, spacecraftPos_km) {
+  // eciPoints_km: flat array [x,y,z, x,y,z, ...]  (geocentric ECI, km)
+  // spacecraftPos_km: { cx, cy, cz } — current spacecraft ECI position
+  // Apply same ECI→scene transform as telemetry: scene = (eci_x-cx, eci_z-cz, -(eci_y-cy)) * SCENE_SCALE
+  const { cx, cy, cz } = spacecraftPos_km;
+  const verts = [];
+  for (let i = 0; i < eciPoints_km.length; i += 3) {
+    verts.push(
+      (eciPoints_km[i]   - cx) * SCENE_SCALE,
+      (eciPoints_km[i+2] - cz) * SCENE_SCALE,
+     -(eciPoints_km[i+1] - cy) * SCENE_SCALE,
+    );
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  const mat = new THREE.LineBasicMaterial({ color: 0x4488aa, opacity: 0.5, transparent: true });
+  if (trajectoryLine) { trajectoryLine.geometry.dispose(); scene.remove(trajectoryLine); }
+  trajectoryLine = new THREE.Line(geo, mat);
+  scene.add(trajectoryLine);
+}
+
+async function toggleTrajectory() {
+  const btn = document.getElementById('trajectory-toggle');
+  if (trajectoryVisible) {
+    if (trajectoryLine) trajectoryLine.visible = false;
+    trajectoryVisible = false;
+    btn.classList.remove('active');
+    btn.textContent = 'Path';
+    return;
+  }
+  btn.textContent = 'Loading…';
+  try {
+    const points = await fetchHorizonsTrajectory();
+    const pos = lastGoodTelemetry
+      ? { cx: lastGoodTelemetry.cx, cy: lastGoodTelemetry.cy, cz: lastGoodTelemetry.cz }
+      : (() => { try { return JSON.parse(localStorage.getItem('artemis2_pos')); } catch(_){} return { cx:0, cy:-22000, cz:0 }; })();
+    buildTrajectoryLine(points, pos);
+    if (trajectoryLine) trajectoryLine.visible = true;
+    trajectoryVisible = true;
+    btn.classList.add('active');
+    btn.textContent = 'Path';
+  } catch (e) {
+    console.warn('Trajectory fetch failed:', e);
+    btn.textContent = 'Path ✕';
+    setTimeout(() => { btn.textContent = 'Path'; }, 3000);
+  }
+}
+
+document.getElementById('trajectory-toggle').addEventListener('click', toggleTrajectory);
 
 function startPositionUpdates() {
   applyFallbackPositions(); // show something immediately
