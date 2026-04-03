@@ -638,6 +638,7 @@
         <button class="bar-option" data-target="earth">Earth</button>
         <button class="bar-option" data-target="moon">Moon</button>
         <button class="bar-option" data-target="prograde">Prograde</button>
+        <button class="bar-option" data-target="retrograde">Retrograde</button>
       </div>
     </div>
     <div class="bar-select" id="bar-lens-select">
@@ -683,6 +684,7 @@
   <button class="snap-btn" id="snap-earth">Earth</button>
   <button class="snap-btn" id="snap-moon">Moon</button>
   <button class="snap-btn" id="snap-prograde">Prograde</button>
+  <button class="snap-btn" id="snap-retrograde">Retrograde</button>
 </div>
 
 <div id="target-select">
@@ -691,6 +693,7 @@
     <button class="target-option" data-target="earth">Earth</button>
     <button class="target-option" data-target="moon">Moon</button>
     <button class="target-option" data-target="prograde">Prograde</button>
+    <button class="target-option" data-target="retrograde">Retrograde</button>
   </div>
 </div>
 
@@ -1596,6 +1599,10 @@ document.getElementById('snap-prograde').addEventListener('click', () => {
   const p = lastGoodTelemetry?.prograde;
   if (p) aimCameraAt(p.x, p.y, p.z);
 });
+document.getElementById('snap-retrograde').addEventListener('click', () => {
+  const p = lastGoodTelemetry?.prograde;
+  if (p) aimCameraAt(-p.x, -p.y, -p.z);
+});
 
 // ─── MOBILE TARGET DROPDOWN ──────────────────────────────────────────────────
 const targetToggle = document.getElementById('target-toggle');
@@ -1615,6 +1622,7 @@ document.querySelectorAll('.target-option').forEach(btn => {
     if (t === 'earth' && earthMesh) aimCameraAt(earthMesh.position.x, earthMesh.position.y, earthMesh.position.z);
     else if (t === 'moon' && moonMesh) aimCameraAt(moonMesh.position.x, moonMesh.position.y, moonMesh.position.z);
     else if (t === 'prograde') { const p = lastGoodTelemetry?.prograde; if (p) aimCameraAt(p.x, p.y, p.z); }
+    else if (t === 'retrograde') { const p = lastGoodTelemetry?.prograde; if (p) aimCameraAt(-p.x, -p.y, -p.z); }
     targetDropdown.classList.remove('open');
     targetToggle.classList.remove('open');
     targetChevron.textContent = '▾';
@@ -1654,6 +1662,7 @@ makeBarDropdown('bar-target-toggle', 'bar-target-dropdown', btn => {
   if (t === 'earth' && earthMesh) aimCameraAt(earthMesh.position.x, earthMesh.position.y, earthMesh.position.z);
   else if (t === 'moon' && moonMesh) aimCameraAt(moonMesh.position.x, moonMesh.position.y, moonMesh.position.z);
   else if (t === 'prograde') { const p = lastGoodTelemetry?.prograde; if (p) aimCameraAt(p.x, p.y, p.z); }
+  else if (t === 'retrograde') { const p = lastGoodTelemetry?.prograde; if (p) aimCameraAt(-p.x, -p.y, -p.z); }
 });
 
 makeBarDropdown('bar-lens-toggle', 'bar-lens-dropdown', btn => {
