@@ -1646,24 +1646,26 @@ async function fetchHorizonsTrajectory() {
     + '&EPHEM_TYPE=VECTORS&CENTER=500@399&REF_PLANE=FRAME'
     + `&START_TIME=2026-Apr-07&STOP_TIME=${stopTime}&STEP_SIZE=30m`
     + '&VEC_TABLE=1&CSV_FORMAT=YES';
-  const horizonsProxies = [
-    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  // Try direct first (JPL supports CORS), then proxies
+  const horizonsUrls = [
+    baseUrl,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(baseUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(baseUrl)}`,
   ];
   let json = null;
-  for (const makeProxy of horizonsProxies) {
+  for (const url of horizonsUrls) {
     try {
-      const proxyUrl = makeProxy(baseUrl);
-      console.log('Trying proxy:', proxyUrl.slice(0, 80));
-      const res = await fetchWithTimeout(proxyUrl, 30000);
-      console.log('Proxy status:', res.status);
+      console.log('Trying:', url.slice(0, 80));
+      const res = await fetchWithTimeout(url, 30000);
+      console.log('Status:', res.status);
       if (!res.ok) continue;
       const text = await res.text();
-      console.log('Proxy raw (first 300):', text.slice(0, 300));
+      console.log('Raw (first 200):', text.slice(0, 200));
       json = JSON.parse(text);
       break;
-    } catch (e) { console.warn('Proxy error:', e.message); }
+    } catch (e) { console.warn('Failed:', e.message); }
   }
-  if (!json) throw new Error('All Horizons proxies failed');
+  if (!json) throw new Error('All Horizons attempts failed');
   console.log('Horizons result (first 500):', (json.result || '').slice(0, 500));
   const raw = json.result || '';
 
