@@ -1657,8 +1657,12 @@ async function fetchHorizonsTrajectory() {
   });
 
   const baseUrl = `https://ssd.jpl.nasa.gov/api/horizons.api?${params}`;
+  const horizonsProxies = [
+    u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  ];
   let json = null;
-  for (const makeProxy of CORS_PROXIES) {
+  for (const makeProxy of horizonsProxies) {
     try {
       const proxyUrl = makeProxy(baseUrl);
       console.log('Trying proxy:', proxyUrl.slice(0, 80));
