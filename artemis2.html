@@ -1640,7 +1640,7 @@ async function fetchHorizonsTrajectory() {
   const baseUrl = 'https://ssd.jpl.nasa.gov/api/horizons.api'
     + '?format=json&COMMAND=-1024&OBJ_DATA=NO&MAKE_EPHEM=YES'
     + '&EPHEM_TYPE=VECTORS&CENTER=500@399&REF_PLANE=FRAME'
-    + '&START_TIME=2026-Apr-07T00:00&STOP_TIME=2026-Apr-27T00:00&STEP_SIZE=30m'
+    + '&START_TIME=2026-Apr-07&STOP_TIME=2026-Apr-27&STEP_SIZE=30m'
     + '&VEC_TABLE=1&CSV_FORMAT=YES';
   const horizonsProxies = [
     u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
