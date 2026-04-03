@@ -1660,11 +1660,16 @@ async function fetchHorizonsTrajectory() {
   let json = null;
   for (const makeProxy of CORS_PROXIES) {
     try {
-      const res = await fetchWithTimeout(makeProxy(baseUrl), 15000);
+      const proxyUrl = makeProxy(baseUrl);
+      console.log('Trying proxy:', proxyUrl.slice(0, 80));
+      const res = await fetchWithTimeout(proxyUrl, 15000);
+      console.log('Proxy status:', res.status);
       if (!res.ok) continue;
-      json = await res.json();
+      const text = await res.text();
+      console.log('Proxy raw (first 300):', text.slice(0, 300));
+      json = JSON.parse(text);
       break;
-    } catch (_) {}
+    } catch (e) { console.warn('Proxy error:', e.message); }
   }
   if (!json) throw new Error('All Horizons proxies failed');
   console.log('Horizons result (first 500):', (json.result || '').slice(0, 500));
