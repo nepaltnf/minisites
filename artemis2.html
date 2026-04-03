@@ -1641,7 +1641,7 @@ async function fetchHorizonsTrajectory() {
   const baseUrl = 'https://ssd.jpl.nasa.gov/api/horizons.api'
     + '?format=json&COMMAND=-1024&OBJ_DATA=NO&MAKE_EPHEM=YES'
     + '&EPHEM_TYPE=VECTORS&CENTER=500@399&REF_PLANE=FRAME'
-    + '&START_TIME=2026-Apr-02&STOP_TIME=2026-Apr-25&STEP_SIZE=6h'
+    + '&START_TIME=2026-Apr-02 02:00&STOP_TIME=2026-Apr-25&STEP_SIZE=6h'
     + '&VEC_TABLE=1&CSV_FORMAT=YES';
   // Try direct first (JPL supports CORS), then proxies
   const horizonsUrls = [
