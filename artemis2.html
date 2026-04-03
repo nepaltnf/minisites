@@ -880,8 +880,12 @@ function approxSunDirection(date) {
 
 // ─── SCENE ────────────────────────────────────────────────────────────────────
 
+// On small screens boost FOV so Earth appears closer to desktop apparent size
+const _mobileBoost = Math.max(screen.width, screen.height) < 1000;
+let targetFOV = _mobileBoost ? FOV_DEFAULT * 1.4 : FOV_DEFAULT;
+
 const scene    = new THREE.Scene();
-const camera   = new THREE.PerspectiveCamera(FOV_DEFAULT, innerWidth / innerHeight, 0.0001, 1e8);
+const camera   = new THREE.PerspectiveCamera(targetFOV, innerWidth / innerHeight, 0.0001, 1e8);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setPixelRatio(devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
@@ -1593,10 +1597,6 @@ function startPositionUpdates() {
 }
 
 // ─── LENS SELECTOR ───────────────────────────────────────────────────────────
-
-// On small screens boost FOV so Earth appears closer to desktop apparent size
-const _mobileBoost = Math.max(screen.width, screen.height) < 1000;
-let targetFOV = _mobileBoost ? FOV_DEFAULT * 1.4 : FOV_DEFAULT;
 
 const lensToggle   = document.getElementById('lens-toggle');
 const lensDropdown = document.getElementById('lens-dropdown');
