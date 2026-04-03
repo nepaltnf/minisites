@@ -1828,8 +1828,12 @@ function render() {
   const delta = clock.getDelta();
   const elapsed = clock.getElapsedTime();
 
-  // Smooth FOV — use targetFOV directly as vertical FOV, consistent across orientations
-  camera.fov += (targetFOV - camera.fov) * 0.12;
+  // Smooth FOV — scale vertical FOV to keep apparent object size consistent across aspect ratios
+  const refAspect = 16 / 9;
+  const adaptedFOV = camera.aspect < refAspect
+    ? targetFOV * (refAspect / camera.aspect)
+    : targetFOV;
+  camera.fov += (adaptedFOV - camera.fov) * 0.12;
   camera.updateProjectionMatrix();
 
   // Real-time Earth rotation using Greenwich Mean Sidereal Time (GMST)
