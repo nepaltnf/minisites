@@ -1654,7 +1654,7 @@ async function fetchHorizonsTrajectory() {
     try {
       const proxyUrl = makeProxy(baseUrl);
       console.log('Trying proxy:', proxyUrl.slice(0, 80));
-      const res = await fetchWithTimeout(proxyUrl, 15000);
+      const res = await fetchWithTimeout(proxyUrl, 30000);
       console.log('Proxy status:', res.status);
       if (!res.ok) continue;
       const text = await res.text();
