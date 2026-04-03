@@ -902,7 +902,7 @@ sunLight.position.set(150000000 * SCENE_SCALE, 0, 0); // Sun on +X roughly
 scene.add(sunLight);
 
 // Very faint ambient — Earth/Moon dark sides near-black, not grey
-const ambientLight = new THREE.AmbientLight(0x111122, 0.05);
+const ambientLight = new THREE.AmbientLight(0x111122, 0.02);
 scene.add(ambientLight);
 
 // ─── STARS ────────────────────────────────────────────────────────────────────
@@ -1279,7 +1279,7 @@ function buildMoon(moonTex) {
   const geo = new THREE.SphereGeometry(MOON_RADIUS_KM * SCENE_SCALE, 64, 64);
   const mat = new THREE.MeshPhongMaterial({
     map:       moonTex,
-    color:     new THREE.Color(0.45, 0.45, 0.45),
+    color:     new THREE.Color(1.0, 1.0, 1.0),
     specular:  new THREE.Color(0x000000),
     shininess: 1,
     emissive:  new THREE.Color(0x000000),
