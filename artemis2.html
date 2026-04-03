@@ -678,7 +678,7 @@
 
 <div id="sun-bloom"></div>
 
-<button id="unit-toggle">km</button>
+<button id="unit-toggle">Units km</button>
 
 <div id="telemetry-status">
   <div id="status-dot"></div>
@@ -1515,10 +1515,10 @@ function formatVel(kmh) {
 }
 
 const unitToggleBtn = document.getElementById('unit-toggle');
-unitToggleBtn.textContent = useImperial ? 'mi' : 'km';
+unitToggleBtn.textContent = useImperial ? 'Units mi' : 'Units km';
 unitToggleBtn.addEventListener('click', () => {
   useImperial = !useImperial;
-  unitToggleBtn.textContent = useImperial ? 'mi' : 'km';
+  unitToggleBtn.textContent = useImperial ? 'Units mi' : 'Units km';
   if (lastGoodTelemetry) {
     document.getElementById('dist-earth').textContent = formatDist(lastGoodTelemetry.d_earth);
     document.getElementById('dist-moon').textContent  = formatDist(lastGoodTelemetry.d_moon);
