@@ -622,7 +622,7 @@
     <div id="mobile-bar-dot"></div>
     <span id="mobile-bar-title">View From Orion</span>
     <div class="bar-select" id="bar-target-select">
-      <button class="bar-toggle" id="bar-target-toggle">Target <span class="bar-chevron">▾</span></button>
+      <button class="bar-toggle" id="bar-target-toggle">View Focus <span class="bar-chevron">▾</span></button>
       <div class="bar-dropdown" id="bar-target-dropdown">
         <button class="bar-option" data-target="earth">Earth</button>
         <button class="bar-option" data-target="moon">Moon</button>
@@ -630,7 +630,7 @@
       </div>
     </div>
     <div class="bar-select" id="bar-lens-select">
-      <button class="bar-toggle" id="bar-lens-toggle">Eye <span class="bar-chevron">▾</span></button>
+      <button class="bar-toggle" id="bar-lens-toggle">View Angle <span class="bar-chevron">▾</span></button>
       <div class="bar-dropdown" id="bar-lens-dropdown">
         <button class="bar-option active" data-fov="39">Eye</button>
         <button class="bar-option" data-fov="62">20mm</button>
@@ -654,7 +654,7 @@
   <div id="met-phase">—</div>
 </div>
 <div id="lens-select">
-  <button id="lens-toggle">Eye <span id="lens-chevron">▾</span></button>
+  <button id="lens-toggle">View Angle <span id="lens-chevron">▾</span></button>
   <div id="lens-dropdown">
     <button class="lens-option active" data-fov="39">Eye</button>
     <button class="lens-option" data-fov="62">20mm</button>
@@ -673,7 +673,7 @@
 </div>
 
 <div id="target-select">
-  <button id="target-toggle">Target <span id="target-chevron">▾</span></button>
+  <button id="target-toggle">View Focus <span id="target-chevron">▾</span></button>
   <div id="target-dropdown">
     <button class="target-option" data-target="earth">Earth</button>
     <button class="target-option" data-target="moon">Moon</button>
@@ -1649,7 +1649,7 @@ makeBarDropdown('bar-lens-toggle', 'bar-lens-dropdown', btn => {
     document.querySelectorAll('#bar-lens-dropdown .bar-option').forEach(b => b.classList.toggle('active', b === btn));
     document.querySelectorAll('#lens-dropdown .lens-option').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.fov) === fov));
     const toggle = document.getElementById('bar-lens-toggle');
-    if (toggle) toggle.childNodes[0].textContent = btn.textContent + ' ';
+    if (toggle) toggle.childNodes[0].textContent = 'View Angle ';
   }
 });
 
