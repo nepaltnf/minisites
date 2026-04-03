@@ -335,7 +335,7 @@
     #mobile-bar {
       display: none;
     }
-    @media (max-width: 700px) {
+    @media (max-width: 700px) and (orientation: portrait) {
       #mobile-bar {
         display: flex;
         flex-direction: column;
@@ -448,31 +448,28 @@
       }
     }
 
-    /* ─── MOBILE ────────────────────────────────────────────────────────────── */
-    @media (max-width: 700px) {
-      #hud {
-        left: 16px;
-        right: 16px;
-        transform: none;
-        bottom: 24px;
-        gap: 0;
-        justify-content: space-between;
-        align-items: flex-end;
-      }
-      .hud-label { font-size: 9px; }
-      .hud-value { font-size: 13px; }
-      #hud-date  { font-size: 9px; }
+    /* ─── MOBILE (both orientations) ───────────────────────────────────────── */
+    @media (max-width: 900px) and (orientation: landscape), (max-width: 700px) {
       #lens-select { display: none; }
       #vr-btn      { display: none; }
       #met         { display: none; }
       #telemetry-status { display: none; }
-      #hud         { bottom: 24px; top: auto; padding-top: 0; }
+      #hud { left: 16px; right: 16px; transform: none; bottom: 24px; gap: 0; justify-content: space-between; align-items: flex-end; top: auto; padding-top: 0; }
+      .hud-label { font-size: 9px; }
+      .hud-value { font-size: 13px; }
+      #hud-date  { font-size: 9px; }
     }
     /* ─── MOBILE LANDSCAPE ──────────────────────────────────────────────────── */
     @media (max-width: 900px) and (orientation: landscape) {
       /* Single compact header row */
       #mobile-bar {
+        display: flex;
         flex-direction: row;
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 25;
+        background: rgba(255,255,255,0.03);
+        border-bottom: 1px solid rgba(255,255,255,0.04);
         padding: 5px 12px;
         gap: 8px;
         align-items: center;
@@ -495,9 +492,8 @@
 
       /* Compact footer strip */
       #hud {
-        left: 0; right: 0;
+        left: 0 !important; right: 0 !important;
         bottom: 0;
-        transform: none;
         gap: 0;
         justify-content: space-around;
         align-items: center;
