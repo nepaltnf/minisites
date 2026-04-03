@@ -169,6 +169,61 @@
     .snap-btn:hover { border-color: #888; color: #ccc; }
     @media (max-width: 700px) { #snap-btns { display: none; } }
 
+    /* Mobile target lock dropdown */
+    #target-select {
+      display: none;
+      position: fixed;
+      top: 80px;
+      right: 44px;
+      z-index: 19;
+    }
+    @media (max-width: 700px) { #target-select { display: block; } }
+    #target-toggle {
+      background: rgba(0,0,0,0.7);
+      border: 1px solid #2a2a2a;
+      color: #444;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    #target-toggle:hover, #target-toggle.open { border-color: #555; color: #aaa; }
+    #target-dropdown {
+      display: none;
+      flex-direction: column;
+      gap: 4px;
+      position: absolute;
+      top: calc(100% + 4px);
+      right: 0;
+      background: rgba(0,0,0,0.85);
+      padding: 4px;
+      border-radius: 3px;
+      min-width: 100%;
+    }
+    #target-dropdown.open { display: flex; }
+    .target-option {
+      background: none;
+      border: 1px solid #2a2a2a;
+      color: #444;
+      font-family: 'Courier New', monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 8px 14px;
+      cursor: pointer;
+      border-radius: 3px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .target-option:hover { border-color: #666; color: #bbb; }
+
     /* Loading */
     #loading {
       position: fixed;
@@ -446,6 +501,15 @@
   <button class="snap-btn" id="snap-earth">Earth</button>
   <button class="snap-btn" id="snap-moon">Moon</button>
   <button class="snap-btn" id="snap-prograde">Prograde</button>
+</div>
+
+<div id="target-select">
+  <button id="target-toggle">Target <span id="target-chevron">▾</span></button>
+  <div id="target-dropdown">
+    <button class="target-option" data-target="earth">Earth</button>
+    <button class="target-option" data-target="moon">Moon</button>
+    <button class="target-option" data-target="prograde">Prograde</button>
+  </div>
 </div>
 
 <div id="planet-labels"></div>
@@ -1339,6 +1403,36 @@ document.getElementById('snap-moon').addEventListener('click', () => {
 document.getElementById('snap-prograde').addEventListener('click', () => {
   const p = lastGoodTelemetry?.prograde;
   if (p) aimCameraAt(p.x, p.y, p.z);
+});
+
+// ─── MOBILE TARGET DROPDOWN ──────────────────────────────────────────────────
+const targetToggle = document.getElementById('target-toggle');
+const targetDropdown = document.getElementById('target-dropdown');
+const targetChevron = document.getElementById('target-chevron');
+
+targetToggle.addEventListener('click', e => {
+  e.stopPropagation();
+  const open = targetDropdown.classList.toggle('open');
+  targetToggle.classList.toggle('open', open);
+  targetChevron.textContent = open ? '▴' : '▾';
+});
+
+document.querySelectorAll('.target-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const t = btn.dataset.target;
+    if (t === 'earth' && earthMesh) aimCameraAt(earthMesh.position.x, earthMesh.position.y, earthMesh.position.z);
+    else if (t === 'moon' && moonMesh) aimCameraAt(moonMesh.position.x, moonMesh.position.y, moonMesh.position.z);
+    else if (t === 'prograde') { const p = lastGoodTelemetry?.prograde; if (p) aimCameraAt(p.x, p.y, p.z); }
+    targetDropdown.classList.remove('open');
+    targetToggle.classList.remove('open');
+    targetChevron.textContent = '▾';
+  });
+});
+
+document.addEventListener('click', () => {
+  targetDropdown.classList.remove('open');
+  targetToggle.classList.remove('open');
+  targetChevron.textContent = '▾';
 });
 
 // ─── MOUSE LOOK ──────────────────────────────────────────────────────────────
