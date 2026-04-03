@@ -1812,6 +1812,9 @@ async function enterVR() {
 
 window.addEventListener('resize', () => {
   camera.aspect = innerWidth / innerHeight;
+  // Snap FOV immediately on resize so rotation doesn't animate the size change
+  const refHeight = Math.max(innerWidth, innerHeight);
+  camera.fov = targetFOV / (refHeight / innerHeight);
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
 });
