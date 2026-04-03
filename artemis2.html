@@ -2063,8 +2063,21 @@ function enterMissionView() {
   document.getElementById('mission-view-toggle').classList.add('active');
   document.getElementById('mission-view-toggle').textContent = 'Orion View';
   if (!trajectoryVisible) toggleTrajectory();
+
+  // Reposition Earth and Moon to geocentric positions (Earth at scene origin)
   if (lastGoodTelemetry) {
-    const d = Math.sqrt(lastGoodTelemetry.cx**2 + lastGoodTelemetry.cy**2 + lastGoodTelemetry.cz**2);
+    const { cx, cy, cz } = lastGoodTelemetry;
+    // Earth is at ECI origin → scene origin
+    if (earthMesh) earthMesh.position.set(0, 0, 0);
+    // Moon relative to Earth (geocentric)
+    const now = new Date();
+    const moon = approxMoonPos(now);
+    if (moonMesh) moonMesh.position.set(
+       moon.x * SCENE_SCALE,
+       moon.z * SCENE_SCALE,
+      -moon.y * SCENE_SCALE,
+    );
+    const d = Math.sqrt(cx**2 + cy**2 + cz**2);
     mvRadius = d * SCENE_SCALE * 1.5;
   } else { mvRadius = 50; }
   // Start orbit from Orion's current position angle relative to Earth
@@ -2091,6 +2104,18 @@ function exitMissionView() {
   document.getElementById('mission-view-toggle').classList.remove('active');
   document.getElementById('mission-view-toggle').textContent = 'Mission View';
   if (orionMarker) orionMarker.visible = false;
+  // Restore Earth/Moon to Orion-relative positions
+  if (lastGoodTelemetry) {
+    const { cx, cy, cz } = lastGoodTelemetry;
+    const eciRelToScene = (eci) => ({
+      x:  (eci.x - cx) * SCENE_SCALE,
+      y:  (eci.z - cz) * SCENE_SCALE,
+      z: -(eci.y - cy) * SCENE_SCALE,
+    });
+    if (earthMesh) { const e = eciRelToScene({x:0,y:0,z:0}); earthMesh.position.set(e.x,e.y,e.z); }
+    const moon = approxMoonPos(new Date());
+    if (moonMesh) { const m = eciRelToScene(moon); moonMesh.position.set(m.x,m.y,m.z); }
+  }
   const _mobileBoost = Math.max(screen.width, screen.height) < 1000;
   targetFOV = _mobileBoost ? FOV_DEFAULT * 0.7 : FOV_DEFAULT;
 }
