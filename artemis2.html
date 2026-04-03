@@ -1637,14 +1637,11 @@ async function fetchHorizonsTrajectory() {
     } catch (_) {}
   }
 
-  // Query from launch up to now (Horizons only has reconstructed data, not predictions)
-  const now = new Date();
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const stopTime = `${now.getUTCFullYear()}-${months[now.getUTCMonth()]}-${String(now.getUTCDate()).padStart(2,'0')}`;
+  // Query from launch (Apr 1 2026) to end of mission — Horizons stops at last available data
   const baseUrl = 'https://ssd.jpl.nasa.gov/api/horizons.api'
     + '?format=json&COMMAND=-1024&OBJ_DATA=NO&MAKE_EPHEM=YES'
     + '&EPHEM_TYPE=VECTORS&CENTER=500@399&REF_PLANE=FRAME'
-    + `&START_TIME=2026-Apr-07&STOP_TIME=${stopTime}&STEP_SIZE=30m`
+    + '&START_TIME=2026-Apr-01&STOP_TIME=2026-Apr-25&STEP_SIZE=6h'
     + '&VEC_TABLE=1&CSV_FORMAT=YES';
   // Try direct first (JPL supports CORS), then proxies
   const horizonsUrls = [
