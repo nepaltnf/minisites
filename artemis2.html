@@ -379,22 +379,6 @@
         text-transform: uppercase;
         color: #444;
       }
-      /* Selects positioned in bar row1 on the right */
-      #bar-target-select {
-        position: fixed;
-        top: 10px;
-        right: 90px;
-        z-index: 26;
-      }
-      #bar-target-select .bar-dropdown { right: 0; left: auto; }
-      #bar-lens-select {
-        position: fixed;
-        top: 10px;
-        right: 16px;
-        z-index: 26;
-      }
-      #bar-lens-select .bar-dropdown { right: 0; left: auto; }
-
       /* shared mini-dropdown style inside bar */
       .bar-select { position: relative; }
       .bar-toggle {
@@ -486,13 +470,21 @@
     }
     /* ─── MOBILE LANDSCAPE ──────────────────────────────────────────────────── */
     @media (max-width: 900px) and (orientation: landscape) {
-      /* Hide the portrait bar entirely */
-      #mobile-bar { display: none; }
+      /* Collapse bar — no background, no rows */
+      #mobile-bar {
+        background: none;
+        border-bottom: none;
+        padding: 0;
+        gap: 0;
+        height: 0;
+        overflow: visible;
+      }
+      #mobile-bar-row1 { display: none; }
+      #mobile-bar-row2 { display: none; }
       #mobile-dot-footer { display: none; }
 
       /* View Focus — fixed top-left */
       #bar-target-select {
-        display: block;
         position: fixed;
         top: 16px;
         left: 16px;
@@ -502,7 +494,6 @@
 
       /* View Angle — fixed top-right */
       #bar-lens-select {
-        display: block;
         position: fixed;
         top: 16px;
         right: 16px;
@@ -513,7 +504,7 @@
       .bar-toggle { font-size: 9px; padding: 4px 7px; }
       .bar-option { font-size: 9px; padding: 5px 7px; }
 
-      /* Status dot — top-left below View Focus */
+      /* Status dot — below View Focus */
       #mobile-bar-dot {
         display: block;
         position: fixed;
@@ -671,31 +662,28 @@
   <div id="mobile-bar-row1">
     <div id="mobile-bar-dot"></div>
     <span id="mobile-bar-title">Artemis II</span>
-    <div class="bar-select" id="bar-target-select-inner"></div>
-    <div class="bar-select" id="bar-lens-select-inner"></div>
+    <div class="bar-select" id="bar-target-select">
+      <button class="bar-toggle" id="bar-target-toggle">View Focus <span class="bar-chevron">▾</span></button>
+      <div class="bar-dropdown" id="bar-target-dropdown">
+        <button class="bar-option" data-target="earth">Earth</button>
+        <button class="bar-option" data-target="moon">Moon</button>
+        <button class="bar-option" data-target="prograde">Prograde</button>
+      </div>
+    </div>
+    <div class="bar-select" id="bar-lens-select">
+      <button class="bar-toggle" id="bar-lens-toggle">View Angle <span class="bar-chevron">▾</span></button>
+      <div class="bar-dropdown" id="bar-lens-dropdown">
+        <button class="bar-option active" data-fov="39">Eye</button>
+        <button class="bar-option" data-fov="62">20mm</button>
+        <button class="bar-option" data-fov="27">50mm</button>
+        <button class="bar-option" data-fov="16">85mm</button>
+        <button class="bar-option" data-fov="7">200mm</button>
+      </div>
+    </div>
   </div>
   <div id="mobile-bar-row2">
     <span id="mobile-bar-subtitle">View From Orion</span>
     <span id="mobile-bar-phase">—</span>
-  </div>
-</div>
-
-<div class="bar-select" id="bar-target-select">
-  <button class="bar-toggle" id="bar-target-toggle">View Focus <span class="bar-chevron">▾</span></button>
-  <div class="bar-dropdown" id="bar-target-dropdown">
-    <button class="bar-option" data-target="earth">Earth</button>
-    <button class="bar-option" data-target="moon">Moon</button>
-    <button class="bar-option" data-target="prograde">Prograde</button>
-  </div>
-</div>
-<div class="bar-select" id="bar-lens-select">
-  <button class="bar-toggle" id="bar-lens-toggle">View Angle <span class="bar-chevron">▾</span></button>
-  <div class="bar-dropdown" id="bar-lens-dropdown">
-    <button class="bar-option active" data-fov="39">Eye</button>
-    <button class="bar-option" data-fov="62">20mm</button>
-    <button class="bar-option" data-fov="27">50mm</button>
-    <button class="bar-option" data-fov="16">85mm</button>
-    <button class="bar-option" data-fov="7">200mm</button>
   </div>
 </div>
 
