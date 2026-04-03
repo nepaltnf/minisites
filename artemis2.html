@@ -1632,8 +1632,8 @@ async function fetchHorizonsTrajectory() {
   if (cached) {
     try {
       const parsed = JSON.parse(cached);
-      // Use cache if less than 6 hours old
-      if (Date.now() - parsed.ts < 6 * 3600 * 1000) return parsed.points;
+      // Use cache if less than 12 hours old
+      if (Date.now() - parsed.ts < 12 * 3600 * 1000) return parsed.points;
     } catch (_) {}
   }
 
@@ -1642,7 +1642,7 @@ async function fetchHorizonsTrajectory() {
   const STOP  = '2026-Apr-27 00:00';
   const params = new URLSearchParams({
     format:      'json',
-    COMMAND:     "'-60'",
+    COMMAND:     '-1024',
     OBJ_DATA:    'NO',
     MAKE_EPHEM:  'YES',
     EPHEM_TYPE:  'VECTORS',
