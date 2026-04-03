@@ -470,60 +470,27 @@
     }
     /* ─── MOBILE LANDSCAPE ──────────────────────────────────────────────────── */
     @media (max-width: 900px) and (orientation: landscape) {
-      /* Collapse bar — no background, no rows */
+      /* Single compact header row */
       #mobile-bar {
-        background: none;
-        border-bottom: none;
-        padding: 0;
-        gap: 0;
-        height: 0;
-        overflow: visible;
+        flex-direction: row;
+        padding: 5px 12px;
+        gap: 8px;
+        align-items: center;
       }
-      #mobile-bar-row1 { display: none; }
+      #mobile-bar-row1 {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
       #mobile-bar-row2 { display: none; }
       #mobile-dot-footer { display: none; }
-
-      /* View Focus — fixed top-left */
-      #bar-target-select {
-        position: fixed !important;
-        top: 16px !important;
-        left: 16px !important;
-        right: auto !important;
-        z-index: 25;
-      }
-      #bar-target-select .bar-dropdown { right: auto; left: 0; }
-
-      /* View Angle — fixed top-right */
-      #bar-lens-select {
-        position: fixed !important;
-        top: 16px !important;
-        right: 16px !important;
-        left: auto !important;
-        z-index: 25;
-      }
+      #mobile-bar-dot { display: flex; }
+      #mobile-bar-title { font-size: 10px; }
+      .bar-toggle { font-size: 10px; padding: 4px 7px; }
+      .bar-option { font-size: 10px; padding: 5px 7px; }
       #bar-lens-select .bar-dropdown { right: 0; left: auto; }
-
-      .bar-toggle { font-size: 9px; padding: 4px 7px; }
-      .bar-option { font-size: 9px; padding: 5px 7px; }
-
-      /* Status dot — below View Focus */
-      #mobile-bar-dot {
-        display: block;
-        position: fixed;
-        top: 52px;
-        left: 20px;
-        z-index: 25;
-        width: 7px;
-        height: 7px;
-        border-radius: 50%;
-        background: #2a4a2a;
-      }
-      #mobile-bar-dot.live {
-        background: #3a7a3a;
-        box-shadow: 0 0 6px #3a7a3a;
-        animation: pulse 2s infinite;
-      }
-      #mobile-bar-dot.offline { background: #aa3333; box-shadow: 0 0 5px #aa3333; }
+      #bar-target-select .bar-dropdown { right: auto; left: 0; }
 
       /* Compact footer strip */
       #hud {
@@ -535,7 +502,7 @@
         align-items: center;
         background: rgba(255,255,255,0.03);
         border-top: 1px solid rgba(255,255,255,0.04);
-        padding: 6px 14px;
+        padding: 5px 14px;
       }
       .hud-block { opacity: 0.7; display: flex; align-items: baseline; gap: 6px; }
       .hud-label { font-size: 9px; margin-bottom: 0; }
