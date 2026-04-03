@@ -1638,8 +1638,8 @@ window.addEventListener('mousemove', e => {
   const dx = e.clientX - prevMouse.x;
   const dy = e.clientY - prevMouse.y;
   hasDragged = true;
-  yaw   -= dx * 0.002;
-  pitch -= dy * 0.002;
+  yaw   += dx * 0.002;
+  pitch += dy * 0.002;
   pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
   prevMouse = { x: e.clientX, y: e.clientY };
 });
@@ -1665,8 +1665,8 @@ window.addEventListener('touchmove', e => {
   const dx = e.touches[0].clientX - prevMouse.x;
   const dy = e.touches[0].clientY - prevMouse.y;
   hasDragged = true;
-  yaw   -= dx * 0.003;
-  pitch -= dy * 0.003;
+  yaw   += dx * 0.003;
+  pitch += dy * 0.003;
   pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, pitch));
   prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
 }, { passive: true });
