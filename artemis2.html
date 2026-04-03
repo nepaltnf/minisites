@@ -484,9 +484,24 @@
       #telemetry-status { display: none; }
       #hud         { bottom: 24px; top: auto; padding-top: 0; }
     }
+    #mobile-bar-oneliner { display: none; }
+
     /* ─── MOBILE LANDSCAPE ──────────────────────────────────────────────────── */
     @media (max-width: 900px) and (orientation: landscape) {
       #mobile-bar { background: rgba(255,255,255,0.01); border-bottom-color: rgba(255,255,255,0.02); }
+      #mobile-bar-row2 { display: none; }
+      #mobile-bar-title { display: none; }
+      #mobile-bar-oneliner {
+        display: inline;
+        flex: 1;
+        font-size: 10px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: #555;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
       /* Footer strip */
       #hud {
         left: 0; right: 0;
@@ -626,6 +641,7 @@
   <div id="mobile-bar-row1">
     <div id="mobile-bar-dot"></div>
     <span id="mobile-bar-title">Artemis II</span>
+    <span id="mobile-bar-oneliner">Artemis II &mdash; View From Orion &mdash; <span id="mobile-bar-phase-inline">—</span></span>
     <div class="bar-select" id="bar-target-select">
       <button class="bar-toggle" id="bar-target-toggle">View Focus <span class="bar-chevron">▾</span></button>
       <div class="bar-dropdown" id="bar-target-dropdown">
@@ -800,6 +816,8 @@ async function fetchPhaseText() {
           document.getElementById('met-phase').textContent = data.current_phase;
           const bp = document.getElementById('mobile-bar-phase');
           if (bp) bp.textContent = data.current_phase;
+          const bpi = document.getElementById('mobile-bar-phase-inline');
+          if (bpi) bpi.textContent = data.current_phase;
         }
         return;
       }
@@ -1442,6 +1460,8 @@ async function fetchAndApply() {
       document.getElementById('met-phase').textContent  = 'awaiting';
       const bp = document.getElementById('mobile-bar-phase');
       if (bp) bp.textContent = 'awaiting';
+      const bpi = document.getElementById('mobile-bar-phase-inline');
+      if (bpi) bpi.textContent = 'awaiting';
       document.getElementById('dist-earth').textContent = 'awaiting';
       document.getElementById('dist-moon').textContent  = 'awaiting';
       document.getElementById('velocity').textContent   = 'awaiting';
