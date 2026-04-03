@@ -882,7 +882,7 @@ function approxSunDirection(date) {
 
 // On small screens boost FOV so Earth appears closer to desktop apparent size
 const _mobileBoost = Math.max(screen.width, screen.height) < 1000;
-let targetFOV = _mobileBoost ? FOV_DEFAULT * 1.4 : FOV_DEFAULT;
+let targetFOV = _mobileBoost ? FOV_DEFAULT * 0.7 : FOV_DEFAULT;
 
 const scene    = new THREE.Scene();
 const camera   = new THREE.PerspectiveCamera(targetFOV, innerWidth / innerHeight, 0.0001, 1e8);
@@ -1611,7 +1611,7 @@ lensToggle.addEventListener('click', e => {
 
 document.querySelectorAll('.lens-option').forEach(btn => {
   btn.addEventListener('click', () => {
-    targetFOV = parseFloat(btn.dataset.fov);
+    targetFOV = parseFloat(btn.dataset.fov) * (_mobileBoost ? 0.7 : 1);
     document.querySelectorAll('.lens-option').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     lensToggle.childNodes[0].textContent = 'View Angle ';
@@ -1711,7 +1711,7 @@ makeBarDropdown('bar-target-toggle', 'bar-target-dropdown', btn => {
 makeBarDropdown('bar-lens-toggle', 'bar-lens-dropdown', btn => {
   const fov = parseFloat(btn.dataset.fov);
   if (!isNaN(fov)) {
-    targetFOV = fov;
+    targetFOV = fov * (_mobileBoost ? 0.7 : 1);
     // sync active state in both bar and desktop dropdowns
     document.querySelectorAll('#bar-lens-dropdown .bar-option').forEach(b => b.classList.toggle('active', b === btn));
     document.querySelectorAll('#lens-dropdown .lens-option').forEach(b => b.classList.toggle('active', parseFloat(b.dataset.fov) === fov));
