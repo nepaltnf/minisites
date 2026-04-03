@@ -167,10 +167,15 @@
       transition: all 0.2s;
     }
     .snap-btn:hover { border-color: #888; color: #ccc; }
-    @media (max-width: 900px) { #snap-btns { display: none; } }
+    #snap-btns { display: none; }
 
-    /* Mobile target lock dropdown (standalone — hidden on mobile, replaced by bar) */
-    #target-select { display: none; }
+    /* Target lock dropdown — desktop */
+    #target-select {
+      position: fixed;
+      top: 80px;
+      right: 44px;
+      z-index: 19;
+    }
     #target-toggle {
       background: rgba(0,0,0,0.7);
       border: 1px solid #2a2a2a;
@@ -479,6 +484,7 @@
       .hud-value { font-size: 13px; }
       #hud-date  { font-size: 9px; }
       #lens-select { display: none; }
+      #target-select { display: none; }
       #vr-btn      { display: none; }
       #met         { display: none; }
       #telemetry-status { display: none; }
