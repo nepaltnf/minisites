@@ -1256,7 +1256,7 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
         vec2 cloudUV = vec2(mod(vUv.x + u_cloudOffset, 1.0), vUv.y);
         float cloud = texture2D(u_clouds, cloudUV).r;
         // Day clouds: white; night clouds: dim (block city lights slightly)
-        vec3 cloudColor = mix(vec3(0.06), vec3(1.0), blend);
+        vec3 cloudColor = mix(vec3(0.0), vec3(1.0), blend);
         surface = mix(surface, cloudColor, cloud * 0.65);
 
         // Atmospheric limb glow — only where sunlight reaches the atmosphere
