@@ -1286,9 +1286,12 @@ function buildMoon(moonTex) {
   });
   moonMesh = new THREE.Mesh(geo, mat);
   scene.add(moonMesh);
-  // Lazy-load 4k color map
+  // Lazy-load 4k color + bump map
   loader.load(TEXTURES.moon4k, tex => {
     if (moonMesh) { moonMesh.material.map?.dispose(); moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
+  });
+  loader.load(TEXTURES.moonBump4k, tex => {
+    if (moonMesh) { moonMesh.material.bumpMap = tex; moonMesh.material.bumpScale = 0.03; moonMesh.material.needsUpdate = true; }
   });
 }
 
