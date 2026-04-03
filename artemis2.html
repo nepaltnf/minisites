@@ -1657,9 +1657,12 @@ async function fetchHorizonsTrajectory() {
   });
 
   const url = `https://ssd.jpl.nasa.gov/api/horizons.api?${params}`;
+  console.log('Horizons URL:', url);
   const res = await fetch(url);
+  console.log('Horizons status:', res.status);
   if (!res.ok) throw new Error(`Horizons ${res.status}`);
   const json = await res.json();
+  console.log('Horizons result (first 500):', (json.result || '').slice(0, 500));
   const raw = json.result || '';
 
   // Parse CSV rows between $$SOE and $$EOE markers
