@@ -1358,12 +1358,19 @@ function setTelemetryStatus(live, label) {
 }
 
 // Set yaw/pitch so the render loop points camera toward a scene position
-function aimCameraAt(x, y, z) {
+function aimCameraAt(x, y, z, instant = false) {
   const len = Math.sqrt(x * x + y * y + z * z);
   if (len === 0) return;
   const dx = x / len, dy = y / len, dz = z / len;
-  pitch = Math.asin(Math.max(-1, Math.min(1, dy)));
-  yaw   = Math.atan2(-dx, -dz);
+  targetPitch = Math.asin(Math.max(-1, Math.min(1, dy)));
+  targetYaw   = Math.atan2(-dx, -dz);
+  // Shortest path wrap
+  let dy2 = targetYaw - yaw;
+  while (dy2 >  Math.PI) dy2 -= 2 * Math.PI;
+  while (dy2 < -Math.PI) dy2 += 2 * Math.PI;
+  targetYaw = yaw + dy2;
+  if (instant) { yaw = targetYaw; pitch = targetPitch; isAiming = false; }
+  else { isAiming = true; }
 }
 
 function applyFallbackPositions() {
@@ -1383,7 +1390,7 @@ function applyFallbackPositions() {
   const mRel = eciRelToScene(moon);
   earthMesh.position.set(eRel.x, eRel.y, eRel.z);
   moonMesh.position.set(mRel.x, mRel.y, mRel.z);
-  if (!cameraInitialized) { aimCameraAt(eRel.x, eRel.y, eRel.z); cameraInitialized = true; }
+  if (!cameraInitialized) { aimCameraAt(eRel.x, eRel.y, eRel.z, true); cameraInitialized = true; }
   placeSun(approxSunDirection(now));
 }
 
@@ -1714,10 +1721,11 @@ let isDragging = false;
 let hasDragged = false;
 let prevMouse  = { x: 0, y: 0 };
 let yaw = 0, pitch = 0;
+let targetYaw = 0, targetPitch = 0, isAiming = false;
 const _euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
 renderer.domElement.addEventListener('mousedown', e => {
-  isDragging = true;
+  isDragging = true; isAiming = false;
   prevMouse = { x: e.clientX, y: e.clientY };
 });
 window.addEventListener('mouseup', () => { isDragging = false; });
@@ -1742,7 +1750,7 @@ document.addEventListener('gesturechange', e => e.preventDefault(), { passive: f
 // Touch look (single finger drag)
 renderer.domElement.addEventListener('touchstart', e => {
   if (e.touches.length === 1) {
-    isDragging = true;
+    isDragging = true; isAiming = false;
     prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   }
 }, { passive: true });
@@ -1876,7 +1884,17 @@ function render() {
     }
   }
 
-  // Apply mouse look rotation to camera
+  // Smooth aim toward target
+  if (isAiming) {
+    const t = 1 - Math.exp(-delta / 0.35);
+    yaw   += (targetYaw   - yaw)   * t;
+    pitch += (targetPitch - pitch) * t;
+    if (Math.abs(targetYaw - yaw) < 0.001 && Math.abs(targetPitch - pitch) < 0.001) {
+      yaw = targetYaw; pitch = targetPitch; isAiming = false;
+    }
+  }
+
+// Apply mouse look rotation to camera
   if (!renderer.xr.enabled) {
     _euler.set(pitch, yaw, 0);
     camera.quaternion.setFromEuler(_euler);
