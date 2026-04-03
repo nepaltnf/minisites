@@ -1291,7 +1291,7 @@ function buildMoon(moonTex) {
     if (moonMesh) { moonMesh.material.map?.dispose(); moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
   });
   loader.load(TEXTURES.moonBump4k, tex => {
-    if (moonMesh) { moonMesh.material.bumpMap = tex; moonMesh.material.bumpScale = 0.03; moonMesh.material.needsUpdate = true; }
+    if (moonMesh) { moonMesh.material.bumpMap = tex; moonMesh.material.bumpScale = 0.01; moonMesh.material.needsUpdate = true; }
   });
 }
 
