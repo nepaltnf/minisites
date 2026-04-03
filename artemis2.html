@@ -322,7 +322,8 @@
       transition: all 0.2s;
     }
     #unit-toggle:hover { border-color: #888; color: #ccc; }
-    @media (max-width: 900px) { #unit-toggle { bottom: 24px; } }
+    @media (max-width: 900px) and (orientation: portrait) { #unit-toggle { display: none; } }
+    @media (max-width: 900px) and (orientation: landscape) { #unit-toggle { left: 16px; bottom: 52px; } }
     #sun-bloom {
       position: fixed;
       inset: 0;
