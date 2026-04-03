@@ -1243,7 +1243,7 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
 
         // City lights fade out sharply before dawn — gone well before day texture arrives
         float lightsFade = smoothstep(-0.08, -0.30, NdotS);
-        vec3 nightLights = pow(night.rgb, vec3(3.0)) * 6.0 * lightsFade;
+        vec3 nightLights = pow(night.rgb, vec3(1.8)) * 3.5 * lightsFade;
         vec3 surface = mix(vec3(0.0), day.rgb, blend) + nightLights;
 
         // Ocean specular glint
@@ -1256,8 +1256,8 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
         vec2 cloudUV = vec2(mod(vUv.x + u_cloudOffset, 1.0), vUv.y);
         float cloud = texture2D(u_clouds, cloudUV).r;
         // Day clouds: white; night clouds: dim (block city lights slightly)
-        vec3 cloudColor = mix(vec3(0.0), vec3(1.0), blend);
-        surface = mix(surface, cloudColor, cloud * 0.65);
+        vec3 cloudColor = vec3(1.0);
+        surface = mix(surface, cloudColor, cloud * 0.65 * blend);
 
         // Atmospheric limb glow — only where sunlight reaches the atmosphere
         float rim = pow(1.0 - NdotV, 4.0);
