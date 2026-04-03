@@ -498,16 +498,14 @@
       #mobile-bar-row2 { display: none; }
       #mobile-bar-title { display: none; }
       #mobile-bar-oneliner {
-        display: inline;
+        display: block;
         flex: 1;
         font-size: 13px;
         letter-spacing: 0.15em;
         text-transform: uppercase;
         color: #555;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
       }
+      #mobile-bar-phase-inline { color: #3a6a3a; }
       /* Footer strip */
       #hud {
         left: 0; right: 0;
@@ -647,7 +645,7 @@
   <div id="mobile-bar-row1">
     <div id="mobile-bar-dot"></div>
     <span id="mobile-bar-title">Artemis II</span>
-    <span id="mobile-bar-oneliner">Artemis II &mdash; View From Orion &mdash; <span id="mobile-bar-phase-inline">—</span></span>
+    <span id="mobile-bar-oneliner"><span id="mobile-bar-oneliner-title">Artemis II &mdash; View From Orion</span><br><span id="mobile-bar-phase-inline">—</span></span>
     <div class="bar-select" id="bar-target-select">
       <button class="bar-toggle" id="bar-target-toggle">View Focus <span class="bar-chevron">▾</span></button>
       <div class="bar-dropdown" id="bar-target-dropdown">
