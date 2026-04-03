@@ -2041,80 +2041,104 @@ function render() {
 
   updatePupilEffect(delta);
   updatePlanetLabels();
+
+  // Pulse Orion glow in mission view
+  if (missionViewActive && orionGlow) {
+    orionGlow.material.opacity = 0.1 + Math.sin(elapsed * 2.5) * 0.07;
+  }
+
   renderer.render(scene, camera);
 }
 
 // ─── MISSION VIEW ────────────────────────────────────────────────────────────
 let missionViewActive = false;
 let mvYaw = 0, mvPitch = 0.3, mvRadius = 50;
-let orionMarker = null;
+
+// Orion marker — glowing green orb
+let orionMarker = null, orionGlow = null, orionLight = null;
 
 function buildOrionMarker() {
-  const geo = new THREE.SphereGeometry(0.8, 8, 8);
-  const mat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  // Core dot
+  const geo = new THREE.SphereGeometry(0.3, 16, 16);
+  const mat = new THREE.MeshBasicMaterial({ color: 0x88ffaa });
   orionMarker = new THREE.Mesh(geo, mat);
+  // Soft glow halo
+  const glowGeo = new THREE.SphereGeometry(1.2, 16, 16);
+  const glowMat = new THREE.MeshBasicMaterial({ color: 0x44ff88, transparent: true, opacity: 0.15 });
+  orionGlow = new THREE.Mesh(glowGeo, glowMat);
+  orionMarker.add(orionGlow);
+  // Point light for local illumination
+  orionLight = new THREE.PointLight(0x44ff88, 0.8, 8);
+  orionMarker.add(orionLight);
   scene.add(orionMarker);
   orionMarker.visible = false;
 }
 buildOrionMarker();
 
+function mvEciToScene(eci_km) {
+  // Geocentric ECI → scene (Earth at origin)
+  return new THREE.Vector3(
+     eci_km.x * SCENE_SCALE,
+     eci_km.z * SCENE_SCALE,
+    -eci_km.y * SCENE_SCALE,
+  );
+}
+
 function enterMissionView() {
   missionViewActive = true;
   document.getElementById('mission-view-toggle').classList.add('active');
   document.getElementById('mission-view-toggle').textContent = 'Orion View';
-  if (!trajectoryVisible) toggleTrajectory();
 
-  // Reposition Earth and Moon to geocentric positions (Earth at scene origin)
-  if (lastGoodTelemetry) {
-    const { cx, cy, cz } = lastGoodTelemetry;
-    // Earth is at ECI origin → scene origin
-    if (earthMesh) earthMesh.position.set(0, 0, 0);
-    // Moon relative to Earth (geocentric)
-    const now = new Date();
-    const moon = approxMoonPos(now);
-    if (moonMesh) moonMesh.position.set(
-       moon.x * SCENE_SCALE,
-       moon.z * SCENE_SCALE,
-      -moon.y * SCENE_SCALE,
-    );
-    const d = Math.sqrt(cx**2 + cy**2 + cz**2);
-    mvRadius = d * SCENE_SCALE * 1.5;
-  } else { mvRadius = 50; }
-  // Start orbit from Orion's current position angle relative to Earth
-  if (lastGoodTelemetry) {
-    const { cx, cy, cz } = lastGoodTelemetry;
-    const d = Math.sqrt(cx**2 + cy**2 + cz**2) || 1;
-    // ECI→scene: scene_x=cx, scene_y=cz, scene_z=-cy (relative to spacecraft, inverted)
-    // Camera starts AT Orion's position looking toward Earth
-    const sx = -cx * SCENE_SCALE, sy = -cz * SCENE_SCALE, sz = cy * SCENE_SCALE;
-    mvPitch = Math.asin(Math.max(-1, Math.min(1, sy / mvRadius)));
-    mvYaw   = Math.atan2(sx, sz);
-  } else { mvYaw = 0; mvPitch = 0.3; }
-  if (orionMarker && lastGoodTelemetry) {
-    const { cx, cy, cz } = lastGoodTelemetry;
-    orionMarker.position.set(cx * SCENE_SCALE, cz * SCENE_SCALE, -cy * SCENE_SCALE);
-    orionMarker.scale.setScalar(mvRadius * 0.015);
-    orionMarker.visible = true;
+  const now = new Date();
+
+  // Move Earth to geocentric origin, Moon to geocentric position
+  if (earthMesh) earthMesh.position.set(0, 0, 0);
+  const moon = approxMoonPos(now);
+  if (moonMesh) {
+    const mp = mvEciToScene(moon);
+    moonMesh.position.copy(mp);
   }
-  targetFOV = 60;
+
+  // Position Orion marker
+  if (lastGoodTelemetry) {
+    const { cx, cy, cz } = lastGoodTelemetry;
+    const op = mvEciToScene({ x: cx, y: cy, z: cz });
+    orionMarker.position.copy(op);
+    const d = op.length();
+    orionMarker.scale.setScalar(Math.max(0.5, d * 0.012));
+    orionMarker.visible = true;
+
+    // Camera orbits around midpoint between Earth and Orion, pulled back to see both
+    mvRadius = d * 1.8;
+    // Start from a side angle so Earth and Orion are both visible
+    mvYaw = Math.atan2(op.x, op.z) + Math.PI * 0.5;
+    mvPitch = 0.25;
+  } else {
+    mvRadius = 50;
+    mvYaw = 0; mvPitch = 0.25;
+    orionMarker.visible = false;
+  }
+
+  targetFOV = 55;
 }
 
 function exitMissionView() {
   missionViewActive = false;
   document.getElementById('mission-view-toggle').classList.remove('active');
   document.getElementById('mission-view-toggle').textContent = 'Mission View';
-  if (orionMarker) orionMarker.visible = false;
+  orionMarker.visible = false;
+
   // Restore Earth/Moon to Orion-relative positions
   if (lastGoodTelemetry) {
     const { cx, cy, cz } = lastGoodTelemetry;
-    const eciRelToScene = (eci) => ({
+    const rel = (eci) => ({
       x:  (eci.x - cx) * SCENE_SCALE,
       y:  (eci.z - cz) * SCENE_SCALE,
       z: -(eci.y - cy) * SCENE_SCALE,
     });
-    if (earthMesh) { const e = eciRelToScene({x:0,y:0,z:0}); earthMesh.position.set(e.x,e.y,e.z); }
+    if (earthMesh) { const e = rel({x:0,y:0,z:0}); earthMesh.position.set(e.x,e.y,e.z); }
     const moon = approxMoonPos(new Date());
-    if (moonMesh) { const m = eciRelToScene(moon); moonMesh.position.set(m.x,m.y,m.z); }
+    if (moonMesh) { const m = rel(moon); moonMesh.position.set(m.x,m.y,m.z); }
   }
   const _mobileBoost = Math.max(screen.width, screen.height) < 1000;
   targetFOV = _mobileBoost ? FOV_DEFAULT * 0.7 : FOV_DEFAULT;
@@ -2124,7 +2148,7 @@ document.getElementById('mission-view-toggle').addEventListener('click', () => {
   missionViewActive ? exitMissionView() : enterMissionView();
 });
 
-// Mission View drag — orbit around Earth
+// Mission View drag — orbit around Earth origin
 let mvDragging = false, mvPrevMouse = { x: 0, y: 0 };
 renderer.domElement.addEventListener('mousedown', e => {
   if (missionViewActive) { mvDragging = true; mvPrevMouse = { x: e.clientX, y: e.clientY }; }
@@ -2136,13 +2160,13 @@ window.addEventListener('mousemove', e => {
   const dy = e.clientY - mvPrevMouse.y;
   mvYaw   += dx * 0.005;
   mvPitch -= dy * 0.005;
-  mvPitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, mvPitch));
+  mvPitch = Math.max(-Math.PI / 2.1, Math.min(Math.PI / 2.1, mvPitch));
   mvPrevMouse = { x: e.clientX, y: e.clientY };
 });
 renderer.domElement.addEventListener('wheel', e => {
   if (!missionViewActive) return;
   mvRadius *= e.deltaY > 0 ? 1.1 : 0.9;
-  mvRadius = Math.max(3, Math.min(500, mvRadius));
+  mvRadius = Math.max(3, Math.min(800, mvRadius));
 }, { passive: true });
 
 animate();
