@@ -1637,26 +1637,11 @@ async function fetchHorizonsTrajectory() {
     } catch (_) {}
   }
 
-  // Launch: April 7 2026. Query from launch to ~20 days out (splashdown TBD)
-  const START = '2026-Apr-07 00:00';
-  const STOP  = '2026-Apr-27 00:00';
-  const params = new URLSearchParams({
-    format:      'json',
-    COMMAND:     '-1024',
-    OBJ_DATA:    'NO',
-    MAKE_EPHEM:  'YES',
-    EPHEM_TYPE:  'VECTORS',
-    CENTER:      '500@399',   // Geocentric
-    REF_PLANE:   'FRAME',
-    COORD_TYPE:  'G',
-    START_TIME:  START,
-    STOP_TIME:   STOP,
-    STEP_SIZE:   '30m',       // one point every 30 minutes
-    VEC_TABLE:   '1',         // position only
-    CSV_FORMAT:  'YES',
-  });
-
-  const baseUrl = `https://ssd.jpl.nasa.gov/api/horizons.api?${params}`;
+  const baseUrl = 'https://ssd.jpl.nasa.gov/api/horizons.api'
+    + '?format=json&COMMAND=-1024&OBJ_DATA=NO&MAKE_EPHEM=YES'
+    + '&EPHEM_TYPE=VECTORS&CENTER=500@399&REF_PLANE=FRAME'
+    + '&START_TIME=2026-Apr-07&STOP_TIME=2026-Apr-27&STEP_SIZE=30m'
+    + '&VEC_TABLE=1&CSV_FORMAT=YES';
   const horizonsProxies = [
     u => `https://corsproxy.io/?${encodeURIComponent(u)}`,
     u => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
