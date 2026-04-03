@@ -1610,7 +1610,7 @@ document.querySelectorAll('.lens-option').forEach(btn => {
     targetFOV = parseFloat(btn.dataset.fov);
     document.querySelectorAll('.lens-option').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    lensToggle.childNodes[0].textContent = btn.textContent + ' ';
+    lensToggle.childNodes[0].textContent = 'View Angle ';
     lensDropdown.classList.remove('open');
     lensToggle.classList.remove('open');
     lensChevron.textContent = '▾';
