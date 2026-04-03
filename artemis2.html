@@ -1243,7 +1243,7 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
 
         // City lights fade out sharply before dawn — gone well before day texture arrives
         float lightsFade = smoothstep(-0.08, -0.30, NdotS);
-        vec3 nightLights = pow(night.rgb, vec3(3.5)) * 8.0 * lightsFade;
+        vec3 nightLights = pow(night.rgb, vec3(4.5)) * 12.0 * lightsFade;
         vec3 surface = mix(vec3(0.0), day.rgb, blend) + nightLights;
 
         // Ocean specular glint
