@@ -322,7 +322,7 @@
       transition: all 0.2s;
     }
     #unit-toggle:hover { border-color: #888; color: #ccc; }
-    @media (max-width: 700px) { #unit-toggle { display: none; } }
+    @media (max-width: 900px) { #unit-toggle { display: none; } }
     #sun-bloom {
       position: fixed;
       inset: 0;
@@ -377,14 +377,14 @@
         font-size: 13px;
         letter-spacing: 0.2em;
         text-transform: uppercase;
-        color: #444;
+        color: #666;
       }
       /* shared mini-dropdown style inside bar */
       .bar-select { position: relative; }
       .bar-toggle {
         background: none;
-        border: 1px solid #2a2a2a;
-        color: #444;
+        border: 1px solid #333;
+        color: #666;
         font-family: 'Courier New', monospace;
         font-size: 11px;
         letter-spacing: 0.15em;
@@ -398,7 +398,7 @@
         gap: 4px;
         white-space: nowrap;
       }
-      .bar-toggle.open, .bar-toggle:hover { border-color: #555; color: #aaa; }
+      .bar-toggle.open, .bar-toggle:hover { border-color: #666; color: #bbb; }
       .bar-dropdown {
         display: none;
         flex-direction: column;
@@ -415,8 +415,8 @@
       .bar-dropdown.open { display: flex; }
       .bar-option {
         background: none;
-        border: 1px solid #2a2a2a;
-        color: #444;
+        border: 1px solid #333;
+        color: #666;
         font-family: 'Courier New', monospace;
         font-size: 11px;
         letter-spacing: 0.15em;
@@ -427,8 +427,8 @@
         transition: all 0.15s;
         white-space: nowrap;
       }
-      .bar-option:hover { border-color: #666; color: #bbb; }
-      .bar-option.active { border-color: #555; color: #ccc; background: rgba(255,255,255,0.04); }
+      .bar-option:hover { border-color: #777; color: #bbb; }
+      .bar-option.active { border-color: #666; color: #ccc; background: rgba(255,255,255,0.04); }
       #mobile-bar-row2 {
         display: flex;
         align-items: center;
@@ -438,14 +438,29 @@
         font-size: 13px;
         letter-spacing: 0.18em;
         text-transform: uppercase;
-        color: #333;
+        color: #555;
       }
       #mobile-bar-phase {
         font-size: 13px;
         letter-spacing: 0.15em;
         text-transform: uppercase;
-        color: #2a4a2a;
+        color: #3a6a3a;
       }
+      #mobile-unit-toggle {
+        margin-left: auto;
+        background: none;
+        border: 1px solid #333;
+        color: #666;
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: all 0.15s;
+      }
+      #mobile-unit-toggle:hover { border-color: #555; color: #aaa; }
     }
 
     /* ─── MOBILE ────────────────────────────────────────────────────────────── */
@@ -632,6 +647,7 @@
   <div id="mobile-bar-row2">
     <span id="mobile-bar-subtitle">View From Orion</span>
     <span id="mobile-bar-phase">—</span>
+    <button id="mobile-unit-toggle">Units km</button>
   </div>
 </div>
 
@@ -1515,16 +1531,23 @@ function formatVel(kmh) {
 }
 
 const unitToggleBtn = document.getElementById('unit-toggle');
-unitToggleBtn.textContent = useImperial ? 'Units mi' : 'Units km';
-unitToggleBtn.addEventListener('click', () => {
-  useImperial = !useImperial;
+const mobileUnitBtn = document.getElementById('mobile-unit-toggle');
+function syncUnitLabels() {
   unitToggleBtn.textContent = useImperial ? 'Units mi' : 'Units km';
+  if (mobileUnitBtn) mobileUnitBtn.textContent = useImperial ? 'Units mi' : 'Units km';
+}
+syncUnitLabels();
+function toggleUnits() {
+  useImperial = !useImperial;
+  syncUnitLabels();
   if (lastGoodTelemetry) {
     document.getElementById('dist-earth').textContent = formatDist(lastGoodTelemetry.d_earth);
     document.getElementById('dist-moon').textContent  = formatDist(lastGoodTelemetry.d_moon);
     document.getElementById('velocity').textContent   = formatVel(lastGoodTelemetry.vel_kmh);
   }
-});
+}
+unitToggleBtn.addEventListener('click', toggleUnits);
+if (mobileUnitBtn) mobileUnitBtn.addEventListener('click', toggleUnits);
 
 function startPositionUpdates() {
   applyFallbackPositions(); // show something immediately
