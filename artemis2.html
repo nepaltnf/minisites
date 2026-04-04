@@ -742,7 +742,7 @@
 
 <div id="sun-bloom"></div>
 
-<button id="mission-view-toggle">Mission View</button>
+<!-- <button id="mission-view-toggle">Mission View</button> -->
 <button id="unit-toggle">Units km</button>
 
 <div id="telemetry-status">
@@ -2142,7 +2142,7 @@ function exitMissionView() {
   targetFOV = _mobileBoost ? FOV_DEFAULT * 0.7 : FOV_DEFAULT;
 }
 
-document.getElementById('mission-view-toggle').addEventListener('click', () => {
+document.getElementById('mission-view-toggle')?.addEventListener('click', () => {
   missionViewActive ? exitMissionView() : enterMissionView();
 });
 
