@@ -2025,8 +2025,8 @@ function render() {
 // Apply camera transform
   if (!renderer.xr.enabled) {
     if (missionViewActive) {
-      // Orbit camera around midpoint between Earth and Orion
-      const mid = orionMarker.visible ? orionMarker.position.clone().multiplyScalar(0.5) : new THREE.Vector3();
+      // Orbit camera with lookAt biased 70% toward Orion so Earth sits upper-right
+      const mid = orionMarker.visible ? orionMarker.position.clone().multiplyScalar(0.7) : new THREE.Vector3();
       const cp = Math.cos(mvPitch), sp = Math.sin(mvPitch);
       const cy2 = Math.cos(mvYaw),  sy2 = Math.sin(mvYaw);
       camera.position.set(
