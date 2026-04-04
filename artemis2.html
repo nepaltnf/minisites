@@ -1936,18 +1936,14 @@ async function enterVR() {
     document.getElementById('vr-btn').textContent = 'Exit VR';
     xrLabelSprites.forEach(s => s.visible = true);
 
-    // Load helmet and attach to XR camera group
+    // Load helmet — added to scene, positioned to follow XR camera each frame
     if (!helmetModel) {
       const gltfLoader = new THREE.GLTFLoader();
       gltfLoader.load('images/astroHelmet.glb', gltf => {
         helmetModel = gltf.scene;
-        // Position: in front of and around the camera (negative Z = forward in Three.js)
-        // Will need tuning once we can see it in headset
-        helmetModel.position.set(0, -0.3, -0.4);
-        helmetModel.rotation.set(0, Math.PI, 0); // face forward
         helmetModel.scale.setScalar(0.35);
-        const xrCam = renderer.xr.getCamera();
-        xrCam.add(helmetModel);
+        scene.add(helmetModel);
+        console.log('Helmet loaded OK');
       }, undefined, err => console.warn('Helmet load failed:', err));
     } else {
       helmetModel.visible = true;
@@ -2073,6 +2069,17 @@ function render() {
       _euler.set(pitch, yaw, 0);
       camera.quaternion.setFromEuler(_euler);
     }
+  }
+
+  // Track helmet to XR camera each frame
+  if (helmetModel && helmetModel.visible && renderer.xr.isPresenting) {
+    const xrCam = renderer.xr.getCamera();
+    helmetModel.position.copy(xrCam.position);
+    helmetModel.quaternion.copy(xrCam.quaternion);
+    // Offset forward and down relative to camera orientation
+    const fwd = new THREE.Vector3(0, -0.25, -0.35).applyQuaternion(xrCam.quaternion);
+    helmetModel.position.add(fwd);
+    helmetModel.rotation.y += Math.PI; // face forward
   }
 
   updatePupilEffect(delta);
