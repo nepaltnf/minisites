@@ -1934,7 +1934,8 @@ async function enterVR() {
     });
     renderer.xr.setSession(xrSession);
     document.getElementById('vr-btn').textContent = 'Exit VR';
-    xrLabelSprites.forEach(s => s.visible = true);
+    console.log('XR label sprites:', xrLabelSprites.length);
+    xrLabelSprites.forEach(s => { s.visible = true; console.log('label pos:', s.position.toArray(), 'scale:', s.scale.x); });
 
     // Load helmet — added to scene, positioned to follow XR camera each frame
     if (!helmetModel) {
@@ -1942,6 +1943,7 @@ async function enterVR() {
       gltfLoader.load('images/astroHelmet.glb', gltf => {
         helmetModel = gltf.scene;
         helmetModel.scale.setScalar(0.35);
+        helmetModel.visible = false;
         scene.add(helmetModel);
         console.log('Helmet loaded OK');
       }, undefined, err => console.warn('Helmet load failed:', err));
@@ -2071,16 +2073,7 @@ function render() {
     }
   }
 
-  // Track helmet to XR camera each frame
-  if (helmetModel && helmetModel.visible && renderer.xr.isPresenting) {
-    const xrCam = renderer.xr.getCamera();
-    helmetModel.position.copy(xrCam.position);
-    helmetModel.quaternion.copy(xrCam.quaternion);
-    // Offset forward and down relative to camera orientation
-    const fwd = new THREE.Vector3(0, -0.25, -0.35).applyQuaternion(xrCam.quaternion);
-    helmetModel.position.add(fwd);
-    helmetModel.rotation.y += Math.PI; // face forward
-  }
+  // Helmet tracking disabled until sizing is worked out
 
   updatePupilEffect(delta);
   updatePlanetLabels();
