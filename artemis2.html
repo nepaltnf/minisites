@@ -1120,8 +1120,40 @@ function buildPlanetMarkers(date) {
     labelEl.textContent = p.name;
     labelContainer.appendChild(labelEl);
 
+    addXRLabel(p.name, sprite);
     planetMarkers.push({ sprite, labelEl, dir });
   });
+}
+
+function makeXRLabelTexture(text) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  ctx.font = '500 28px system-ui, sans-serif';
+  ctx.letterSpacing = '2px';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text.toUpperCase(), c.width / 2, c.height / 2);
+  return new THREE.CanvasTexture(c);
+}
+
+const xrLabelSprites = []; // { sprite, offset } — toggled visible in XR
+
+function addXRLabel(text, targetSprite, offsetScale = 1.0) {
+  const tex = makeXRLabelTexture(text);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.9 });
+  const sprite = new THREE.Sprite(mat);
+  // Position slightly above the target sprite
+  const pos = targetSprite.position.clone();
+  const up = pos.clone().normalize().multiplyScalar(targetSprite.scale.x * 1.8 * offsetScale);
+  sprite.position.copy(pos.clone().add(up));
+  sprite.scale.set(targetSprite.scale.x * 1.6, targetSprite.scale.x * 0.4, 1);
+  sprite.visible = false;
+  scene.add(sprite);
+  xrLabelSprites.push(sprite);
+  return sprite;
 }
 
 function makePlanetGlowTexture(hexColor) {
@@ -1900,10 +1932,12 @@ async function enterVR() {
     });
     renderer.xr.setSession(xrSession);
     document.getElementById('vr-btn').textContent = 'Exit VR';
+    xrLabelSprites.forEach(s => s.visible = true);
     xrSession.addEventListener('end', () => {
       xrSession = null;
       renderer.xr.enabled = false;
       document.getElementById('vr-btn').textContent = 'Enter VR';
+      xrLabelSprites.forEach(s => s.visible = false);
     });
   } catch (e) {
     console.warn('VR not available:', e);
