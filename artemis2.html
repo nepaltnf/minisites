@@ -2103,11 +2103,14 @@ function enterMissionView() {
     orionGlow.scale.setScalar(s);
     orionMarker.visible = true;
 
-    // Camera orbits around midpoint between Earth and Orion, pulled back to see both
-    mvRadius = d * 1.8;
-    // Start from a side angle so Earth and Orion are both visible
-    mvYaw = Math.atan2(op.x, op.z) + Math.PI * 0.5;
-    mvPitch = 0.25;
+    // Camera starts looking down the orbital plane normal (top-down view of the arc)
+    mvRadius = d * 2.2;
+    // Orbital plane normal = cross(Earth→Orion, Earth→Moon)
+    const moonPos = moonMesh ? moonMesh.position : new THREE.Vector3(0, 0, 38);
+    const planeNormal = op.clone().cross(moonPos).normalize();
+    // Convert normal to yaw/pitch for the orbit camera
+    mvPitch = Math.asin(Math.max(-1, Math.min(1, planeNormal.y)));
+    mvYaw   = Math.atan2(planeNormal.x, planeNormal.z);
   } else {
     mvRadius = 50;
     mvYaw = 0; mvPitch = 0.25;
