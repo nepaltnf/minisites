@@ -2047,7 +2047,8 @@ function render() {
 
   // Pulse Orion glow in mission view
   if (missionViewActive && orionGlow) {
-    orionGlow.material.opacity = 0.1 + Math.sin(elapsed * 2.5) * 0.07;
+    const pulse = 1 + Math.sin(elapsed * 2.5) * 0.08;
+    orionGlow.scale.setScalar(orionMarker._baseScale * pulse);
   }
 
   renderer.render(scene, camera);
@@ -2058,18 +2059,32 @@ function render() {
 let orionMarker = null, orionGlow = null, orionLight = null;
 
 function buildOrionMarker() {
-  // Core dot
-  const geo = new THREE.SphereGeometry(0.3, 16, 16);
-  const mat = new THREE.MeshBasicMaterial({ color: 0x88ffaa });
-  orionMarker = new THREE.Mesh(geo, mat);
-  // Soft glow halo
-  const glowGeo = new THREE.SphereGeometry(1.2, 16, 16);
-  const glowMat = new THREE.MeshBasicMaterial({ color: 0x44ff88, transparent: true, opacity: 0.15 });
-  orionGlow = new THREE.Mesh(glowGeo, glowMat);
+  // Build radial gradient canvas texture for soft falloff
+  const size = 128;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const grad = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+  grad.addColorStop(0,    'rgba(180,255,200,1)');
+  grad.addColorStop(0.08, 'rgba(80,255,140,0.9)');
+  grad.addColorStop(0.25, 'rgba(40,200,100,0.4)');
+  grad.addColorStop(0.55, 'rgba(20,160,80,0.12)');
+  grad.addColorStop(1,    'rgba(0,100,50,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(canvas);
+
+  const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  orionGlow = new THREE.Sprite(spriteMat);
+
+  // Tiny bright core
+  const coreMat = new THREE.SpriteMaterial({ color: 0xeeffee, transparent: true, opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending });
+  const core = new THREE.Sprite(coreMat);
+  core.scale.setScalar(0.15);
+
+  orionMarker = new THREE.Group();
   orionMarker.add(orionGlow);
-  // Point light for local illumination
-  orionLight = new THREE.PointLight(0x44ff88, 0.8, 8);
-  orionMarker.add(orionLight);
+  orionMarker.add(core);
   scene.add(orionMarker);
   orionMarker.visible = false;
 }
@@ -2105,7 +2120,9 @@ function enterMissionView() {
     const op = mvEciToScene({ x: cx, y: cy, z: cz });
     orionMarker.position.copy(op);
     const d = op.length();
-    orionMarker.scale.setScalar(Math.max(1.5, d * 0.04));
+    const s = Math.max(3, d * 0.08);
+    orionMarker._baseScale = s;
+    orionGlow.scale.setScalar(s);
     orionMarker.visible = true;
 
     // Camera orbits around midpoint between Earth and Orion, pulled back to see both
