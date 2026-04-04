@@ -768,6 +768,7 @@
 
 <!-- Three.js r158 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
 <script>
 // ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -1858,6 +1859,7 @@ let yaw = 0, pitch = 0;
 let targetYaw = 0, targetPitch = 0, isAiming = false;
 let missionViewActive = false;
 let mvYaw = 0, mvPitch = 0.3, mvRadius = 50;
+let helmetModel = null;
 const _euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
 renderer.domElement.addEventListener('mousedown', e => {
@@ -1933,11 +1935,30 @@ async function enterVR() {
     renderer.xr.setSession(xrSession);
     document.getElementById('vr-btn').textContent = 'Exit VR';
     xrLabelSprites.forEach(s => s.visible = true);
+
+    // Load helmet and attach to XR camera group
+    if (!helmetModel) {
+      const gltfLoader = new THREE.GLTFLoader();
+      gltfLoader.load('images/astroHelmet.glb', gltf => {
+        helmetModel = gltf.scene;
+        // Position: in front of and around the camera (negative Z = forward in Three.js)
+        // Will need tuning once we can see it in headset
+        helmetModel.position.set(0, -0.3, -0.4);
+        helmetModel.rotation.set(0, Math.PI, 0); // face forward
+        helmetModel.scale.setScalar(0.35);
+        const xrCam = renderer.xr.getCamera();
+        xrCam.add(helmetModel);
+      }, undefined, err => console.warn('Helmet load failed:', err));
+    } else {
+      helmetModel.visible = true;
+    }
+
     xrSession.addEventListener('end', () => {
       xrSession = null;
       renderer.xr.enabled = false;
       document.getElementById('vr-btn').textContent = 'Enter VR';
       xrLabelSprites.forEach(s => s.visible = false);
+      if (helmetModel) helmetModel.visible = false;
     });
   } catch (e) {
     console.warn('VR not available:', e);
