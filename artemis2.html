@@ -762,7 +762,7 @@
 
 <div id="sun-bloom"></div>
 
-<!-- <button id="mission-view-toggle">Mission View</button> -->
+<button id="mission-view-toggle">Mission View</button>
 <button id="trajectory-toggle">Path</button>
 <button id="unit-toggle">Units km</button>
 
@@ -2164,6 +2164,17 @@ function enterMissionView() {
 
   const now = new Date();
 
+  // Rebuild trajectory in geocentric coords for Mission View
+  if (trajectoryVisible && trajectoryLine) {
+    const pts = TRAJECTORY_POINTS;
+    const ctrlPts = [];
+    for (let i = 0; i < pts.length; i += 3) {
+      ctrlPts.push(new THREE.Vector3(pts[i]*SCENE_SCALE, pts[i+2]*SCENE_SCALE, -pts[i+1]*SCENE_SCALE));
+    }
+    const curve = new THREE.CatmullRomCurve3(ctrlPts);
+    trajectoryLine.geometry.setFromPoints(curve.getPoints(300));
+  }
+
   // Move Earth to geocentric origin, Moon to geocentric position
   if (earthMesh) earthMesh.position.set(0, 0, 0);
   const moon = approxMoonPos(now);
@@ -2218,6 +2229,18 @@ function exitMissionView() {
     const moon = approxMoonPos(new Date());
     if (moonMesh) { const m = rel(moon); moonMesh.position.set(m.x,m.y,m.z); }
   }
+  // Rebuild trajectory back to Orion-relative coords
+  if (trajectoryVisible && trajectoryLine && lastGoodTelemetry) {
+    const { cx, cy, cz } = lastGoodTelemetry;
+    const pts = TRAJECTORY_POINTS;
+    const ctrlPts = [];
+    for (let i = 0; i < pts.length; i += 3) {
+      ctrlPts.push(new THREE.Vector3((pts[i]-cx)*SCENE_SCALE, (pts[i+2]-cz)*SCENE_SCALE, -(pts[i+1]-cy)*SCENE_SCALE));
+    }
+    const curve = new THREE.CatmullRomCurve3(ctrlPts);
+    trajectoryLine.geometry.setFromPoints(curve.getPoints(300));
+  }
+
   const _mobileBoost = Math.max(screen.width, screen.height) < 1000;
   targetFOV = _mobileBoost ? FOV_DEFAULT * 0.7 : FOV_DEFAULT;
 }
