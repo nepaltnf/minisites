@@ -1691,13 +1691,17 @@ function fetchHorizonsTrajectory() {
 }
 
 function buildTrajectoryLine(eciPoints_km) {
-  // ECI→scene: scene_x=eci_x, scene_y=eci_z, scene_z=-eci_y (geocentric, Earth at origin)
+  // Transform same as telemetry: relative to spacecraft position
+  const pos = lastGoodTelemetry
+    ? { cx: lastGoodTelemetry.cx, cy: lastGoodTelemetry.cy, cz: lastGoodTelemetry.cz }
+    : (() => { try { return JSON.parse(localStorage.getItem('artemis2_pos')); } catch(_){} return { cx:0, cy:-22000, cz:0 }; })();
+  const { cx, cy, cz } = pos;
   const controlPoints = [];
   for (let i = 0; i < eciPoints_km.length; i += 3) {
     controlPoints.push(new THREE.Vector3(
-       eciPoints_km[i]   * SCENE_SCALE,
-       eciPoints_km[i+2] * SCENE_SCALE,
-      -eciPoints_km[i+1] * SCENE_SCALE,
+      (eciPoints_km[i]   - cx) * SCENE_SCALE,
+      (eciPoints_km[i+2] - cz) * SCENE_SCALE,
+     -(eciPoints_km[i+1] - cy) * SCENE_SCALE,
     ));
   }
   // Smooth curve through control points
