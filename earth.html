@@ -369,34 +369,29 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
 let earthGroup;
 
 // ─── CAMERA STATE ─────────────────────────────────────────────────────────────
-// Camera is fixed — drag rotates the Earth, not the camera.
+// Earth is fixed. Sun/stars are fixed. Only camera orbits around Earth.
+let camTheta = 0;   // horizontal angle (longitude of camera)
+let camPhi   = 0.2; // vertical angle (latitude of camera)
 let camDist  = CAM_DISTANCE_DEFAULT;
 let targetDist = camDist;
 
-camera.position.set(0, 0, camDist);
-camera.lookAt(0, 0, 0);
-
-// Earth user-applied rotation offset (on top of real GMST)
-let dragRotY = 0; // horizontal drag (longitude)
-let dragRotX = 0; // vertical drag (latitude tilt)
-
 let isDragging = false, prevMouse = { x: 0, y: 0 };
 let geosyncActive = false;
+// In geosync, camera theta advances with Earth's GMST rotation rate
+let geosyncStartTheta = 0;
+let geosyncStartGMST  = 0;
 
 // ─── SUN BLOOM ────────────────────────────────────────────────────────────────
 const bloomEl = document.getElementById('sun-bloom');
 let currentExposure = 0;
 
-function applyEarthRotation(date) {
-  if (!earthMesh) return;
-  if (geosyncActive) {
-    // Lock: only user drag offset, no GMST spin
-    earthMesh.rotation.y = dragRotY;
-  } else {
-    // Free: real GMST + user drag offset
-    earthMesh.rotation.y = gmstRadians(date) + dragRotY;
-  }
-  earthMesh.rotation.x = dragRotX;
+function updateCamera() {
+  camera.position.set(
+    camDist * Math.cos(camPhi) * Math.sin(camTheta),
+    camDist * Math.sin(camPhi),
+    camDist * Math.cos(camPhi) * Math.cos(camTheta)
+  );
+  camera.lookAt(0, 0, 0);
 }
 
 // ─── DRAG ─────────────────────────────────────────────────────────────────────
@@ -410,9 +405,15 @@ window.addEventListener('mousemove', e => {
   const dx = e.clientX - prevMouse.x;
   const dy = e.clientY - prevMouse.y;
   prevMouse = { x: e.clientX, y: e.clientY };
-  dragRotY += dx * 0.005;
-  dragRotX += dy * 0.005;
-  dragRotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, dragRotX));
+  camTheta -= dx * 0.005;
+  camPhi   -= dy * 0.005;
+  camPhi = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, camPhi));
+  // Re-anchor geosync so it continues from new position
+  if (geosyncActive) {
+    geosyncStartTheta = camTheta;
+    geosyncStartGMST  = gmstRadians(new Date());
+  }
+  updateCamera();
 });
 
 // Touch
@@ -435,9 +436,14 @@ renderer.domElement.addEventListener('touchmove', e => {
     const dx = e.touches[0].clientX - prevTouch.x;
     const dy = e.touches[0].clientY - prevTouch.y;
     prevTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    dragRotY += dx * 0.005;
-    dragRotX += dy * 0.005;
-    dragRotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, dragRotX));
+    camTheta -= dx * 0.005;
+    camPhi   -= dy * 0.005;
+    camPhi = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, camPhi));
+    if (geosyncActive) {
+      geosyncStartTheta = camTheta;
+      geosyncStartGMST  = gmstRadians(new Date());
+    }
+    updateCamera();
   } else if (e.touches.length === 2 && prevPinchDist !== null) {
     const dx = e.touches[0].clientX - e.touches[1].clientX;
     const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -470,11 +476,8 @@ const geosyncBtn = document.getElementById('geosync-btn');
 geosyncBtn.addEventListener('click', () => {
   geosyncActive = !geosyncActive;
   if (geosyncActive) {
-    // Absorb current GMST into dragRotY so Earth stays in place visually
-    dragRotY = (dragRotY + gmstRadians(new Date())) % (2 * Math.PI);
-  } else {
-    // Re-sync dragRotY so Earth doesn't jump when unlocking
-    dragRotY = dragRotY - gmstRadians(new Date());
+    geosyncStartTheta = camTheta;
+    geosyncStartGMST  = gmstRadians(new Date());
   }
   geosyncBtn.classList.toggle('active', geosyncActive);
 });
@@ -534,8 +537,8 @@ function animate() {
 
   const date = new Date();
 
-  // Update Earth rotation
-  applyEarthRotation(date);
+  // Earth rotates at real GMST — never changes
+  if (earthMesh) earthMesh.rotation.y = gmstRadians(date);
 
   // Cloud slow drift
   cloudOffset += delta * 0.000008;
@@ -549,10 +552,12 @@ function animate() {
   sunLight.position.copy(sunDir.clone().multiplyScalar(10000));
   if (earthMat) earthMat.uniforms.u_sunDir.value.copy(sunDir);
 
-  // Smooth zoom
+  // Smooth zoom + geosync camera advance
   camDist += (targetDist - camDist) * (1 - Math.exp(-delta * 6));
-  camera.position.set(0, 0, camDist);
-  camera.lookAt(0, 0, 0);
+  if (geosyncActive && !isDragging) {
+    camTheta = geosyncStartTheta + (gmstRadians(date) - geosyncStartGMST);
+  }
+  updateCamera();
 
   // Sun bloom pupil effect
   const sp = sunLight.position.clone().normalize();
