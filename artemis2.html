@@ -1515,8 +1515,10 @@ async function fetchAndApply() {
     const eRel = eciRelToScene({ x: 0, y: 0, z: 0 }); // Earth at ECI origin
     const mRel = eciRelToScene(moon);
 
-    earthMesh.position.set(eRel.x, eRel.y, eRel.z);
-    moonMesh.position.set(mRel.x, mRel.y, mRel.z);
+    if (!missionViewActive) {
+      earthMesh.position.set(eRel.x, eRel.y, eRel.z);
+      moonMesh.position.set(mRel.x, mRel.y, mRel.z);
+    }
 
     // On first live data, aim at whichever body is closer (regardless of fallback flag)
     if (!hasDragged && !liveAimDone) {
