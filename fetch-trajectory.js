@@ -7,7 +7,7 @@ const https = require('https');
 const url = 'https://ssd.jpl.nasa.gov/api/horizons.api'
   + '?format=json&COMMAND=-1024&OBJ_DATA=NO&MAKE_EPHEM=YES'
   + '&EPHEM_TYPE=VECTORS&CENTER=500@399&REF_PLANE=FRAME'
-  + '&START_TIME=JD2461132.6&STOP_TIME=2026-Apr-10&STEP_SIZE=6h'
+  + '&START_TIME=JD2461132.6&STOP_TIME=2026-Apr-10&STEP_SIZE=2h'
   + '&VEC_TABLE=1&CSV_FORMAT=YES';
 
 https.get(url, res => {
