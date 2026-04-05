@@ -762,8 +762,8 @@
 
 <div id="sun-bloom"></div>
 
-<button id="mission-view-toggle">Mission View</button>
-<button id="trajectory-toggle">Path</button>
+<!-- <button id="mission-view-toggle">Mission View</button> -->
+<!-- <button id="trajectory-toggle">Path</button> -->
 <button id="unit-toggle">Units km</button>
 
 <div id="telemetry-status">
@@ -1735,14 +1735,12 @@ function buildTrajectoryLine(eciPoints_km) {
   if (trajectoryLinePlanned) { trajectoryLinePlanned.geometry.dispose(); scene.remove(trajectoryLinePlanned); trajectoryLinePlanned = null; }
 
   if (flownPts.length > 1) {
-    const curve = new THREE.CatmullRomCurve3(flownPts);
-    const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(200));
+    const geo = new THREE.BufferGeometry().setFromPoints(flownPts);
     trajectoryLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x6699cc, opacity: 0.9, transparent: true }));
     scene.add(trajectoryLine);
   }
   if (plannedPts.length > 1) {
-    const curve = new THREE.CatmullRomCurve3(plannedPts);
-    const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(200));
+    const geo = new THREE.BufferGeometry().setFromPoints(plannedPts);
     trajectoryLinePlanned = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x334455, opacity: 0.4, transparent: true }));
     scene.add(trajectoryLinePlanned);
   }
@@ -2268,11 +2266,10 @@ function exitMissionView() {
   targetFOV = _mobileBoost ? FOV_DEFAULT * 0.7 : FOV_DEFAULT;
 }
 
-document.getElementById('trajectory-toggle').addEventListener('click', toggleTrajectory);
-
-document.getElementById('mission-view-toggle')?.addEventListener('click', () => {
-  missionViewActive ? exitMissionView() : enterMissionView();
-});
+// document.getElementById('trajectory-toggle').addEventListener('click', toggleTrajectory);
+// document.getElementById('mission-view-toggle')?.addEventListener('click', () => {
+//   missionViewActive ? exitMissionView() : enterMissionView();
+// });
 
 // Mission View drag — orbit around Earth origin
 let mvDragging = false, mvPrevMouse = { x: 0, y: 0 };
