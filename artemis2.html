@@ -1547,10 +1547,9 @@ async function fetchAndApply() {
     lastGoodTelemetry = { d_earth, d_moon, vel_kmh, prograde, fetchedAt: now, cx, cy, cz };
     // Rebuild trajectory with fresh spacecraft position
     if (trajectoryVisible && trajectoryLine) buildTrajectoryLine(TRAJECTORY_POINTS);
-    // Update Orion marker in mission view
-    if (missionViewActive && orionMarker) {
-      const op = mvEciToScene({ x: cx, y: cy, z: cz });
-      orionMarker.position.copy(op);
+    // Update Orion marker in mission view (geocentric — Earth at origin)
+    if (missionViewActive && orionMarker && orionMarker.visible) {
+      orionMarker.position.copy(mvEciToScene({ x: cx, y: cy, z: cz }));
     }
 
     document.getElementById('dist-earth').textContent = formatDist(d_earth);
@@ -1698,18 +1697,29 @@ function fetchHorizonsTrajectory() {
 }
 
 function buildTrajectoryLine(eciPoints_km) {
-  // Path points are geocentric ECI — apply same offset as Earth mesh
-  // Earth scene position = (-cx, -cz, cy) * SCENE_SCALE
-  // So path point scene pos = (eci_x - cx, eci_z - cz, -(eci_y - cy)) * SCENE_SCALE
-  // which equals earthMesh.position + (eci_x, eci_z, -eci_y) * SCENE_SCALE
-  const ep = earthMesh ? earthMesh.position : new THREE.Vector3(0, 0, 0);
   const controlPoints = [];
-  for (let i = 0; i < eciPoints_km.length; i += 3) {
-    controlPoints.push(new THREE.Vector3(
-      ep.x + eciPoints_km[i]   * SCENE_SCALE,
-      ep.y + eciPoints_km[i+2] * SCENE_SCALE,
-      ep.z - eciPoints_km[i+1] * SCENE_SCALE,
-    ));
+  if (missionViewActive) {
+    // Mission View: Earth at scene origin, geocentric coords map directly
+    for (let i = 0; i < eciPoints_km.length; i += 3) {
+      controlPoints.push(new THREE.Vector3(
+         eciPoints_km[i]   * SCENE_SCALE,
+         eciPoints_km[i+2] * SCENE_SCALE,
+        -eciPoints_km[i+1] * SCENE_SCALE,
+      ));
+    }
+  } else {
+    // Orion View: camera at origin, subtract spacecraft ECI position
+    const pos = lastGoodTelemetry
+      ? lastGoodTelemetry
+      : (() => { try { return JSON.parse(localStorage.getItem('artemis2_pos')); } catch(_){} return { cx:0, cy:-22000, cz:0 }; })();
+    const { cx, cy, cz } = pos;
+    for (let i = 0; i < eciPoints_km.length; i += 3) {
+      controlPoints.push(new THREE.Vector3(
+        (eciPoints_km[i]   - cx) * SCENE_SCALE,
+        (eciPoints_km[i+2] - cz) * SCENE_SCALE,
+       -(eciPoints_km[i+1] - cy) * SCENE_SCALE,
+      ));
+    }
   }
   // Smooth curve through control points
   const curve = new THREE.CatmullRomCurve3(controlPoints);
