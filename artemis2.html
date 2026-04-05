@@ -1693,17 +1693,17 @@ function fetchHorizonsTrajectory() {
 }
 
 function buildTrajectoryLine(eciPoints_km) {
-  // Transform same as telemetry: relative to spacecraft position
-  const pos = lastGoodTelemetry
-    ? { cx: lastGoodTelemetry.cx, cy: lastGoodTelemetry.cy, cz: lastGoodTelemetry.cz }
-    : (() => { try { return JSON.parse(localStorage.getItem('artemis2_pos')); } catch(_){} return { cx:0, cy:-22000, cz:0 }; })();
-  const { cx, cy, cz } = pos;
+  // Path points are geocentric ECI — apply same offset as Earth mesh
+  // Earth scene position = (-cx, -cz, cy) * SCENE_SCALE
+  // So path point scene pos = (eci_x - cx, eci_z - cz, -(eci_y - cy)) * SCENE_SCALE
+  // which equals earthMesh.position + (eci_x, eci_z, -eci_y) * SCENE_SCALE
+  const ep = earthMesh ? earthMesh.position : new THREE.Vector3(0, 0, 0);
   const controlPoints = [];
   for (let i = 0; i < eciPoints_km.length; i += 3) {
     controlPoints.push(new THREE.Vector3(
-      (eciPoints_km[i]   - cx) * SCENE_SCALE,
-      (eciPoints_km[i+2] - cz) * SCENE_SCALE,
-     -(eciPoints_km[i+1] - cy) * SCENE_SCALE,
+      ep.x + eciPoints_km[i]   * SCENE_SCALE,
+      ep.y + eciPoints_km[i+2] * SCENE_SCALE,
+      ep.z - eciPoints_km[i+1] * SCENE_SCALE,
     ));
   }
   // Smooth curve through control points
@@ -2166,16 +2166,8 @@ function enterMissionView() {
 
   const now = new Date();
 
-  // Rebuild trajectory in geocentric coords for Mission View
-  if (trajectoryVisible && trajectoryLine) {
-    const pts = TRAJECTORY_POINTS;
-    const ctrlPts = [];
-    for (let i = 0; i < pts.length; i += 3) {
-      ctrlPts.push(new THREE.Vector3(pts[i]*SCENE_SCALE, pts[i+2]*SCENE_SCALE, -pts[i+1]*SCENE_SCALE));
-    }
-    const curve = new THREE.CatmullRomCurve3(ctrlPts);
-    trajectoryLine.geometry.setFromPoints(curve.getPoints(300));
-  }
+  // Rebuild trajectory — earthMesh is now at origin so ep=(0,0,0), same formula works
+  if (trajectoryVisible && trajectoryLine) buildTrajectoryLine(TRAJECTORY_POINTS);
 
   // Move Earth to geocentric origin, Moon to geocentric position
   if (earthMesh) earthMesh.position.set(0, 0, 0);
@@ -2236,17 +2228,8 @@ function exitMissionView() {
     const moon = approxMoonPos(new Date());
     if (moonMesh) { const m = rel(moon); moonMesh.position.set(m.x,m.y,m.z); }
   }
-  // Rebuild trajectory back to Orion-relative coords
-  if (trajectoryVisible && trajectoryLine && lastGoodTelemetry) {
-    const { cx, cy, cz } = lastGoodTelemetry;
-    const pts = TRAJECTORY_POINTS;
-    const ctrlPts = [];
-    for (let i = 0; i < pts.length; i += 3) {
-      ctrlPts.push(new THREE.Vector3((pts[i]-cx)*SCENE_SCALE, (pts[i+2]-cz)*SCENE_SCALE, -(pts[i+1]-cy)*SCENE_SCALE));
-    }
-    const curve = new THREE.CatmullRomCurve3(ctrlPts);
-    trajectoryLine.geometry.setFromPoints(curve.getPoints(300));
-  }
+  // Rebuild trajectory — earthMesh restored to Orion-relative position, formula handles it
+  if (trajectoryVisible && trajectoryLine) buildTrajectoryLine(TRAJECTORY_POINTS);
 
   const _mobileBoost = Math.max(screen.width, screen.height) < 1000;
   targetFOV = _mobileBoost ? FOV_DEFAULT * 0.7 : FOV_DEFAULT;
