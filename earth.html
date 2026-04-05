@@ -618,12 +618,16 @@ function animate() {
   // Smooth zoom
   camDist += (targetDist - camDist) * (1 - Math.exp(-delta * 6));
 
+  // Keep autoSpinAngle in sync with camTheta when dragging
+  if (isDragging) {
+    autoSpinAngle = camTheta;
+  }
+
   // Auto-spin camera (equatorial mode) — gentle slow pan when not dragging
   if (!isDragging && spinAxis === 'equatorial') {
-    autoSpinAngle += delta * 0.008; // rad/s — very slow drift
+    autoSpinAngle += delta * 0.008;
     camTheta = autoSpinAngle;
   } else if (spinAxis === 'polar' && !isDragging) {
-    // Polar: camera slowly tilts up and back down
     autoSpinAngle += delta * 0.006;
     camPhi = Math.sin(autoSpinAngle) * (Math.PI / 2 - 0.1);
   }
