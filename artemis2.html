@@ -1693,6 +1693,7 @@ const TRAJECTORY_POINTS = [-26827.28957931617,-17611.33552121793,-9568.549241101
 const TRAJECTORY_FETCHED = '2026-04-05T03:02:00.730Z';
 
 let trajectoryLine = null;
+let trajectoryLinePlanned = null;
 let trajectoryVisible = false;
 
 function fetchHorizonsTrajectory() {
@@ -1700,45 +1701,58 @@ function fetchHorizonsTrajectory() {
   return Promise.resolve(TRAJECTORY_POINTS);
 }
 
-function buildTrajectoryLine(eciPoints_km) {
-  const controlPoints = [];
+function eciToScenePoint(ex, ey, ez, cx, cy, cz) {
   if (missionViewActive) {
-    // Mission View: Earth at scene origin, geocentric coords map directly
-    for (let i = 0; i < eciPoints_km.length; i += 3) {
-      controlPoints.push(new THREE.Vector3(
-         eciPoints_km[i]   * SCENE_SCALE,
-         eciPoints_km[i+2] * SCENE_SCALE,
-        -eciPoints_km[i+1] * SCENE_SCALE,
-      ));
-    }
+    return new THREE.Vector3(ex * SCENE_SCALE, ez * SCENE_SCALE, -ey * SCENE_SCALE);
   } else {
-    // Orion View: camera at origin, subtract spacecraft ECI position
-    const pos = lastGoodTelemetry
-      ? lastGoodTelemetry
-      : (() => { try { return JSON.parse(localStorage.getItem('artemis2_pos')); } catch(_){} return { cx:0, cy:-22000, cz:0 }; })();
-    const { cx, cy, cz } = pos;
-    for (let i = 0; i < eciPoints_km.length; i += 3) {
-      controlPoints.push(new THREE.Vector3(
-        (eciPoints_km[i]   - cx) * SCENE_SCALE,
-        (eciPoints_km[i+2] - cz) * SCENE_SCALE,
-       -(eciPoints_km[i+1] - cy) * SCENE_SCALE,
-      ));
-    }
+    return new THREE.Vector3((ex-cx)*SCENE_SCALE, (ez-cz)*SCENE_SCALE, -(ey-cy)*SCENE_SCALE);
   }
-  // Smooth curve through control points
-  const curve = new THREE.CatmullRomCurve3(controlPoints);
-  const points = curve.getPoints(300);
-  const geo = new THREE.BufferGeometry().setFromPoints(points);
-  const mat = new THREE.LineBasicMaterial({ color: 0x4488aa, opacity: 0.5, transparent: true });
-  if (trajectoryLine) { trajectoryLine.geometry.dispose(); scene.remove(trajectoryLine); }
-  trajectoryLine = new THREE.Line(geo, mat);
-  scene.add(trajectoryLine);
+}
+
+function buildTrajectoryLine(eciPoints_km) {
+  const pos = lastGoodTelemetry
+    ? lastGoodTelemetry
+    : (() => { try { return JSON.parse(localStorage.getItem('artemis2_pos')); } catch(_){} return { cx:0, cy:-22000, cz:0 }; })();
+  const { cx, cy, cz } = pos;
+
+  // Determine current point index — launch Apr 2 02:00 UTC, 2h steps
+  const LAUNCH_MS = Date.UTC(2026, 3, 2, 2, 0, 0); // Apr=month 3 (0-indexed)
+  const STEP_MS = 2 * 3600 * 1000;
+  const elapsed = Date.now() - LAUNCH_MS;
+  const currentIdx = Math.max(0, Math.min(Math.floor(elapsed / STEP_MS), eciPoints_km.length / 3 - 1));
+
+  const flownPts = [], plannedPts = [];
+  for (let i = 0; i < eciPoints_km.length; i += 3) {
+    const pt = eciToScenePoint(eciPoints_km[i], eciPoints_km[i+1], eciPoints_km[i+2], cx, cy, cz);
+    if (i / 3 <= currentIdx) flownPts.push(pt);
+    else plannedPts.push(pt);
+  }
+  // Include the split point in both so lines connect
+  if (flownPts.length > 0 && plannedPts.length > 0) plannedPts.unshift(flownPts[flownPts.length - 1]);
+
+  // Remove old lines
+  if (trajectoryLine) { trajectoryLine.forEach?.(l => { l.geometry.dispose(); scene.remove(l); }); scene.remove(trajectoryLine); trajectoryLine = null; }
+  if (trajectoryLinePlanned) { trajectoryLinePlanned.geometry.dispose(); scene.remove(trajectoryLinePlanned); trajectoryLinePlanned = null; }
+
+  if (flownPts.length > 1) {
+    const curve = new THREE.CatmullRomCurve3(flownPts);
+    const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(200));
+    trajectoryLine = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x6699cc, opacity: 0.9, transparent: true }));
+    scene.add(trajectoryLine);
+  }
+  if (plannedPts.length > 1) {
+    const curve = new THREE.CatmullRomCurve3(plannedPts);
+    const geo = new THREE.BufferGeometry().setFromPoints(curve.getPoints(200));
+    trajectoryLinePlanned = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x334455, opacity: 0.4, transparent: true }));
+    scene.add(trajectoryLinePlanned);
+  }
 }
 
 async function toggleTrajectory() {
   const btn = document.getElementById('trajectory-toggle');
   if (trajectoryVisible) {
     if (trajectoryLine) trajectoryLine.visible = false;
+    if (trajectoryLinePlanned) trajectoryLinePlanned.visible = false;
     trajectoryVisible = false;
     btn.classList.remove('active');
     btn.textContent = 'Path';
