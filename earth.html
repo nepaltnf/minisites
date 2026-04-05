@@ -406,7 +406,7 @@ window.addEventListener('mousemove', e => {
   const dy = e.clientY - prevMouse.y;
   prevMouse = { x: e.clientX, y: e.clientY };
   camTheta -= dx * 0.005;
-  camPhi   -= dy * 0.005;
+  camPhi   -= dy * 0.00125;
   camPhi = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, camPhi));
   // Re-anchor geosync so it continues from new position
   if (geosyncActive) {
@@ -437,7 +437,7 @@ renderer.domElement.addEventListener('touchmove', e => {
     const dy = e.touches[0].clientY - prevTouch.y;
     prevTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
     camTheta -= dx * 0.005;
-    camPhi   -= dy * 0.005;
+    camPhi   -= dy * 0.00125;
     camPhi = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, camPhi));
     if (geosyncActive) {
       geosyncStartTheta = camTheta;
