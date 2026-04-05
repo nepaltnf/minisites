@@ -1547,6 +1547,11 @@ async function fetchAndApply() {
     lastGoodTelemetry = { d_earth, d_moon, vel_kmh, prograde, fetchedAt: now, cx, cy, cz };
     // Rebuild trajectory with fresh spacecraft position
     if (trajectoryVisible && trajectoryLine) buildTrajectoryLine(TRAJECTORY_POINTS);
+    // Update Orion marker in mission view
+    if (missionViewActive && orionMarker) {
+      const op = mvEciToScene({ x: cx, y: cy, z: cz });
+      orionMarker.position.copy(op);
+    }
 
     document.getElementById('dist-earth').textContent = formatDist(d_earth);
     document.getElementById('dist-moon').textContent  = formatDist(d_moon);
