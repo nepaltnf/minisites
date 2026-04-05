@@ -1549,7 +1549,9 @@ async function fetchAndApply() {
     if (trajectoryVisible && trajectoryLine) buildTrajectoryLine(TRAJECTORY_POINTS);
     // Update Orion marker in mission view (geocentric — Earth at origin)
     if (missionViewActive && orionMarker && orionMarker.visible) {
-      orionMarker.position.copy(mvEciToScene({ x: cx, y: cy, z: cz }));
+      const op = mvEciToScene({ x: cx, y: cy, z: cz });
+      console.log('Orion ECI km:', cx.toFixed(0), cy.toFixed(0), cz.toFixed(0), '→ scene:', op.x.toFixed(2), op.y.toFixed(2), op.z.toFixed(2));
+      orionMarker.position.copy(op);
     }
 
     document.getElementById('dist-earth').textContent = formatDist(d_earth);
