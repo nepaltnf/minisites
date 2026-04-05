@@ -566,7 +566,11 @@ function animate() {
 
   // Geosync: camera tracks absolute GMST so Earth appears locked
   if (geosyncActive) {
-    camTheta = gmstRadians(date) + geosyncOffset;
+    if (isDragging) {
+      geosyncOffset = camTheta - gmstRadians(date);
+    } else {
+      camTheta = gmstRadians(date) + geosyncOffset;
+    }
   }
 
   updateCamera();
