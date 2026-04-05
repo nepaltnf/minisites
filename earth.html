@@ -75,31 +75,6 @@
       z-index: 20; display: flex; flex-direction: column; gap: 8px; align-items: flex-end;
     }
 
-    /* Spin axis dropdown */
-    #spin-select { position: relative; }
-    #spin-toggle {
-      background: none; border: 1px solid #2a2a2a; color: #444;
-      font-family: 'Courier New', monospace; font-size: 9px;
-      letter-spacing: 0.2em; text-transform: uppercase;
-      padding: 8px 14px; cursor: pointer; border-radius: 3px;
-      transition: all 0.2s; display: flex; align-items: center; gap: 6px;
-    }
-    #spin-toggle:hover, #spin-toggle.open { border-color: #666; color: #aaa; }
-    #spin-dropdown {
-      display: none; flex-direction: column; gap: 4px;
-      position: absolute; bottom: calc(100% + 4px); left: 0;
-      background: rgba(0,0,0,0.92); padding: 4px; border-radius: 3px; min-width: 100%;
-    }
-    #spin-dropdown.open { display: flex; }
-    .spin-option {
-      background: none; border: 1px solid #555; color: #fff;
-      font-family: 'Courier New', monospace; font-size: 9px;
-      letter-spacing: 0.2em; text-transform: uppercase;
-      padding: 8px 14px; cursor: pointer; border-radius: 3px;
-      transition: all 0.2s; white-space: nowrap;
-    }
-    .spin-option:hover { box-shadow: inset 0 0 0 1px #555; }
-    .spin-option.active { border-color: #3a7a3a; color: #4a9a4a; background: rgba(60,120,60,0.08); }
 
     /* Clock */
     #clock {
@@ -144,14 +119,6 @@
 </div>
 
 <div id="controls-left">
-  <div id="spin-select">
-    <button id="spin-toggle">Spin <span id="spin-chevron">▾</span></button>
-    <div id="spin-dropdown">
-      <button class="spin-option active" data-axis="equatorial">Equatorial</button>
-      <button class="spin-option" data-axis="polar">Polar</button>
-      <button class="spin-option" data-axis="off">Off</button>
-    </div>
-  </div>
   <button class="ctrl-btn" id="geosync-btn">Geosync</button>
 </div>
 
@@ -409,12 +376,11 @@ let targetDist = camDist;
 
 // Drag
 let isDragging = false, prevMouse = { x: 0, y: 0 };
-let spinAxis = 'equatorial'; // 'equatorial' | 'polar' | 'off'
-let autoSpinRate = 0.12; // degrees/sec of Earth auto-spin
 let earthRotation = 0;  // current Earth Y rotation (radians)
 
 // Geosync: camera orbits at same rate as Earth's rotation
 let geosyncActive = false;
+let geosyncOffset = 0; // camTheta minus GMST at lock time
 
 // ─── SUN BLOOM ────────────────────────────────────────────────────────────────
 const bloomEl = document.getElementById('sun-bloom');
@@ -507,34 +473,14 @@ document.getElementById('zoom-out').addEventListener('click', () => {
   targetDist = Math.min(CAM_DISTANCE_MAX, targetDist);
 });
 
-// Spin axis dropdown
-const spinToggle = document.getElementById('spin-toggle');
-const spinDropdown = document.getElementById('spin-dropdown');
-spinToggle.addEventListener('click', () => {
-  spinToggle.classList.toggle('open');
-  spinDropdown.classList.toggle('open');
-});
-document.querySelectorAll('.spin-option').forEach(btn => {
-  btn.addEventListener('click', () => {
-    spinAxis = btn.dataset.axis;
-    document.querySelectorAll('.spin-option').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    spinToggle.textContent = btn.textContent + ' ▾';
-    spinToggle.classList.remove('open');
-    spinDropdown.classList.remove('open');
-  });
-});
-window.addEventListener('click', e => {
-  if (!document.getElementById('spin-select').contains(e.target)) {
-    spinToggle.classList.remove('open');
-    spinDropdown.classList.remove('open');
-  }
-});
-
 // Geosync
 const geosyncBtn = document.getElementById('geosync-btn');
 geosyncBtn.addEventListener('click', () => {
   geosyncActive = !geosyncActive;
+  if (geosyncActive) {
+    // Record offset between current camera angle and current GMST
+    geosyncOffset = camTheta - gmstRadians(new Date());
+  }
   geosyncBtn.classList.toggle('active', geosyncActive);
 });
 
@@ -589,7 +535,6 @@ Promise.all([
 const EARTH_ROT_RATE = (2 * Math.PI) / 86164; // rad/s
 
 let lastTime = performance.now();
-let autoSpinAngle = 0; // camera auto-pan angle (equatorial mode)
 
 function animate() {
   requestAnimationFrame(animate);
@@ -618,24 +563,10 @@ function animate() {
   // Smooth zoom
   camDist += (targetDist - camDist) * (1 - Math.exp(-delta * 6));
 
-  // Keep autoSpinAngle in sync with camTheta when dragging
-  if (isDragging) {
-    autoSpinAngle = camTheta;
-  }
 
-  // Auto-spin camera (equatorial mode) — gentle slow pan when not dragging
-  if (!isDragging && spinAxis === 'equatorial') {
-    autoSpinAngle += delta * 0.008;
-    camTheta = autoSpinAngle;
-  } else if (spinAxis === 'polar' && !isDragging) {
-    autoSpinAngle += delta * 0.006;
-    camPhi = Math.sin(autoSpinAngle) * (Math.PI / 2 - 0.1);
-  }
-
-  // Geosync: camera theta tracks Earth's rotation rate
+  // Geosync: camera tracks absolute GMST so Earth appears locked
   if (geosyncActive) {
-    camTheta += EARTH_ROT_RATE * delta;
-    autoSpinAngle = camTheta;
+    camTheta = gmstRadians(date) + geosyncOffset;
   }
 
   updateCamera();
