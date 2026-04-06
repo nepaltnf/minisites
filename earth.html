@@ -711,8 +711,8 @@ function animate() {
   if (earthMat) earthMat.uniforms.u_sunDir.value.copy(sunTex);
   if (window._atmosMat) window._atmosMat.uniforms.u_sunDir.value.copy(sunTex);
 
-  // Place visible sun mesh — use texture-space direction (same frame as Earth mesh)
-  if (sunMesh) placeSun(sunTex);
+  // Place visible sun mesh — raw ECI direction (world space = ECI, no GMST needed)
+  if (sunMesh) placeSun(sunDir);
 
   // Place moon in ECI space (scaled to scene units)
   if (moonMesh) {
