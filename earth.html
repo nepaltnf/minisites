@@ -367,7 +367,7 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
   });
 
   // ─── ATMOSPHERE GLOW SPHERE ───────────────────────────────────────────────
-  const atmosGeo = new THREE.SphereGeometry(EARTH_RADIUS * 1.012, 64, 64);
+  const atmosGeo = new THREE.SphereGeometry(EARTH_RADIUS * 1.015, 64, 64);
   const atmosMat = new THREE.ShaderMaterial({
     uniforms: {
       u_sunDir:    { value: new THREE.Vector3(1, 0, 0) },
