@@ -336,7 +336,7 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
         vec4 night = texture2D(u_night, vUv);
 
         float lightsFade = smoothstep(-0.08, -0.30, NdotS);
-        vec3 nightLights = pow(night.rgb, vec3(2.5)) * 4.0 * lightsFade;
+        vec3 nightLights = night.rgb * 4.0 * lightsFade;
         vec3 surface = mix(vec3(0.0), day.rgb, blend) + nightLights;
 
         float oceanMask = texture2D(u_spec, vUv).r;
@@ -367,7 +367,7 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
   });
 
   // ─── ATMOSPHERE GLOW SPHERE ───────────────────────────────────────────────
-  const atmosGeo = new THREE.SphereGeometry(EARTH_RADIUS * 1.025, 64, 64);
+  const atmosGeo = new THREE.SphereGeometry(EARTH_RADIUS * 1.012, 64, 64);
   const atmosMat = new THREE.ShaderMaterial({
     uniforms: {
       u_sunDir:    { value: new THREE.Vector3(1, 0, 0) },
