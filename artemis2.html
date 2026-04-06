@@ -798,6 +798,7 @@ const EARTH_RADIUS_KM  = 6371;
 const MOON_RADIUS_KM   = 1737;
 const SCENE_SCALE      = 1 / 10000; // 1 scene unit = 10,000 km
 const FOV_DEFAULT = 46; // ~35mm full-frame equivalent
+const TELEMETRY_LAG_S  = 10 * 60; // seconds to back-extrapolate spacecraft + astro positions
 
 // Local textures (served alongside the HTML)
 const TEXTURES = {
@@ -1526,13 +1527,18 @@ async function fetchAndApply() {
 
     // ECI position in km — parameters are in feet, convert to km
     const FT2KM = 0.0003048;
-    const cx = eph.x * FT2KM, cy = eph.y * FT2KM, cz = eph.z * FT2KM;
+    const vx = eph.vx * FT2KM, vy = eph.vy * FT2KM, vz = eph.vz * FT2KM;
+    // Back-extrapolate by TELEMETRY_LAG_S to match NASA live feed geometry
+    const cx = eph.x * FT2KM - vx * TELEMETRY_LAG_S;
+    const cy = eph.y * FT2KM - vy * TELEMETRY_LAG_S;
+    const cz = eph.z * FT2KM - vz * TELEMETRY_LAG_S;
     try { localStorage.setItem('artemis2_pos', JSON.stringify({ cx, cy, cz })); } catch (_) {}
 
-    // Moon ECI position in km (same frame — x=vernal equinox, y=RA90°, z=north pole)
-    const moon = approxMoonPos(now);
+    // Moon/Sun at same back-extrapolated time
+    const astroNow = new Date(now - TELEMETRY_LAG_S * 1000);
+    const moon = approxMoonPos(astroNow);
 
-    placeSun(approxSunDirection(now));
+    placeSun(approxSunDirection(astroNow));
 
     // ECI → scene: scene has y=north pole, z=-(RA90°), x=vernal equinox
     // So: scene(x,y,z) = (eci_x, eci_z, -eci_y) relative to spacecraft
