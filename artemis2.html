@@ -1453,6 +1453,7 @@ Promise.all([
   starsPoints = stars;
 
   buildEarth(dayTex, nightTex, specTex, cloudTex);
+  if (moonTex) moonTex.encoding = THREE.sRGBEncoding;
   buildMoon(moonTex);
 
   document.getElementById('loading').style.display = 'none';
