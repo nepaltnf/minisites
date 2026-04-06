@@ -143,11 +143,10 @@ const CAM_DISTANCE_MAX = 12.0;
 const AXIAL_TILT = 23.44 * Math.PI / 180;
 
 const TEXTURES = {
-  earthDay:     'images/4k_earth_daymap.jpg',
-  earthNight2k: 'images/2k_earth_nightmap.jpg',
-  earthNight8k: 'images/8k_earth_nightmap.jpg',
-  earthSpec:    'images/8081_earthspec4k.jpg',
-  earthCloud:   'images/2k_earth_clouds.jpg',
+  earthDay:   'images/4k_earth_daymap.jpg',
+  earthNight: 'images/10k_earth_nightmap.jpg',
+  earthSpec:  'images/8081_earthspec4k.jpg',
+  earthCloud: 'images/8k_earth_clouds.jpg',
 };
 
 const STAR_CATALOG_URL = 'https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/stars.6.json';
@@ -486,10 +485,10 @@ geosyncBtn.addEventListener('click', () => {
 const setStatus = s => { document.getElementById('loading-status').textContent = s; };
 
 Promise.all([
-  new Promise(r => loader.load(TEXTURES.earthDay,     t => r(t), undefined, () => r(null))),
-  new Promise(r => loader.load(TEXTURES.earthNight2k, t => r(t), undefined, () => r(null))),
-  new Promise(r => loader.load(TEXTURES.earthSpec,    t => r(t), undefined, () => r(null))),
-  new Promise(r => loader.load(TEXTURES.earthCloud,   t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthDay,   t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthNight, t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthSpec,  t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.earthCloud, t => r(t), undefined, () => r(null))),
   fetch(STAR_CATALOG_URL).then(r => r.json()).catch(() => null),
 ]).then(([dayTex, nightTex, specTex, cloudTex, starData]) => {
   setStatus('Building scene...');
