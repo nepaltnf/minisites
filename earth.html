@@ -733,16 +733,17 @@ function animate() {
 
   // Sun bloom — suppressed if Earth occludes the sun from camera
   function sunOccludedByEarth() {
-    if (!earthMesh || !sunMesh) return false;
-    const sp = sunMesh.position;
-    const sl = sp.length();
-    const rd = sp.clone().divideScalar(sl);
-    const ep = earthMesh.position;
-    const t = ep.dot(rd);
-    if (t <= 0 || t >= sl) return false;
-    const closest = rd.clone().multiplyScalar(t).sub(ep);
-    const r = EARTH_RADIUS;
-    return closest.lengthSq() < r * r;
+    if (!sunMesh) return false;
+    // Ray from camera toward sun
+    const camPos = camera.position;
+    const toSun = sunMesh.position.clone().sub(camPos);
+    const dist = toSun.length();
+    const rd = toSun.clone().divideScalar(dist);
+    // Earth is at origin — project onto ray
+    const t = rd.clone().dot(camPos.clone().negate()); // closest approach param
+    if (t <= 0 || t >= dist) return false;
+    const closest = camPos.clone().add(rd.clone().multiplyScalar(t)); // point on ray
+    return closest.lengthSq() < EARTH_RADIUS * EARTH_RADIUS;
   }
 
   const sp = sunLight.position.clone().normalize();
