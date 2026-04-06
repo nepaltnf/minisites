@@ -540,7 +540,7 @@ function animate() {
   // Earth rotates at real GMST — never changes
   if (earthMesh) {
     const D = (date - new Date('2000-01-01T12:00:00Z')) / 86400000;
-    earthMesh.rotation.y = (280.46061837 + 360.98564736629 * D) * Math.PI / 180 - 0.26;
+    earthMesh.rotation.y = (280.46061837 + 360.98564736629 * D) * Math.PI / 180 - 0.43;
   }
 
   // Cloud slow drift
