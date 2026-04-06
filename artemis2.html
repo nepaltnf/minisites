@@ -892,22 +892,51 @@ function geocentricToXYZ(latDeg, lonDeg, radiusKm) {
   };
 }
 
-// Approximate Moon position relative to Earth (geocentric equatorial, km)
-// Good to ~1° — enough for visual placement
+// Moon position relative to Earth (geocentric equatorial, km)
+// Meeus "Astronomical Algorithms" Ch.47 — accurate to ~10-20 km
 function approxMoonPos(date) {
-  const D = (date - new Date('2000-01-01T12:00:00Z')) / 86400000; // days from J2000
-  const L = (218.316 + 13.176396 * D) * Math.PI / 180;
-  const M = (134.963 + 13.064993 * D) * Math.PI / 180;
-  const F = (93.272  + 13.229350 * D) * Math.PI / 180;
-  const lon = L + 6.289 * Math.sin(M) * Math.PI / 180;
-  const lat = 5.128 * Math.sin(F) * Math.PI / 180;
-  const r   = 385001 - 20905 * Math.cos(M); // km
-  // Convert ecliptic to equatorial (obliquity ~23.44°)
-  const eps = 23.44 * Math.PI / 180;
+  const T = (date - new Date('2000-01-01T12:00:00Z')) / (86400000 * 36525);
+  const deg = Math.PI / 180;
+  // Fundamental arguments (radians)
+  const L1 = (218.3164477 + 481267.88123421 * T) * deg; // Moon mean longitude
+  const D  = (297.8501921 + 445267.1114034  * T) * deg; // Mean elongation
+  const M  = (357.5291092 +  35999.0502909  * T) * deg; // Sun mean anomaly
+  const M1 = (134.9633964 + 477198.8675055  * T) * deg; // Moon mean anomaly
+  const F  = ( 93.2720950 + 483202.0175233  * T) * deg; // Arg of latitude
+
+  // Longitude Σl (×10⁻⁶ °) — top 18 terms from Meeus Table 47.A
+  const sl =
+    6288774*Math.sin(M1)         + 1274027*Math.sin(2*D-M1)   +  658314*Math.sin(2*D)
+  +  213618*Math.sin(2*M1)       -  185116*Math.sin(M)         - 114332*Math.sin(2*F)
+  +   58793*Math.sin(2*D-2*M1)   +   57066*Math.sin(2*D-M-M1) +  53322*Math.sin(2*D+M1)
+  +   45758*Math.sin(2*D-M)      -   40923*Math.sin(M-M1)      - 34720*Math.sin(D)
+  -   30383*Math.sin(M+M1)       +   15327*Math.sin(2*D-2*F)  +  10980*Math.sin(M1-2*F)
+  +   10675*Math.sin(4*D-M1)     +   10034*Math.sin(3*M1)      +   8548*Math.sin(4*D-2*M1);
+
+  // Latitude Σb (×10⁻⁶ °) — top 10 terms from Meeus Table 47.B
+  const sb =
+    5128122*Math.sin(F)          +  280602*Math.sin(M1+F)      + 277693*Math.sin(M1-F)
+  +  173237*Math.sin(2*D-F)      +   55413*Math.sin(2*D-M1+F) +  46272*Math.sin(2*D-M1-F)
+  +   32573*Math.sin(2*D+F)      +   17198*Math.sin(2*M1+F)   +   9266*Math.sin(2*D+M1-F)
+  +    8822*Math.sin(2*M1-F);
+
+  // Distance Σr (×10⁻³ km) — top 15 terms from Meeus Table 47.C
+  const sr =
+   -20905355*Math.cos(M1)        - 3699111*Math.cos(2*D-M1)   - 2955968*Math.cos(2*D)
+  -   569925*Math.cos(2*M1)      +   48888*Math.cos(M)         -    3149*Math.cos(2*F)
+  +   246158*Math.cos(2*D-2*M1)  -  152138*Math.cos(2*D-M-M1) - 170733*Math.cos(2*D+M1)
+  -   204586*Math.cos(2*D-M)     -  129620*Math.cos(M-M1)      + 108743*Math.cos(D)
+  +   104755*Math.cos(M+M1)      +   10321*Math.cos(2*D-2*F)  +  79661*Math.cos(M1-2*F);
+
+  const lonRad = (218.3164477 + 481267.88123421*T + sl*1e-6) * deg;
+  const latRad = sb * 1e-6 * deg;
+  const r = 385000.56 + sr / 1000; // km
+
+  const eps = 23.4392954 * deg; // mean obliquity J2000
   return {
-    x: r * Math.cos(lat) * Math.cos(lon),
-    y: r * (Math.cos(eps) * Math.cos(lat) * Math.sin(lon) - Math.sin(eps) * Math.sin(lat)),
-    z: r * (Math.sin(eps) * Math.cos(lat) * Math.sin(lon) + Math.cos(eps) * Math.sin(lat)),
+    x: r * Math.cos(latRad) * Math.cos(lonRad),
+    y: r * (Math.cos(eps)*Math.cos(latRad)*Math.sin(lonRad) - Math.sin(eps)*Math.sin(latRad)),
+    z: r * (Math.sin(eps)*Math.cos(latRad)*Math.sin(lonRad) + Math.cos(eps)*Math.sin(latRad)),
   };
 }
 
