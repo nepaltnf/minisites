@@ -538,10 +538,9 @@ function animate() {
   const date = new Date();
 
   // Earth rotates at real GMST — never changes
-  if (earthMesh) {
-    const D = (date - new Date('2000-01-01T12:00:00Z')) / 86400000;
-    earthMesh.rotation.y = (280.46061837 + 360.98564736629 * D) * Math.PI / 180 - 0.33;
-  }
+  // Earth mesh never rotates — sun direction rotates around it by negative GMST
+  // This avoids all texture alignment ambiguity
+  if (earthMesh) earthMesh.rotation.y = 0;
 
   // Cloud slow drift
   cloudOffset += delta * 0.000008;
@@ -550,10 +549,19 @@ function animate() {
     earthMat.uniforms.u_cameraPos.value.copy(camera.position);
   }
 
-  // Update sun direction
+  // Rotate sun direction by negative GMST so it lands on the correct texture longitude
+  const D = (date - new Date('2000-01-01T12:00:00Z')) / 86400000;
+  const GMST = (280.46061837 + 360.98564736629 * D) * Math.PI / 180;
   const sunDir = approxSunDirection(date);
-  sunLight.position.copy(sunDir.clone().multiplyScalar(10000));
-  if (earthMat) earthMat.uniforms.u_sunDir.value.copy(sunLight.position).normalize();
+  // Apply -GMST rotation around Y axis to convert ECI sun direction to texture space
+  const cosG = Math.cos(-GMST), sinG = Math.sin(-GMST);
+  const sunTex = new THREE.Vector3(
+    sunDir.x * cosG + sunDir.z * sinG,
+    sunDir.y,
+    -sunDir.x * sinG + sunDir.z * cosG
+  );
+  sunLight.position.copy(sunTex.clone().multiplyScalar(10000));
+  if (earthMat) earthMat.uniforms.u_sunDir.value.copy(sunTex);
 
   // Smooth zoom + geosync camera advance
   camDist += (targetDist - camDist) * (1 - Math.exp(-delta * 6));
