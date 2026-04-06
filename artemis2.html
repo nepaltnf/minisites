@@ -675,7 +675,7 @@
     <div id="welcome-title">View From Orion</div>
     <div id="welcome-body">
       <p>This is a simulation of the live view from the Orion spacecraft (within 60 seconds). Position and velocity are supplied by NASA AROW telemetry. The Earth, Stars, Moon, Sun, and planets are placed using real orbital mechanics.</p>
-      <p>Drag to look around. Select a camera lens to zoom. The Eye view is set to a 25mm equivalent lens, to simulate the focal frame of the window.</p>
+      <p>Drag to look around. Select a camera lens to zoom. The Eye view is set to a 28mm equivalent lens, to simulate the focal frame of the window.</p>
       <p>The spacecraft itself is omitted. The experience is meant to mimic going up to the window on the Orion Spacecraft.</p>
     </div>
     <button id="welcome-enter">Enter the spacecraft</button>
@@ -705,8 +705,8 @@
     <div class="bar-select" id="bar-lens-select">
       <button class="bar-toggle" id="bar-lens-toggle">View Angle <span class="bar-chevron">▾</span></button>
       <div class="bar-dropdown" id="bar-lens-dropdown">
-        <button class="bar-option" data-fov="62">20mm</button>
-        <button class="bar-option active" data-fov="74">Eye</button>
+        <button class="bar-option" data-fov="74">25mm</button>
+        <button class="bar-option active" data-fov="65">Eye</button>
         <button class="bar-option" data-fov="27">50mm</button>
         <button class="bar-option" data-fov="16">85mm</button>
         <button class="bar-option" data-fov="7">200mm</button>
@@ -731,8 +731,8 @@
 <div id="lens-select">
   <button id="lens-toggle">View Angle <span id="lens-chevron">▾</span></button>
   <div id="lens-dropdown">
-    <button class="lens-option" data-fov="62">20mm</button>
-    <button class="lens-option active" data-fov="74">Eye</button>
+    <button class="lens-option" data-fov="74">25mm</button>
+    <button class="lens-option active" data-fov="65">Eye</button>
     <button class="lens-option" data-fov="27">50mm</button>
     <button class="lens-option" data-fov="16">85mm</button>
     <button class="lens-option" data-fov="7">200mm</button>
@@ -797,7 +797,7 @@
 const EARTH_RADIUS_KM  = 6371;
 const MOON_RADIUS_KM   = 1737;
 const SCENE_SCALE      = 1 / 10000; // 1 scene unit = 10,000 km
-const FOV_DEFAULT = 74; // ~25mm full-frame equivalent
+const FOV_DEFAULT = 65; // ~28mm full-frame equivalent
 const TELEMETRY_LAG_S  = 30 * 60; // seconds to back-extrapolate spacecraft + astro positions
 
 // Local textures (served alongside the HTML)
