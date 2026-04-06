@@ -808,7 +808,7 @@ const TEXTURES = {
   earthCloud:   'images/2k_earth_clouds.jpg',
   moon2k:       'images/2k_moon.jpg',
   moon8k:       'images/8k_moon.jpg',
-  moon4k:       'images/moon_cgi_8k.jpg',
+  moon4k:       'images/moonmap4k.jpg',
   moonBump4k:   'images/moonbump4k.jpg',
 };
 
@@ -2101,7 +2101,7 @@ function render() {
   // Moon is tidally locked — near side always faces Earth
   if (moonMesh && earthMesh) {
     const _toEarth = new THREE.Vector3().subVectors(earthMesh.position, moonMesh.position).normalize();
-    moonMesh.rotation.y = Math.atan2(-_toEarth.z, _toEarth.x) + (36 * Math.PI / 180);
+    moonMesh.rotation.y = Math.atan2(-_toEarth.z, _toEarth.x);
     // moonmap4k + bump map is the permanent close-up combo — no color LOD swap
   }
 
