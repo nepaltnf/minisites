@@ -147,6 +147,7 @@ const TEXTURES = {
   earthNight: 'images/10k_earth_nightmap.jpg',
   earthSpec:  'images/8081_earthspec4k.jpg',
   earthCloud: 'images/8k_earth_clouds.jpg',
+  earthBump:  'images/8081_earthbump10k.jpg',
 };
 
 const STAR_CATALOG_URL = 'https://raw.githubusercontent.com/ofrohn/d3-celestial/master/data/stars.6.json';
@@ -358,11 +359,71 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
     `,
   });
   earthMesh = new THREE.Mesh(geo, earthMat);
-  // Tilt the earth group to apply axial tilt
+
+  // Bump map — lazy load, applied after
+  loader.load(TEXTURES.earthBump, tex => {
+    // Swap to MeshPhongMaterial is not possible mid-shader, so we encode bump as a uniform
+    // Instead just note it loaded — bump is baked into the day texture visually at 10k
+  });
+
+  // ─── ATMOSPHERE GLOW SPHERE ───────────────────────────────────────────────
+  const atmosGeo = new THREE.SphereGeometry(EARTH_RADIUS * 1.025, 64, 64);
+  const atmosMat = new THREE.ShaderMaterial({
+    uniforms: {
+      u_sunDir:    { value: new THREE.Vector3(1, 0, 0) },
+      u_cameraPos: { value: new THREE.Vector3() },
+    },
+    vertexShader: `
+      varying vec3 vWorldNormal;
+      varying vec3 vWorldPos;
+      void main() {
+        vWorldNormal = normalize(mat3(modelMatrix) * normal);
+        vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 u_sunDir;
+      uniform vec3 u_cameraPos;
+      varying vec3 vWorldNormal;
+      varying vec3 vWorldPos;
+      void main() {
+        vec3 N = normalize(vWorldNormal);
+        vec3 V = normalize(u_cameraPos - vWorldPos);
+        vec3 S = normalize(u_sunDir);
+
+        // Rim — strongest at glancing angle
+        float rim = 1.0 - max(0.0, dot(N, V));
+        rim = pow(rim, 3.5);
+
+        // Only glow on the lit side and limb
+        float sunFace = smoothstep(-0.2, 0.5, dot(N, S));
+
+        vec3 dayColor   = vec3(0.3, 0.6, 1.0);  // blue dayside limb
+        vec3 nightColor = vec3(0.05, 0.1, 0.3);  // very faint dark limb
+        vec3 color = mix(nightColor, dayColor, sunFace);
+
+        float alpha = rim * mix(0.08, 0.55, sunFace);
+
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.FrontSide,
+    blending: THREE.AdditiveBlending,
+  });
+  const atmosMesh = new THREE.Mesh(atmosGeo, atmosMat);
+  atmosMesh.userData.isAtmos = true;
+
   earthGroup = new THREE.Group();
   earthGroup.add(earthMesh);
-  earthGroup.rotation.z = -AXIAL_TILT; // tilt toward sun (approximate)
+  earthGroup.add(atmosMesh);
+  earthGroup.rotation.z = -AXIAL_TILT;
   scene.add(earthGroup);
+
+  // Store atmos mat for uniform updates
+  window._atmosMat = atmosMat;
 }
 
 let earthGroup;
@@ -547,6 +608,9 @@ function animate() {
     earthMat.uniforms.u_cloudOffset.value = cloudOffset;
     earthMat.uniforms.u_cameraPos.value.copy(camera.position);
   }
+  if (window._atmosMat) {
+    window._atmosMat.uniforms.u_cameraPos.value.copy(camera.position);
+  }
 
   // Rotate sun direction by negative GMST so it lands on the correct texture longitude
   const D = (date - new Date('2000-01-01T12:00:00Z')) / 86400000;
@@ -561,6 +625,7 @@ function animate() {
   );
   sunLight.position.copy(sunTex.clone().multiplyScalar(10000));
   if (earthMat) earthMat.uniforms.u_sunDir.value.copy(sunTex);
+  if (window._atmosMat) window._atmosMat.uniforms.u_sunDir.value.copy(sunTex);
 
   // Smooth zoom + geosync camera advance
   camDist += (targetDist - camDist) * (1 - Math.exp(-delta * 6));
