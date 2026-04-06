@@ -228,7 +228,7 @@ function makeSunGlowTexture() {
 function buildSun() {
   sunMesh = new THREE.Mesh(
     new THREE.SphereGeometry(SUN_RADIUS, 32, 32),
-    new THREE.MeshBasicMaterial({ color: 0xfffde0 })
+    new THREE.MeshBasicMaterial({ color: 0xfffde0, depthTest: false })
   );
   scene.add(sunMesh);
   sunGlowSprite = new THREE.Sprite(new THREE.SpriteMaterial({
@@ -711,8 +711,8 @@ function animate() {
   if (earthMat) earthMat.uniforms.u_sunDir.value.copy(sunTex);
   if (window._atmosMat) window._atmosMat.uniforms.u_sunDir.value.copy(sunTex);
 
-  // Place visible sun mesh — raw ECI direction (world space = ECI, no GMST needed)
-  if (sunMesh) placeSun(sunDir);
+  // Place visible sun mesh at subsolar point — same direction as shader u_sunDir
+  if (sunMesh) placeSun(sunTex);
 
   // Place moon in ECI space (scaled to scene units)
   if (moonMesh) {
