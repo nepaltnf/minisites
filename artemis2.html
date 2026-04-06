@@ -1396,9 +1396,10 @@ function buildMoon(moonTex) {
   moonMesh = new THREE.Mesh(geo, mat);
   scene.add(moonMesh);
   // Load bump map — color (moonmap4k) is already loaded as the initial texture
-  loader.load(TEXTURES.moonBump4k, tex => {
-    if (moonMesh) { moonMesh.material.bumpMap = tex; moonMesh.material.bumpScale = 0.0005; moonMesh.material.needsUpdate = true; }
-  });
+  // bump map disabled for testing
+  // loader.load(TEXTURES.moonBump4k, tex => {
+  //   if (moonMesh) { moonMesh.material.bumpMap = tex; moonMesh.material.bumpScale = 0.0005; moonMesh.material.needsUpdate = true; }
+  // });
 }
 
 // ─── TEXTURE LOADING ─────────────────────────────────────────────────────────
