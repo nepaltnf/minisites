@@ -336,7 +336,7 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
         vec4 night = texture2D(u_night, vUv);
 
         float lightsFade = smoothstep(-0.08, -0.30, NdotS);
-        vec3 nightLights = pow(night.rgb, vec3(4.0)) * 12.0 * lightsFade;
+        vec3 nightLights = pow(night.rgb, vec3(2.5)) * 4.0 * lightsFade;
         vec3 surface = mix(vec3(0.0), day.rgb, blend) + nightLights;
 
         float oceanMask = texture2D(u_spec, vUv).r;
