@@ -731,11 +731,25 @@ function animate() {
   }
   updateCamera();
 
-  // Sun bloom pupil effect
+  // Sun bloom — suppressed if Earth occludes the sun from camera
+  function sunOccludedByEarth() {
+    if (!earthMesh || !sunMesh) return false;
+    const sp = sunMesh.position;
+    const sl = sp.length();
+    const rd = sp.clone().divideScalar(sl);
+    const ep = earthMesh.position;
+    const t = ep.dot(rd);
+    if (t <= 0 || t >= sl) return false;
+    const closest = rd.clone().multiplyScalar(t).sub(ep);
+    const r = EARTH_RADIUS;
+    return closest.lengthSq() < r * r;
+  }
+
   const sp = sunLight.position.clone().normalize();
   const look = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
   const dot = Math.max(0, look.dot(sp));
-  const target = Math.pow(Math.max(0, dot - 0.97) / 0.03, 2);
+  const occluded = sunOccludedByEarth();
+  const target = occluded ? 0 : Math.pow(Math.max(0, dot - 0.97) / 0.03, 2);
   const tau = target > currentExposure ? 0.6 : 3.5;
   currentExposure += (target - currentExposure) * (1 - Math.exp(-delta / tau));
   bloomEl.style.opacity = (currentExposure * 0.5).toFixed(3);
