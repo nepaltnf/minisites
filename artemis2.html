@@ -2104,19 +2104,7 @@ function render() {
   if (moonMesh && earthMesh) {
     const _toEarth = new THREE.Vector3().subVectors(earthMesh.position, moonMesh.position).normalize();
     moonMesh.rotation.y = Math.atan2(-_toEarth.z, _toEarth.x) ;
-    // LOD thresholds: upgrade to 8k within 160,934 km (~100k miles), downgrade beyond 200,000 km
-    const MOON_DIST = moonMesh.position.length();
-    if (!moon8kLoaded && MOON_DIST < 160934 * SCENE_SCALE) {
-      moon8kLoaded = true;
-      loader.load(TEXTURES.moon8k, tex => {
-        if (moonMesh) { moonMesh.material.map?.dispose(); moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
-      });
-    } else if (moon8kLoaded && MOON_DIST > 200000 * SCENE_SCALE) {
-      moon8kLoaded = false;
-      loader.load(TEXTURES.moon2k, tex => {
-        if (moonMesh) { moonMesh.material.map?.dispose(); moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
-      });
-    }
+    // moonmap4k + bump map is the permanent close-up combo — no color LOD swap
   }
 
   // Earth LOD: upgrade to 8k within 160,934 km (~100k miles), downgrade beyond 200,000 km
