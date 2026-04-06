@@ -1395,10 +1395,7 @@ function buildMoon(moonTex) {
   });
   moonMesh = new THREE.Mesh(geo, mat);
   scene.add(moonMesh);
-  // Lazy-load 4k color + bump map — skip color if 8k LOD already loaded
-  loader.load(TEXTURES.moon4k, tex => {
-    if (moonMesh && !moon8kLoaded) { moonMesh.material.map?.dispose(); moonMesh.material.map = tex; moonMesh.material.needsUpdate = true; }
-  });
+  // Load bump map — color (moonmap4k) is already loaded as the initial texture
   loader.load(TEXTURES.moonBump4k, tex => {
     if (moonMesh) { moonMesh.material.bumpMap = tex; moonMesh.material.bumpScale = 0.0005; moonMesh.material.needsUpdate = true; }
   });
@@ -1423,7 +1420,7 @@ Promise.all([
   new Promise(r => loader.load(TEXTURES.earthNight2k, t => r(t), undefined, () => r(null))),
   new Promise(r => loader.load(TEXTURES.earthSpec,    t => r(t), undefined, () => r(null))),
   new Promise(r => loader.load(TEXTURES.earthCloud,   t => r(t), undefined, () => r(null))),
-  new Promise(r => loader.load(TEXTURES.moon2k,       t => r(t), undefined, () => r(null))),
+  new Promise(r => loader.load(TEXTURES.moon4k,        t => r(t), undefined, () => r(null))),
   fetch(STAR_CATALOG_URL).then(r => r.json()).catch(() => null),
 ]).then(([dayTex, nightTex, specTex, cloudTex, moonTex, starData]) => {
   setStatus('Building scene...');
