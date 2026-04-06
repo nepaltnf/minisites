@@ -1384,57 +1384,20 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
   scene.add(earthMesh);
 }
 
-const MOON_VERT = `
-varying vec2 vUv;
-varying vec3 vNormal;
-void main() {
-  vUv = uv;
-  vNormal = normalize(normalMatrix * normal);
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-}`;
-
-const MOON_FRAG = `
-uniform sampler2D u_color;
-uniform sampler2D u_bump;
-uniform float u_bumpScale;
-uniform vec3 u_sunDir;
-varying vec2 vUv;
-varying vec3 vNormal;
-void main() {
-  vec3 N = normalize(vNormal);
-  // Dark side: completely black — no bump bleed
-  if (dot(N, u_sunDir) <= 0.0) { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); return; }
-  // Bump normal perturbation
-  float h  = texture2D(u_bump, vUv).r;
-  float hx = texture2D(u_bump, vUv + dFdx(vUv)).r;
-  float hy = texture2D(u_bump, vUv + dFdy(vUv)).r;
-  vec3 T = normalize(abs(dot(N, vec3(0,1,0))) > 0.999 ? cross(N, vec3(1,0,0)) : cross(N, vec3(0,1,0)));
-  vec3 B = cross(T, N);
-  vec3 Np = normalize(N + ((hx - h) * u_bumpScale) * T + ((hy - h) * u_bumpScale) * B);
-  float NdotL = max(0.0, dot(Np, u_sunDir));
-  vec4 col = texture2D(u_color, vUv);
-  gl_FragColor = vec4(col.rgb * 0.35 * NdotL, 1.0);
-}`;
-
 let moonMat;
 function buildMoon(moonTex) {
   const geo = new THREE.SphereGeometry(MOON_RADIUS_KM * SCENE_SCALE, 64, 64);
-  const neutralBump = new THREE.DataTexture(new Uint8Array([128,128,128,255]), 1, 1, THREE.RGBAFormat);
-  neutralBump.needsUpdate = true;
-  moonMat = new THREE.ShaderMaterial({
-    uniforms: {
-      u_color:     { value: moonTex },
-      u_bump:      { value: neutralBump },
-      u_bumpScale: { value: 200.0 },
-      u_sunDir:    { value: new THREE.Vector3(1, 0, 0) },
-    },
-    vertexShader:   MOON_VERT,
-    fragmentShader: MOON_FRAG,
+  moonMat = new THREE.MeshPhongMaterial({
+    map:       moonTex,
+    color:     new THREE.Color(0.35, 0.35, 0.35),
+    specular:  new THREE.Color(0x000000),
+    shininess: 1,
+    emissive:  new THREE.Color(0x000000),
   });
   moonMesh = new THREE.Mesh(geo, moonMat);
   scene.add(moonMesh);
   loader.load(TEXTURES.moonBump4k, tex => {
-    if (moonMat) { moonMat.uniforms.u_bump.value = tex; moonMat.needsUpdate = true; }
+    if (moonMat) { moonMat.bumpMap = tex; moonMat.bumpScale = 0.00025; moonMat.needsUpdate = true; }
   });
 }
 
@@ -2132,7 +2095,6 @@ function render() {
       // Cloud drift: slightly faster than Earth rotation
       earthMat.uniforms.u_cloudOffset.value = (GMST * 0.00015) % 1.0;
     }
-    if (moonMat && sunMesh) moonMat.uniforms.u_sunDir.value.copy(sunMesh.position).normalize();
   }
 
   // Moon is tidally locked — near side always faces Earth
