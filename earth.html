@@ -538,7 +538,10 @@ function animate() {
   const date = new Date();
 
   // Earth rotates at real GMST — never changes
-  if (earthMesh) earthMesh.rotation.y = gmstRadians(date) + 0.8;
+  if (earthMesh) {
+    const D = (date - new Date('2000-01-01T12:00:00Z')) / 86400000;
+    earthMesh.rotation.y = (280.46061837 + 360.98564736629 * D) * Math.PI / 180;
+  }
 
   // Cloud slow drift
   cloudOffset += delta * 0.000008;
@@ -550,7 +553,7 @@ function animate() {
   // Update sun direction
   const sunDir = approxSunDirection(date);
   sunLight.position.copy(sunDir.clone().multiplyScalar(10000));
-  if (earthMat) earthMat.uniforms.u_sunDir.value.copy(sunDir);
+  if (earthMat) earthMat.uniforms.u_sunDir.value.copy(sunLight.position).normalize();
 
   // Smooth zoom + geosync camera advance
   camDist += (targetDist - camDist) * (1 - Math.exp(-delta * 6));
