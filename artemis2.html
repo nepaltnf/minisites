@@ -2066,9 +2066,10 @@ function render() {
     }
   }
 
-  // Moon is tidally locked — keeps same face toward Earth (slow for visual interest)
-  if (moonMesh) {
-    moonMesh.rotation.y += delta * 0.001;
+  // Moon is tidally locked — near side always faces Earth
+  if (moonMesh && earthMesh) {
+    const _toEarth = new THREE.Vector3().subVectors(earthMesh.position, moonMesh.position).normalize();
+    moonMesh.rotation.y = Math.atan2(-_toEarth.z, _toEarth.x);
     // LOD thresholds: upgrade to 8k within 160,934 km (~100k miles), downgrade beyond 200,000 km
     const MOON_DIST = moonMesh.position.length();
     if (!moon8kLoaded && MOON_DIST < 160934 * SCENE_SCALE) {
