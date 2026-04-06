@@ -1398,7 +1398,7 @@ function buildMoon(moonTex) {
   moonMesh = new THREE.Mesh(geo, moonMat);
   scene.add(moonMesh);
   loader.load(TEXTURES.moonBump4k, tex => {
-    if (moonMat) { moonMat.bumpMap = tex; moonMat.bumpScale = 0.0012; moonMat.needsUpdate = true; }
+    if (moonMat) { moonMat.bumpMap = tex; moonMat.bumpScale = 0.002; moonMat.needsUpdate = true; }
   });
 }
 
