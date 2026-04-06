@@ -538,7 +538,7 @@ function animate() {
   const date = new Date();
 
   // Earth rotates at real GMST — never changes
-  if (earthMesh) earthMesh.rotation.y = gmstRadians(date);
+  if (earthMesh) earthMesh.rotation.y = gmstRadians(date) + Math.PI;
 
   // Cloud slow drift
   cloudOffset += delta * 0.000008;
