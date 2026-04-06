@@ -711,8 +711,8 @@ function animate() {
   if (earthMat) earthMat.uniforms.u_sunDir.value.copy(sunTex);
   if (window._atmosMat) window._atmosMat.uniforms.u_sunDir.value.copy(sunTex);
 
-  // Place visible sun mesh in ECI direction (negate: our ECI convention has sun on -Z side)
-  if (sunMesh) placeSun(sunDir.clone().negate());
+  // Place visible sun mesh — use texture-space direction (same frame as Earth mesh)
+  if (sunMesh) placeSun(sunTex);
 
   // Place moon in ECI space (scaled to scene units)
   if (moonMesh) {
@@ -746,7 +746,7 @@ function animate() {
     return closest.lengthSq() < EARTH_RADIUS * EARTH_RADIUS;
   }
 
-  const sp = sunLight.position.clone().normalize();
+  const sp = sunMesh ? sunMesh.position.clone().normalize() : sunLight.position.clone().normalize();
   const look = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
   const dot = Math.max(0, look.dot(sp));
   const occluded = sunOccludedByEarth();
