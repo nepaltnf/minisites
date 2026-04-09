@@ -50,7 +50,7 @@
 
     /* Sweep line during playback */
     .sweep-line {
-      stroke: rgba(255, 255, 255, 0.35);
+      stroke: rgba(100, 70, 220, 0.5);
       stroke-width: 1;
       pointer-events: none;
     }
@@ -74,9 +74,9 @@
       padding: 4px 10px;
       border-radius: 2px;
     }
-    .ctrl-group-data   { background: rgba(0,0,0,0.05); }
-    .ctrl-group-method { background: rgba(100,70,200,0.07); }
-    .ctrl-group-sound  { background: rgba(0,0,0,0.04); }
+    .ctrl-group-data   { background: rgba(255,210,0,0.22); }
+    .ctrl-group-method { background: rgba(120,80,220,0.14); }
+    .ctrl-group-sound  { background: rgba(0,200,220,0.13); }
 
     button {
       background: transparent;
@@ -94,13 +94,13 @@
 
     /* Play button — most prominent */
     #playBtn {
-      background: #3a3a3a;
-      border-color: #3a3a3a;
-      color: #efefea;
+      background: #8ecb2a;
+      border-color: #8ecb2a;
+      color: #1a2e00;
       padding: 8px 24px;
       letter-spacing: 0.2em;
     }
-    #playBtn:hover { background: #555; border-color: #555; color: #fff; }
+    #playBtn:hover { background: #9fdc30; border-color: #9fdc30; color: #1a2e00; }
     #playBtn.playing { background: #7755cc; border-color: #7755cc; color: #fff; }
 
     select {
@@ -169,7 +169,7 @@
     <div class="ctrl-group ctrl-group-method">
       <label>Mode</label>
       <select id="modeSelect">
-        <option value="1">1 — Ring Portraits</option>
+        <option value="1">1 — Shape Profile</option>
         <option value="2">2 — Antipodal Sweep</option>
       </select>
       <button id="voiceMode" title="Toggle voice mode" style="display:none">Glide</button>
@@ -183,7 +183,7 @@
           <option value="4">Quad · 90°</option>
           <option value="5">Penta · 72°</option>
         </select>
-        <label>Layout</label>
+        <label>Offset</label>
         <select id="voiceLayout">
           <option value="unison" selected>Unison</option>
           <option value="cascade">Cascade</option>
@@ -191,7 +191,7 @@
       </div>
 
       <div id="starControls" style="display:flex;gap:7px;align-items:center">
-        <label>Star</label>
+        <label>Shape</label>
         <select id="starSelect">
           <option value="3">Triangle △</option>
           <option value="4">Square ◇</option>
@@ -979,14 +979,14 @@ function startMode2(gridCells, opts = {}) {
   // Sweep line rotates clockwise with the sector
   const sweepLine = svg.selectAll('line.sweep-line').data([null]).join('line')
     .attr('class', 'sweep-line')
-    .attr('stroke', 'rgba(255,255,255,0.4)')
+    .attr('stroke', 'rgba(100,70,220,0.5)')
     .attr('stroke-width', 1)
     .attr('pointer-events', 'none');
 
   // Antipodal sweep line (always 180° opposite)
   const antiLine = svg.selectAll('line.anti-line').data([null]).join('line')
     .attr('class', 'anti-line')
-    .attr('stroke', 'rgba(255,220,0,0.3)')
+    .attr('stroke', 'rgba(200,150,0,0.45)')
     .attr('stroke-width', 1)
     .attr('pointer-events', 'none');
 
@@ -1192,8 +1192,9 @@ async function main() {
 
       } else if (id === 'rhum_live') {
         const date = await fetchLatestERDDAPDate();
-        const rows = await fetchERDDAP(date, 'rhum', '1000.0');
-        gridCells = erddapRowsToGrid(rows, { dataMin: ds.dataMin, dataMax: ds.dataMax, latCol: 2, lonCol: 3, valCol: 4 });
+        // rhum in esrlNcepRe is a surface variable — no pressure level dimension
+        const rows = await fetchERDDAP(date, 'rhum');
+        gridCells = erddapRowsToGrid(rows, { dataMin: ds.dataMin, dataMax: ds.dataMax });
         setStatus(`${gridCells.length.toLocaleString()} cells · ${date} · ${ds.label}`);
 
       } else if (id === 'seismic_live') {
