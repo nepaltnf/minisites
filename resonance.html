@@ -762,7 +762,16 @@ function startMode1(gridCells, opts = {}) {
     // Find where ALL nested star iterations cross this ring
     const cells         = byRing.get(ring) || [];
     const cellBySector  = new Map(cells.map(c => [c.sector, c]));
-    const intersections = getAllStarIntersections(numStarPoints, ringR, rotationDeg, starIterations);
+    let intersections = getAllStarIntersections(numStarPoints, ringR, rotationDeg, starIterations);
+
+    // Innermost rings may be inside the star — no edge crossings.
+    // Fall back to vertex-aligned sectors so every ring still sounds.
+    if (intersections.length === 0) {
+      intersections = getStarSectors(numStarPoints, rotationDeg).map(sector => {
+        const angle = sector * SECTOR_ANGLE;
+        return { x: CX + ringR * Math.sin(angle), y: CY - ringR * Math.cos(angle), sector };
+      });
+    }
     const sample = intersections
       .map(({ sector: s }) => cellBySector.get(s) || cells.reduce((a, b) =>
         Math.abs(a.sector - s) < Math.abs(b.sector - s) ? a : b))
