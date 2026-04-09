@@ -59,6 +59,13 @@
     #controls {
       margin-top: 20px;
       display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .ctrl-row {
+      display: flex;
       gap: 12px;
       align-items: center;
       flex-wrap: wrap;
@@ -126,38 +133,73 @@
   <svg id="viz"></svg>
 
   <div id="controls">
-    <button id="playBtn">▶&nbsp; Play Earth</button>
 
-    <div style="display:flex;gap:6px;align-items:center">
+    <!-- Row 1: Action -->
+    <div class="ctrl-row">
+      <button id="playBtn">▶&nbsp; Play Earth</button>
+    </div>
+
+    <!-- Row 2: Source -->
+    <div class="ctrl-row">
+      <label>Data</label>
+      <select id="datasetSelect">
+        <option value="pr_wtr_cached">Water Vapor · Cached</option>
+        <option value="pr_wtr_live">Water Vapor · Live</option>
+        <option value="rhum_live">Humidity · Live</option>
+        <option value="seismic_live">Seismic · Live</option>
+      </select>
+    </div>
+
+    <!-- Row 3: Method + method-specific controls -->
+    <div class="ctrl-row">
       <label>Mode</label>
       <select id="modeSelect">
         <option value="1">1 — Ring Portraits</option>
         <option value="2">2 — Antipodal Sweep</option>
       </select>
       <button id="voiceMode" title="Toggle voice mode" style="display:none">Glide</button>
+
+      <div id="mode2Controls" style="display:none;gap:12px;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;align-items:center">
+          <label>Voices</label>
+          <select id="voiceCount">
+            <option value="1">Mono</option>
+            <option value="2" selected>Duo · 180°</option>
+            <option value="3">Tri · 120°</option>
+            <option value="4">Quad · 90°</option>
+            <option value="5">Penta · 72°</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <label>Layout</label>
+          <select id="voiceLayout">
+            <option value="unison" selected>Unison</option>
+            <option value="cascade">Cascade</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="starControls" style="display:flex;gap:6px;align-items:center">
+        <label>Star</label>
+        <select id="starSelect">
+          <option value="3">Triangle △</option>
+          <option value="4">Square ◇</option>
+          <option value="5">Pentagram ✦</option>
+          <option value="6" selected>Hexagram ✡</option>
+          <option value="8">Octagram ✸</option>
+          <option value="12">12-point ✺</option>
+        </select>
+        <input id="starIterations" type="number" min="1" max="8" value="2"
+          title="Nested iterations"
+          style="width:38px;background:#f5f5f0;border:1px solid #ccc;color:#777;
+                 padding:7px 5px;font-family:inherit;font-size:11px;">
+        <button id="starRotateToggle" title="Step rotation per iteration"
+          style="padding:7px 10px;font-size:10px;letter-spacing:0.1em;">↻ Step</button>
+      </div>
     </div>
 
-    <div id="mode2Controls" style="display:none;gap:12px;align-items:center;flex-wrap:wrap">
-      <div style="display:flex;gap:6px;align-items:center">
-        <label>Voices</label>
-        <select id="voiceCount">
-          <option value="1">Mono</option>
-          <option value="2" selected>Duo · 180°</option>
-          <option value="3">Tri · 120°</option>
-          <option value="4">Quad · 90°</option>
-          <option value="5">Penta · 72°</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:6px;align-items:center">
-        <label>Layout</label>
-        <select id="voiceLayout">
-          <option value="unison" selected>Unison</option>
-          <option value="cascade">Cascade</option>
-        </select>
-      </div>
-    </div>
-
-    <div style="display:flex;gap:6px;align-items:center">
+    <!-- Row 4: Sound character -->
+    <div class="ctrl-row">
       <label>Scale</label>
       <select id="scaleSelect">
         <option value="pentatonic" selected>Pentatonic</option>
@@ -165,9 +207,6 @@
         <option value="chromatic">Chromatic</option>
         <option value="continuous">Continuous</option>
       </select>
-    </div>
-
-    <div style="display:flex;gap:6px;align-items:center">
       <label>Wave</label>
       <select id="waveSelect">
         <option value="sine">Sine</option>
@@ -175,27 +214,6 @@
         <option value="bell">Bell</option>
         <option value="flute">Flute</option>
       </select>
-    </div>
-
-    <div id="starControls" style="display:flex;gap:6px;align-items:center">
-      <label>Star</label>
-      <select id="starSelect">
-        <option value="3">Triangle △</option>
-        <option value="4">Square ◇</option>
-        <option value="5">Pentagram ✦</option>
-        <option value="6" selected>Hexagram ✡</option>
-        <option value="8">Octagram ✸</option>
-        <option value="12">12-point ✺</option>
-      </select>
-      <input id="starIterations" type="number" min="1" max="8" value="2"
-        title="Nested iterations"
-        style="width:38px;background:#f5f5f0;border:1px solid #ccc;color:#777;
-               padding:7px 5px;font-family:inherit;font-size:11px;">
-      <button id="starRotateToggle" title="Step rotation per iteration"
-        style="padding:7px 10px;font-size:10px;letter-spacing:0.1em;">↻ Step</button>
-    </div>
-
-    <div style="display:flex;gap:6px;align-items:center">
       <label>Pace</label>
       <select id="speedSelect">
         <option value="1500">Slow</option>
@@ -204,6 +222,7 @@
         <option value="200">Very Fast</option>
       </select>
     </div>
+
   </div>
 
   <div id="status">Initializing...</div>
@@ -261,6 +280,10 @@ const SECTOR_ANGLE = (2 * Math.PI) / CFG.numSectors;
 let _audioCtx  = null;
 let _masterOut = null;
 let _waves     = {};   // cached periodic waves
+
+// ── Active dataset state ──────────────────────────────────────────────
+let gridCells    = null;
+let currentDataset = null;
 
 // Custom smooth waveforms via Fourier series (additive synthesis)
 // imag[] = sine harmonics, real[] = cosine harmonics (0 = DC offset)
@@ -467,6 +490,14 @@ function drawStarOverlay(svg, numPoints, iterations = 2) {
   });
 }
 
+// ── Dataset catalogue ────────────────────────────────────────────────
+const DATASETS = [
+  { id: 'pr_wtr_cached', label: 'Water Vapor · Cached', dataMin: 0, dataMax: 70,  unit: 'kg/m²' },
+  { id: 'pr_wtr_live',   label: 'Water Vapor · Live',   dataMin: 0, dataMax: 70,  unit: 'kg/m²' },
+  { id: 'rhum_live',     label: 'Humidity · Live',      dataMin: 0, dataMax: 100, unit: '%'      },
+  { id: 'seismic_live',  label: 'Seismic · Live',       dataMin: 0, dataMax: 9,   unit: 'Mw'    },
+];
+
 // ── Mapping layer ────────────────────────────────────────────────────
 // The heart of the engine: one normalized value → color + frequency.
 // Everything passes through here regardless of data source.
@@ -637,18 +668,29 @@ async function fetchLatestERDDAPDate() {
   throw new Error('time_coverage_end not found in metadata');
 }
 
-async function fetchERDDAP(date) {
+async function fetchERDDAP(date, variable = 'pr_wtr', level = null) {
+  const lvl = level != null ? `[(${level})]` : '';
   const url = `https://coastwatch.pfeg.noaa.gov/erddap/griddap/esrlNcepRe.json` +
-    `?pr_wtr[(${date})][(90):(-90)][(0):(357.5)]`;
+    `?${variable}[(${date})]${lvl}[(90):(-90)][(0):(357.5)]`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
-  return json.table.rows; // [[time, lat, lon, pr_wtr], ...]
+  return json.table.rows;
 }
 
-function erddapRowsToGrid(rows) {
+async function fetchUSGSSeismic() {
+  // 2.5+ magnitude, last 30 days — smaller feed, all events have valid geometry
+  const url = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_month.geojson';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  return json.features;
+}
+
+function erddapRowsToGrid(rows, { dataMin = CFG.dataMin, dataMax = CFG.dataMax, latCol = 1, lonCol = 2, valCol = 3 } = {}) {
   const cells = [];
-  for (const [, lat, lon, value] of rows) {
+  for (const row of rows) {
+    const lat = row[latCol], lon = row[lonCol], value = row[valCol];
     if (value == null || value < -900) continue;
 
     // Map lat (90 → -90) to ring (0 → 72)
@@ -656,9 +698,35 @@ function erddapRowsToGrid(rows) {
     // Map lon (0 → 357.5) to sector (0 → 143)
     const sector = Math.round(lon / (360 / CFG.numSectors)) % CFG.numSectors;
 
-    const norm  = normalize(value);
+    const norm  = normalize(value, dataMin, dataMax);
     const color = normToColor(norm, ring, sector);
 
+    cells.push({ ring, sector, norm, color, value, lat, lon });
+  }
+  return cells;
+}
+
+function usgsFeaturesToGrid(features) {
+  // Accumulate max magnitude per grid cell
+  const cellMag = new Map();
+  for (const f of features) {
+    if (!f.geometry || !f.geometry.coordinates) continue;
+    const [lon, lat] = f.geometry.coordinates;
+    const mag = f.properties.mag;
+    if (mag == null || mag < 0) continue;
+    const ring   = Math.round((90 - lat) / (180 / (CFG.numRings - 1)));
+    const sector = Math.round(((lon % 360) + 360) % 360 / (360 / CFG.numSectors)) % CFG.numSectors;
+    const key = `${ring}-${sector}`;
+    cellMag.set(key, Math.max(cellMag.get(key) ?? 0, mag));
+  }
+
+  const cells = [];
+  for (const [key, value] of cellMag) {
+    const [ring, sector] = key.split('-').map(Number);
+    const lat = 90 - ring * (180 / (CFG.numRings - 1));
+    const lon = sector * (360 / CFG.numSectors);
+    const norm  = normalize(value, 0, 9);
+    const color = normToColor(norm, ring, sector);
     cells.push({ ring, sector, norm, color, value, lat, lon });
   }
   return cells;
@@ -747,13 +815,25 @@ function startMode1(gridCells, opts = {}) {
       .attr('transform', `rotate(${rotationDeg}, ${CX}, ${CY})`);
 
     // Ring: bright flash on hit, bloom and fade
+    // Inner rings (north pole, no data) get yellow so they're visible against the background
+    const progress   = Math.min(1, ringR / DATA_RADIUS);
+    const flashR     = 255;
+    const flashG     = Math.round(230 + progress * 25);   // 230 → 255 (yellow → white)
+    const flashB     = Math.round(progress * 255);         // 0   → 255 (yellow → white)
+    const flashColor = `rgba(${flashR},${flashG},${flashB},0.95)`;
+    const midColor   = progress < 0.3
+      ? 'rgba(200,150,0,0.65)'       // amber hold for inner rings
+      : 'rgba(100,70,220,0.70)';     // purple hold for outer rings
+    // Widen stroke on small rings so they stay legible
+    const strokeW    = Math.max(RING_WIDTH * 2.2, RING_WIDTH * 1.4);
+
     indicator
       .interrupt()
       .attr('r', ringR)
-      .attr('stroke', 'rgba(255,255,255,0.95)')
-      .attr('stroke-width', RING_WIDTH * 1.4)
+      .attr('stroke', flashColor)
+      .attr('stroke-width', strokeW)
       .transition().duration(stepMs * 0.15).ease(d3.easeQuadOut)
-        .attr('stroke', 'rgba(100,70,220,0.7)')
+        .attr('stroke', midColor)
         .attr('stroke-width', RING_WIDTH * 1.1)
       .transition().duration(stepMs * 1.1).ease(d3.easeCubicOut)
         .attr('stroke', 'rgba(80,50,180,0)')
@@ -868,19 +948,18 @@ function startMode2(gridCells, opts = {}) {
     Math.round(i * CFG.numSectors / numVoices)
   );
 
-  // Build steps: for each ring×sector, collect all voice cells
+  // Build steps: every sector of every ring — voices may be null for sparse datasets.
+  // Never filter by data presence so the sweep line is always moving.
   const steps = [];
   for (const ring of rings) {
-    const sectorMap = byRing.get(ring);
     for (let s = 0; s < CFG.numSectors; s++) {
       const voices = offsets.map((offset, vi) => {
         const sec  = (s + offset) % CFG.numSectors;
-        // In cascade mode each voice reads from a successive ring outward
         const r    = cascade ? rings[Math.min(rings.indexOf(ring) + vi, rings.length - 1)] : ring;
         const rMap = byRing.get(r);
-        return rMap ? rMap.get(sec) : null;
-      }).filter(Boolean);
-      if (voices.length === numVoices) steps.push({ ring, s, voices });
+        return rMap ? (rMap.get(sec) ?? null) : null;
+      });
+      steps.push({ ring, s, voices });
     }
   }
 
@@ -944,12 +1023,12 @@ function startMode2(gridCells, opts = {}) {
     : offsets.map((_, i) => -0.7 + (i / (numVoices - 1)) * 1.4);
   const detuneAmounts  = offsets.map((_, i) => (i % 2 === 0 ? 1 : -1) * (i + 1) * 3);
 
-  // Initialise persistent voices if in glide mode
+  // Initialise persistent oscillators for glide mode.
+  // Use a neutral mid-frequency as start; first real cell will immediately glide it.
   let liveVoices = [];
-  if (useGlide) {
-    const first = steps[0];
-    liveVoices = first.voices.map((cell, vi) =>
-      makeVoice(normToFreq(cell.norm, scale), 0.6 / numVoices, panPositions[vi], detuneAmounts[vi])
+  if (useGlide && steps.length > 0) {
+    liveVoices = offsets.map((_, vi) =>
+      makeVoice(normToFreq(0.5, scale), 0.6 / numVoices, panPositions[vi], detuneAmounts[vi])
     );
     playState.voices = liveVoices;
   }
@@ -964,38 +1043,47 @@ function startMode2(gridCells, opts = {}) {
     }
 
     const { ring, s, voices } = steps[i];
-    const ringR = (ring + 0.5) * RING_WIDTH;
+    const ringIdx = rings.indexOf(ring);
 
+    // Audio — only fire for voices that actually have cell data
     if (useGlide) {
       const t = ctx.currentTime;
       voices.forEach((cell, vi) => {
-        if (liveVoices[vi])
+        if (cell && liveVoices[vi])
           liveVoices[vi].osc.frequency.setTargetAtTime(normToFreq(cell.norm, scale), t, glide);
       });
     } else {
       const noteDur = cellMs / 1000 * 3.5;
       voices.forEach(cell => {
-        playTone(normToFreq(cell.norm, scale), { duration: noteDur, wave, volume: 0.5 / numVoices });
+        if (cell)
+          playTone(normToFreq(cell.norm, scale), { duration: noteDur, wave, volume: 0.5 / numVoices });
       });
     }
 
-    // Compute all voice positions first so we can connect them
-    const ringIdx  = rings.indexOf(ring);
-    const voicePos = voices.map((cell, vi) => {
-      const sec   = (s + offsets[vi]) % CFG.numSectors;
+    // Voice positions — always computable from sector angle, cell may be null
+    const voicePos = offsets.map((offset, vi) => {
+      const sec = (s + offset) % CFG.numSectors;
       const angle = sec * SECTOR_ANGLE;
       const voiceRing = cascade
         ? rings[Math.min(ringIdx + vi, rings.length - 1)]
         : ring;
       const voiceR = (voiceRing + 0.5) * RING_WIDTH;
-      return { vx: CX + voiceR * Math.sin(angle), vy: CY - voiceR * Math.cos(angle), cell };
+      return { vx: CX + voiceR * Math.sin(angle), vy: CY - voiceR * Math.cos(angle), cell: voices[vi] ?? null };
     });
 
-    // Edges between adjacent voice positions — forms the shape, no center lines
+    // Sweep lines — always update so indicator is visible even over empty cells
+    sweepLine.attr('x1', CX).attr('y1', CY)
+      .attr('x2', voicePos[0].vx).attr('y2', voicePos[0].vy);
+    if (voicePos[1])
+      antiLine.attr('x1', CX).attr('y1', CY)
+        .attr('x2', voicePos[1].vx).attr('y2', voicePos[1].vy);
+
+    // Edges between adjacent voices — only where both endpoints have data
     if (numVoices > 1) {
       for (let vi = 0; vi < voicePos.length; vi++) {
         const a = voicePos[vi];
         const b = voicePos[(vi + 1) % voicePos.length];
+        if (!a.cell || !b.cell) continue;
         svg.append('line')
           .attr('x1', a.vx).attr('y1', a.vy)
           .attr('x2', b.vx).attr('y2', b.vy)
@@ -1009,10 +1097,9 @@ function startMode2(gridCells, opts = {}) {
       }
     }
 
-    // Single sweep reference from center to voice 0, dots on all voices
-    voicePos.forEach(({ vx, vy, cell }, vi) => {
-      if (vi === 0) sweepLine.attr('x1', CX).attr('y1', CY).attr('x2', vx).attr('y2', vy);
-
+    // Sparks — only where cell has data
+    voicePos.forEach(({ vx, vy, cell }) => {
+      if (!cell) return;
       const r = 2 + cell.norm * 3;
       svg.append('circle')
         .attr('cx', vx).attr('cy', vy).attr('r', r)
@@ -1038,20 +1125,6 @@ async function main() {
 
   drawSubstrate(svg);
 
-  let gridCells = null;
-
-  if (window.WATER_VAPOR_DATA) {
-    const { date, rows } = window.WATER_VAPOR_DATA;
-    gridCells = erddapRowsToGrid(rows);
-    setStatus(
-      `${gridCells.length.toLocaleString()} cells · ${date} · ` +
-      `click any cell to hear it · press Play to sweep the Earth`
-    );
-  } else {
-    setStatus('Data unavailable — showing demo pattern.');
-    gridCells = generateDemoGrid();
-  }
-
   const getOpts = () => ({
     wave:           document.getElementById('waveSelect').value,
     scale:          document.getElementById('scaleSelect').value,
@@ -1065,8 +1138,69 @@ async function main() {
     drawStarOverlay(svg, o.numStarPoints, o.starIterations);
   };
 
-  renderCells(svg, gridCells, getOpts());
-  redrawStar();
+  async function loadDataset(id) {
+    stopPlayback();
+    const ds = DATASETS.find(d => d.id === id);
+    if (!ds) return;
+    currentDataset = id;
+    CFG.dataMin = ds.dataMin;
+    CFG.dataMax = ds.dataMax;
+    setStatus(`Loading ${ds.label}…`);
+
+    try {
+      if (id === 'pr_wtr_cached') {
+        if (!window.WATER_VAPOR_DATA) throw new Error('No cached data');
+        const { date, rows } = window.WATER_VAPOR_DATA;
+        gridCells = erddapRowsToGrid(rows, { dataMin: ds.dataMin, dataMax: ds.dataMax });
+        setStatus(`${gridCells.length.toLocaleString()} cells · ${date} · ${ds.label}`);
+
+      } else if (id === 'pr_wtr_live') {
+        const date = await fetchLatestERDDAPDate();
+        const rows = await fetchERDDAP(date, 'pr_wtr');
+        gridCells = erddapRowsToGrid(rows, { dataMin: ds.dataMin, dataMax: ds.dataMax });
+        setStatus(`${gridCells.length.toLocaleString()} cells · ${date} · ${ds.label}`);
+
+      } else if (id === 'rhum_live') {
+        const date = await fetchLatestERDDAPDate();
+        const rows = await fetchERDDAP(date, 'rhum', '1000.0');
+        gridCells = erddapRowsToGrid(rows, { dataMin: ds.dataMin, dataMax: ds.dataMax, latCol: 2, lonCol: 3, valCol: 4 });
+        setStatus(`${gridCells.length.toLocaleString()} cells · ${date} · ${ds.label}`);
+
+      } else if (id === 'seismic_live') {
+        const features = await fetchUSGSSeismic();
+        gridCells = usgsFeaturesToGrid(features);
+        setStatus(`${gridCells.length.toLocaleString()} active cells · last 30 days · ${ds.label}`);
+      }
+    } catch (err) {
+      console.warn(`Dataset "${id}" failed:`, err.message);
+      // Fall back: try cached water vapor, else synthetic demo
+      if (window.WATER_VAPOR_DATA) {
+        CFG.dataMin = 0; CFG.dataMax = 70;
+        const { date, rows } = window.WATER_VAPOR_DATA;
+        gridCells = erddapRowsToGrid(rows, { dataMin: 0, dataMax: 70 });
+        document.getElementById('datasetSelect').value = 'pr_wtr_cached';
+        currentDataset = 'pr_wtr_cached';
+        setStatus(`Load failed (${err.message}) — using cached water vapor`);
+      } else {
+        CFG.dataMin = 0; CFG.dataMax = 70;
+        gridCells = generateDemoGrid();
+        document.getElementById('datasetSelect').value = 'pr_wtr_cached';
+        currentDataset = 'pr_wtr_cached';
+        setStatus(`Load failed — showing demo pattern`);
+      }
+    }
+
+    renderCells(svg, gridCells, getOpts());
+    const mode = parseInt(document.getElementById('modeSelect').value);
+    if (mode === 1) redrawStar();
+  }
+
+  // Initial load: prefer cached, fall back to demo if no bundled data
+  const initialId = window.WATER_VAPOR_DATA ? 'pr_wtr_cached' : 'pr_wtr_cached';
+  document.getElementById('datasetSelect').value = initialId;
+  await loadDataset(initialId);
+
+  document.getElementById('datasetSelect').addEventListener('change', e => loadDataset(e.target.value));
 
   ['waveSelect', 'scaleSelect'].forEach(id => {
     document.getElementById(id).addEventListener('change', () => renderCells(svg, gridCells, getOpts()));
