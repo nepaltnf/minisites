@@ -970,21 +970,39 @@ function startMode2(gridCells, opts = {}) {
       });
     }
 
-    // Draw sweep lines and dots for each voice
-    const ringIdx = rings.indexOf(ring);
-    voices.forEach((cell, vi) => {
-      const sec    = (s + offsets[vi]) % CFG.numSectors;
-      const angle  = sec * SECTOR_ANGLE;
-      // Cascade: each voice draws at its own ring radius
+    // Compute all voice positions first so we can connect them
+    const ringIdx  = rings.indexOf(ring);
+    const voicePos = voices.map((cell, vi) => {
+      const sec   = (s + offsets[vi]) % CFG.numSectors;
+      const angle = sec * SECTOR_ANGLE;
       const voiceRing = cascade
         ? rings[Math.min(ringIdx + vi, rings.length - 1)]
         : ring;
       const voiceR = (voiceRing + 0.5) * RING_WIDTH;
-      const vx = CX + voiceR * Math.sin(angle);
-      const vy = CY - voiceR * Math.cos(angle);
+      return { vx: CX + voiceR * Math.sin(angle), vy: CY - voiceR * Math.cos(angle), cell };
+    });
 
-      if (vi === 0) sweepLine.attr('x1', CX).attr('y1', CY).attr('x2', CX + voiceR * Math.sin(angle)).attr('y2', CY - voiceR * Math.cos(angle));
-      if (vi === 1 && numVoices > 1) antiLine.attr('x1', CX).attr('y1', CY).attr('x2', CX + voiceR * Math.sin(angle)).attr('y2', CY - voiceR * Math.cos(angle));
+    // Edges between adjacent voice positions — forms the shape, no center lines
+    if (numVoices > 1) {
+      for (let vi = 0; vi < voicePos.length; vi++) {
+        const a = voicePos[vi];
+        const b = voicePos[(vi + 1) % voicePos.length];
+        svg.append('line')
+          .attr('x1', a.vx).attr('y1', a.vy)
+          .attr('x2', b.vx).attr('y2', b.vy)
+          .attr('stroke', 'white')
+          .attr('stroke-width', 1)
+          .attr('opacity', 0.55)
+          .attr('pointer-events', 'none')
+          .transition().duration(cellMs * 4).ease(d3.easeCubicOut)
+            .attr('opacity', 0)
+            .remove();
+      }
+    }
+
+    // Single sweep reference from center to voice 0, dots on all voices
+    voicePos.forEach(({ vx, vy, cell }, vi) => {
+      if (vi === 0) sweepLine.attr('x1', CX).attr('y1', CY).attr('x2', vx).attr('y2', vy);
 
       const r = 2 + cell.norm * 3;
       svg.append('circle')
