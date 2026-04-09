@@ -59,18 +59,24 @@
     #controls {
       margin-top: 20px;
       display: flex;
-      flex-direction: column;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .ctrl-row {
-      display: flex;
-      gap: 12px;
+      flex-direction: row;
+      gap: 6px;
       align-items: center;
       flex-wrap: wrap;
       justify-content: center;
     }
+
+    /* Visual grouping pills */
+    .ctrl-group {
+      display: flex;
+      gap: 7px;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 2px;
+    }
+    .ctrl-group-data   { background: rgba(0,0,0,0.05); }
+    .ctrl-group-method { background: rgba(100,70,200,0.07); }
+    .ctrl-group-sound  { background: rgba(0,0,0,0.04); }
 
     button {
       background: transparent;
@@ -81,10 +87,21 @@
       font-size: 11px;
       letter-spacing: 0.15em;
       cursor: pointer;
-      transition: border-color 0.2s, color 0.2s;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
     }
     button:hover { border-color: #888; color: #333; }
     button.playing { border-color: #7755cc; color: #7755cc; }
+
+    /* Play button — most prominent */
+    #playBtn {
+      background: #3a3a3a;
+      border-color: #3a3a3a;
+      color: #efefea;
+      padding: 8px 24px;
+      letter-spacing: 0.2em;
+    }
+    #playBtn:hover { background: #555; border-color: #555; color: #fff; }
+    #playBtn.playing { background: #7755cc; border-color: #7755cc; color: #fff; }
 
     select {
       background: #f5f5f0;
@@ -134,13 +151,11 @@
 
   <div id="controls">
 
-    <!-- Row 1: Action -->
-    <div class="ctrl-row">
-      <button id="playBtn">▶&nbsp; Play Earth</button>
-    </div>
+    <!-- Action -->
+    <button id="playBtn">▶&nbsp; Play Earth</button>
 
-    <!-- Row 2: Source -->
-    <div class="ctrl-row">
+    <!-- Source group -->
+    <div class="ctrl-group ctrl-group-data">
       <label>Data</label>
       <select id="datasetSelect">
         <option value="pr_wtr_cached">Water Vapor · Cached</option>
@@ -150,8 +165,8 @@
       </select>
     </div>
 
-    <!-- Row 3: Method + method-specific controls -->
-    <div class="ctrl-row">
+    <!-- Method group -->
+    <div class="ctrl-group ctrl-group-method">
       <label>Mode</label>
       <select id="modeSelect">
         <option value="1">1 — Ring Portraits</option>
@@ -159,27 +174,23 @@
       </select>
       <button id="voiceMode" title="Toggle voice mode" style="display:none">Glide</button>
 
-      <div id="mode2Controls" style="display:none;gap:12px;align-items:center;flex-wrap:wrap">
-        <div style="display:flex;gap:6px;align-items:center">
-          <label>Voices</label>
-          <select id="voiceCount">
-            <option value="1">Mono</option>
-            <option value="2" selected>Duo · 180°</option>
-            <option value="3">Tri · 120°</option>
-            <option value="4">Quad · 90°</option>
-            <option value="5">Penta · 72°</option>
-          </select>
-        </div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <label>Layout</label>
-          <select id="voiceLayout">
-            <option value="unison" selected>Unison</option>
-            <option value="cascade">Cascade</option>
-          </select>
-        </div>
+      <div id="mode2Controls" style="display:none;gap:7px;align-items:center">
+        <label>Voices</label>
+        <select id="voiceCount">
+          <option value="1">Mono</option>
+          <option value="2" selected>Duo · 180°</option>
+          <option value="3">Tri · 120°</option>
+          <option value="4">Quad · 90°</option>
+          <option value="5">Penta · 72°</option>
+        </select>
+        <label>Layout</label>
+        <select id="voiceLayout">
+          <option value="unison" selected>Unison</option>
+          <option value="cascade">Cascade</option>
+        </select>
       </div>
 
-      <div id="starControls" style="display:flex;gap:6px;align-items:center">
+      <div id="starControls" style="display:flex;gap:7px;align-items:center">
         <label>Star</label>
         <select id="starSelect">
           <option value="3">Triangle △</option>
@@ -198,8 +209,8 @@
       </div>
     </div>
 
-    <!-- Row 4: Sound character -->
-    <div class="ctrl-row">
+    <!-- Sound group -->
+    <div class="ctrl-group ctrl-group-sound">
       <label>Scale</label>
       <select id="scaleSelect">
         <option value="pentatonic" selected>Pentatonic</option>
@@ -1025,11 +1036,15 @@ function startMode2(gridCells, opts = {}) {
 
   // Initialise persistent oscillators for glide mode.
   // Use a neutral mid-frequency as start; first real cell will immediately glide it.
+  const GLIDE_FADE_S = 2.5; // seconds of no data before voice fades to silence
   let liveVoices = [];
   if (useGlide && steps.length > 0) {
-    liveVoices = offsets.map((_, vi) =>
-      makeVoice(normToFreq(0.5, scale), 0.6 / numVoices, panPositions[vi], detuneAmounts[vi])
-    );
+    liveVoices = offsets.map((_, vi) => {
+      const v = makeVoice(normToFreq(0.5, scale), 0.6 / numVoices, panPositions[vi], detuneAmounts[vi]);
+      v.lastDataAt = ctx.currentTime;
+      v.faded = false;
+      return v;
+    });
     playState.voices = liveVoices;
   }
 
@@ -1049,8 +1064,23 @@ function startMode2(gridCells, opts = {}) {
     if (useGlide) {
       const t = ctx.currentTime;
       voices.forEach((cell, vi) => {
-        if (cell && liveVoices[vi])
-          liveVoices[vi].osc.frequency.setTargetAtTime(normToFreq(cell.norm, scale), t, glide);
+        const lv = liveVoices[vi];
+        if (!lv) return;
+        if (cell) {
+          // Data present — update frequency, restore gain if faded
+          lv.osc.frequency.setTargetAtTime(normToFreq(cell.norm, scale), t, glide);
+          if (lv.faded) {
+            lv.gain.gain.setTargetAtTime(0.6 / numVoices, t, 0.15);
+            lv.faded = false;
+          }
+          lv.lastDataAt = t;
+        } else {
+          // No data — fade out after GLIDE_FADE_S seconds of silence
+          if (!lv.faded && t - lv.lastDataAt > GLIDE_FADE_S) {
+            lv.gain.gain.setTargetAtTime(0, t, 0.4);
+            lv.faded = true;
+          }
+        }
       });
     } else {
       const noteDur = cellMs / 1000 * 3.5;
