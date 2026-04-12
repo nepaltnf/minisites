@@ -751,6 +751,9 @@
       flex: 1;
       height: 3px;
       background: rgba(255,255,255,0.08);
+      padding: 12px 0;
+      margin: -12px 4px;
+      box-sizing: content-box;
       border-radius: 2px;
       cursor: pointer;
       position: relative;
@@ -1396,16 +1399,16 @@ function makePlanetGlowTexture(hexColor) {
   return new THREE.CanvasTexture(c);
 }
 
-function behindEarth(worldPos) {
-  if (!earthMesh) return false;
+function behindBody(worldPos, bodyMesh, radiusKm) {
+  if (!bodyMesh) return false;
   const sp = worldPos, sl = sp.length();
   if (sl === 0) return false;
   const rdx = sp.x / sl, rdy = sp.y / sl, rdz = sp.z / sl;
-  const ep = earthMesh.position;
-  const t = ep.x * rdx + ep.y * rdy + ep.z * rdz;
-  if (t <= 0 || t >= sl) return false; // Earth behind camera or beyond target
-  const cx = rdx * t - ep.x, cy = rdy * t - ep.y, cz = rdz * t - ep.z;
-  const r = EARTH_RADIUS_KM * SCENE_SCALE;
+  const bp = bodyMesh.position;
+  const t = bp.x * rdx + bp.y * rdy + bp.z * rdz;
+  if (t <= 0 || t >= sl) return false;
+  const cx = rdx * t - bp.x, cy = rdy * t - bp.y, cz = rdz * t - bp.z;
+  const r = radiusKm * SCENE_SCALE;
   return (cx*cx + cy*cy + cz*cz) < r * r;
 }
 
@@ -1413,7 +1416,7 @@ function updatePlanetLabels() {
   const w = window.innerWidth, h = window.innerHeight;
   planetMarkers.forEach(({ sprite, labelEl }) => {
     const pos = sprite.position.clone().project(camera);
-    if (pos.z > 1 || behindEarth(sprite.position)) { labelEl.style.display = 'none'; return; }
+    if (pos.z > 1 || behindBody(sprite.position, earthMesh, EARTH_RADIUS_KM) || behindBody(sprite.position, moonMesh, MOON_RADIUS_KM)) { labelEl.style.display = 'none'; return; }
     labelEl.style.display = 'block';
     labelEl.style.left = ((pos.x * 0.5 + 0.5) * w) + 'px';
     labelEl.style.top  = ((-pos.y * 0.5 + 0.5) * h) + 'px';
@@ -1957,7 +1960,7 @@ function updateEclipseEffect(delta) {
   }
 
   // Smooth: fast into eclipse, slow exit
-  const tau = target > eclipseIntensity ? 0.25 : 2.0;
+  const tau = target > eclipseIntensity ? 0.25 : 0.2;
   eclipseIntensity += (target - eclipseIntensity) * (1 - Math.exp(-delta / tau));
 
   // Position + scale corona sprite to match Moon's apparent size × radius mult
@@ -1999,7 +2002,7 @@ function updatePupilEffect(delta) {
     // Scale up point sizes so faint (1px) stars become visible
     const targetSizeMult = occluded ? 10.0 : (1.0 + eclipseIntensity * 9.0);
     const curMult = starsPoints.material.uniforms.u_size_mult.value;
-    const sizeTau = targetSizeMult > curMult ? 0.4 : 3.0;
+    const sizeTau = targetSizeMult > curMult ? 0.4 : 0.2;
     starsPoints.material.uniforms.u_size_mult.value += (targetSizeMult - curMult) * (1 - Math.exp(-delta / sizeTau));
   }
 }
@@ -2306,20 +2309,20 @@ document.addEventListener('click', () => {
 
 // ─── SNAP BUTTONS ────────────────────────────────────────────────────────────
 document.getElementById('snap-earth').addEventListener('click', () => {
-  lockedTarget = 'earth';
+  autoLock = false; lockedTarget = 'earth';
   if (earthMesh) aimCameraAt(earthMesh.position.x, earthMesh.position.y, earthMesh.position.z);
 });
 document.getElementById('snap-moon').addEventListener('click', () => {
-  lockedTarget = 'moon';
+  autoLock = false; lockedTarget = 'moon';
   if (moonMesh) aimCameraAt(moonMesh.position.x, moonMesh.position.y, moonMesh.position.z);
 });
 document.getElementById('snap-prograde').addEventListener('click', () => {
-  lockedTarget = 'prograde';
+  autoLock = false; lockedTarget = 'prograde';
   const p = lastGoodTelemetry?.prograde;
   if (p) aimCameraAt(p.x, p.y, p.z);
 });
 document.getElementById('snap-retrograde').addEventListener('click', () => {
-  lockedTarget = 'retrograde';
+  autoLock = false; lockedTarget = 'retrograde';
   const p = lastGoodTelemetry?.prograde;
   if (p) aimCameraAt(-p.x, -p.y, -p.z);
 });
@@ -2339,7 +2342,7 @@ targetToggle.addEventListener('click', e => {
 document.querySelectorAll('.target-option').forEach(btn => {
   btn.addEventListener('click', () => {
     const t = btn.dataset.target;
-    lockedTarget = t; // enable continuous tracking
+    autoLock = false; lockedTarget = t;
     if (t === 'earth' && earthMesh) aimCameraAt(earthMesh.position.x, earthMesh.position.y, earthMesh.position.z);
     else if (t === 'moon' && moonMesh) aimCameraAt(moonMesh.position.x, moonMesh.position.y, moonMesh.position.z);
     else if (t === 'prograde') { const p = lastGoodTelemetry?.prograde; if (p) aimCameraAt(p.x, p.y, p.z); }
@@ -2382,7 +2385,7 @@ function makeBarDropdown(toggleId, dropdownId, onSelect) {
 
 makeBarDropdown('bar-target-toggle', 'bar-target-dropdown', btn => {
   const t = btn.dataset.target;
-  lockedTarget = t; // enable continuous tracking
+  autoLock = false; lockedTarget = t;
   if (t === 'earth' && earthMesh) aimCameraAt(earthMesh.position.x, earthMesh.position.y, earthMesh.position.z);
   else if (t === 'moon' && moonMesh) aimCameraAt(moonMesh.position.x, moonMesh.position.y, moonMesh.position.z);
   else if (t === 'prograde') { const p = lastGoodTelemetry?.prograde; if (p) aimCameraAt(p.x, p.y, p.z); }
@@ -2414,6 +2417,9 @@ document.addEventListener('click', () => {
 let isDragging = false;
 let hasDragged = false;
 let lockedTarget = null; // 'earth' | 'moon' | 'prograde' | 'retrograde' | null
+let autoLock = true; // auto-aim at closer of Earth/Moon; cleared by drag or explicit selection
+let lastInputTime = Date.now();
+const DRIFT_BACK_MS = 5000; // re-lock after 5s of no input
 let prevMouse  = { x: 0, y: 0 };
 let yaw = 0, pitch = 0;
 let targetYaw = 0, targetPitch = 0, isAiming = false;
@@ -2424,7 +2430,7 @@ const _euler = new THREE.Euler(0, 0, 0, 'YXZ');
 
 renderer.domElement.addEventListener('mousedown', e => {
   if (missionViewActive) return;
-  isDragging = true; isAiming = false; lockedTarget = null;
+  isDragging = true; isAiming = false; lockedTarget = null; autoLock = false; lastInputTime = Date.now();
   prevMouse = { x: e.clientX, y: e.clientY };
 });
 window.addEventListener('mouseup', () => { isDragging = false; });
@@ -2449,7 +2455,7 @@ document.addEventListener('gesturechange', e => e.preventDefault(), { passive: f
 // Touch look (single finger drag)
 renderer.domElement.addEventListener('touchstart', e => {
   if (e.touches.length === 1) {
-    isDragging = true; isAiming = false; lockedTarget = null;
+    isDragging = true; isAiming = false; lockedTarget = null; autoLock = false; lastInputTime = Date.now();
     prevMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   }
 }, { passive: true });
@@ -2612,6 +2618,16 @@ function render() {
         if (earthMat) { earthMat.uniforms.u_night.value?.dispose(); earthMat.uniforms.u_night.value = t; }
       });
     }
+  }
+
+  // Drift back: if user dragged to free-look and has been idle 5s, re-enable auto-lock
+  if (!autoLock && lockedTarget === null && !isDragging && (Date.now() - lastInputTime > DRIFT_BACK_MS)) {
+    autoLock = true;
+  }
+
+  // Auto-lock: track whichever of Earth/Moon is closer, unless user has overridden
+  if (autoLock && !isDragging && earthMesh && moonMesh) {
+    lockedTarget = earthMesh.position.length() <= moonMesh.position.length() ? 'earth' : 'moon';
   }
 
   // Continuous target lock — re-aim every frame toward Earth or Moon
