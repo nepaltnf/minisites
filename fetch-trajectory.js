@@ -4,10 +4,14 @@
 
 const https = require('https');
 
+// Mission: April 1 2026 22:35 UTC (launch) → April 11 2026 00:07 UTC (splashdown)
+// Actual launch: April 1 2026 22:35 UTC — Horizons tracking starts April 2 ~02:00 UTC
+// JD 2461132.583 = Apr 2 2026 02:00 UTC, JD 2461142.49 = Apr 10 2026 ~23:45 UTC
+// 30-min steps gives ~430 points covering full tracked mission
 const url = 'https://ssd.jpl.nasa.gov/api/horizons.api'
   + '?format=json&COMMAND=-1024&OBJ_DATA=NO&MAKE_EPHEM=YES'
   + '&EPHEM_TYPE=VECTORS&CENTER=500@399&REF_PLANE=FRAME'
-  + '&START_TIME=JD2461132.6&STOP_TIME=2026-Apr-10&STEP_SIZE=2h'
+  + '&START_TIME=JD2461132.583&STOP_TIME=JD2461141.49&STEP_SIZE=30m'
   + '&VEC_TABLE=1&CSV_FORMAT=YES';
 
 https.get(url, res => {
@@ -44,10 +48,11 @@ https.get(url, res => {
 
     const fetchedAt = new Date().toISOString();
     const count = points.length / 3;
-    console.log(`// Artemis II trajectory — ${count} points, fetched ${fetchedAt}`);
-    console.log(`// Paste this into artemis2.html replacing the TRAJECTORY_POINTS line`);
+    console.log(`// Artemis II trajectory — ${count} points at 30-min steps, fetched ${fetchedAt}`);
+    console.log(`// Paste into artemis2.html replacing TRAJECTORY_POINTS, TRAJECTORY_FETCHED, TRAJECTORY_STEP_MS`);
     console.log(`const TRAJECTORY_POINTS = [${points.join(',')}];`);
     console.log(`const TRAJECTORY_FETCHED = '${fetchedAt}';`);
+    console.log(`const TRAJECTORY_STEP_MS = 30 * 60 * 1000; // 30 minutes per point`);
   });
 }).on('error', err => {
   console.error('Fetch failed:', err.message);
