@@ -1,0 +1,7 @@
+.DS_Store
+.playwright-mcp/
+*.png
+
+# Large files not suitable for GitHub
+images/nasa_cgi_moon_kit.glb
+images/world.topo.200404.3x21600x10800.jpg

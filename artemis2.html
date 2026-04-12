@@ -1173,10 +1173,11 @@ function bvToRGB(bv) {
 const STAR_VERT = `
   attribute float starSize;
   attribute vec3  starColor;
+  uniform   float u_size_mult;
   varying   vec3  vColor;
   void main() {
     vColor = starColor;
-    gl_PointSize = starSize;
+    gl_PointSize = starSize * u_size_mult;
     gl_Position  = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
@@ -1226,7 +1227,7 @@ function buildAccurateStarField(features) {
   const mat = new THREE.ShaderMaterial({
     vertexShader:   STAR_VERT,
     fragmentShader: STAR_FRAG,
-    uniforms:       { u_opacity: { value: 1.0 } },
+    uniforms:       { u_opacity: { value: 1.0 }, u_size_mult: { value: 1.0 } },
     transparent: true,
     depthWrite:  false,
   });
@@ -1256,7 +1257,7 @@ function buildRandomStarField(count = 6000) {
   geo.setAttribute('starSize',  new THREE.BufferAttribute(sz,  1));
   return new THREE.Points(geo, new THREE.ShaderMaterial({
     vertexShader: STAR_VERT, fragmentShader: STAR_FRAG,
-    uniforms: { u_opacity: { value: 1.0 } },
+    uniforms: { u_opacity: { value: 1.0 }, u_size_mult: { value: 1.0 } },
     transparent: true, depthWrite: false,
   }));
 }
@@ -1395,11 +1396,24 @@ function makePlanetGlowTexture(hexColor) {
   return new THREE.CanvasTexture(c);
 }
 
+function behindEarth(worldPos) {
+  if (!earthMesh) return false;
+  const sp = worldPos, sl = sp.length();
+  if (sl === 0) return false;
+  const rdx = sp.x / sl, rdy = sp.y / sl, rdz = sp.z / sl;
+  const ep = earthMesh.position;
+  const t = ep.x * rdx + ep.y * rdy + ep.z * rdz;
+  if (t <= 0 || t >= sl) return false; // Earth behind camera or beyond target
+  const cx = rdx * t - ep.x, cy = rdy * t - ep.y, cz = rdz * t - ep.z;
+  const r = EARTH_RADIUS_KM * SCENE_SCALE;
+  return (cx*cx + cy*cy + cz*cz) < r * r;
+}
+
 function updatePlanetLabels() {
   const w = window.innerWidth, h = window.innerHeight;
   planetMarkers.forEach(({ sprite, labelEl }) => {
     const pos = sprite.position.clone().project(camera);
-    if (pos.z > 1) { labelEl.style.display = 'none'; return; }
+    if (pos.z > 1 || behindEarth(sprite.position)) { labelEl.style.display = 'none'; return; }
     labelEl.style.display = 'block';
     labelEl.style.left = ((pos.x * 0.5 + 0.5) * w) + 'px';
     labelEl.style.top  = ((-pos.y * 0.5 + 0.5) * h) + 'px';
@@ -1472,6 +1486,7 @@ let earth8kLoaded = false;
 let positionsReady = false;
 
 let earthMat = null;
+let atmosMat = null;
 function buildEarth(dayTex, nightTex, specTex, cloudTex) {
   const geo = new THREE.SphereGeometry(EARTH_RADIUS_KM * SCENE_SCALE, 128, 128);
   earthMat = new THREE.ShaderMaterial({
@@ -1483,6 +1498,7 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
       u_cloudOffset: { value: 0.0 },
       u_sunDir:      { value: new THREE.Vector3(1, 0, 0) },
       u_cameraPos:   { value: new THREE.Vector3() },
+      u_brightness:  { value: 1.4 },
     },
     vertexShader: `
       varying vec2 vUv;
@@ -1501,8 +1517,9 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
       uniform sampler2D u_spec;
       uniform sampler2D u_clouds;
       uniform float u_cloudOffset;
-      uniform vec3 u_sunDir;
-      uniform vec3 u_cameraPos;
+      uniform vec3  u_sunDir;
+      uniform vec3  u_cameraPos;
+      uniform float u_brightness;
       varying vec2 vUv;
       varying vec3 vWorldNormal;
       varying vec3 vWorldPos;
@@ -1544,12 +1561,55 @@ function buildEarth(dayTex, nightTex, specTex, cloudTex) {
         vec3 atmosColor = mix(vec3(0.4, 0.7, 1.0), vec3(0.8, 0.9, 1.0), rim);
         float atmosIntensity = rim * atmosLit * 0.6;
 
-        gl_FragColor = vec4((surface + atmosColor * atmosIntensity) * 1.4, 1.0);
+        gl_FragColor = vec4((surface + atmosColor * atmosIntensity) * u_brightness, 1.0);
       }
     `,
   });
   earthMesh = new THREE.Mesh(geo, earthMat);
   scene.add(earthMesh);
+
+  // ─── ATMOSPHERE GLOW SPHERE ───────────────────────────────────────────────
+  const atmosGeo = new THREE.SphereGeometry(EARTH_RADIUS_KM * SCENE_SCALE * 1.015, 64, 64);
+  atmosMat = new THREE.ShaderMaterial({
+    uniforms: {
+      u_sunDir:    { value: new THREE.Vector3(1, 0, 0) },
+      u_cameraPos: { value: new THREE.Vector3() },
+    },
+    vertexShader: `
+      varying vec3 vWorldNormal;
+      varying vec3 vWorldPos;
+      void main() {
+        vWorldNormal = normalize(mat3(modelMatrix) * normal);
+        vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 u_sunDir;
+      uniform vec3 u_cameraPos;
+      varying vec3 vWorldNormal;
+      varying vec3 vWorldPos;
+      void main() {
+        vec3 N = normalize(vWorldNormal);
+        vec3 V = normalize(u_cameraPos - vWorldPos);
+        vec3 S = normalize(u_sunDir);
+        float rim = 1.0 - max(0.0, dot(N, V));
+        rim = pow(rim, 3.5);
+        float sunFace = smoothstep(-0.2, 0.5, dot(N, S));
+        vec3 dayColor   = vec3(0.3, 0.6, 1.0);
+        vec3 nightColor = vec3(0.05, 0.1, 0.3);
+        vec3 color = mix(nightColor, dayColor, sunFace);
+        float alpha = rim * mix(0.08, 0.55, sunFace);
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.FrontSide,
+    blending: THREE.AdditiveBlending,
+  });
+  const atmosMesh = new THREE.Mesh(atmosGeo, atmosMat);
+  earthMesh.add(atmosMesh); // parented so it follows Earth's position
 }
 
 let moonMat;
@@ -1798,48 +1858,150 @@ let starsPoints = null;
 let currentExposure = 0;
 const bloomEl = document.getElementById('sun-bloom');
 
+// ─── OCCLUSION & ECLIPSE ─────────────────────────────────────────────────────
+
 function sunOccludedByEarth() {
   if (!earthMesh || !sunMesh) return false;
-  // Ray from camera (origin) toward sun; check if Earth sphere intersects it.
   const sp = sunMesh.position;
   const sl = sp.length();
-  const rdx = sp.x / sl, rdy = sp.y / sl, rdz = sp.z / sl; // ray direction (unit)
+  const rdx = sp.x / sl, rdy = sp.y / sl, rdz = sp.z / sl;
   const ep = earthMesh.position;
-  // Project Earth center onto ray
   const t = ep.x * rdx + ep.y * rdy + ep.z * rdz;
-  if (t <= 0) return false; // Earth is behind camera
-  if (t >= sl) return false; // Earth is beyond the sun
-  // Closest point on ray to Earth center
+  if (t <= 0 || t >= sl) return false;
   const cx = rdx * t - ep.x, cy = rdy * t - ep.y, cz = rdz * t - ep.z;
-  const dist2 = cx*cx + cy*cy + cz*cz;
   const r = EARTH_RADIUS_KM * SCENE_SCALE;
-  return dist2 < r * r;
+  return cx*cx + cy*cy + cz*cz < r * r;
+}
+
+function sunOccludedByMoon() {
+  if (!moonMesh || !sunMesh) return false;
+  const sp = sunMesh.position;
+  const sl = sp.length();
+  const rdx = sp.x / sl, rdy = sp.y / sl, rdz = sp.z / sl;
+  const mp = moonMesh.position;
+  const t = mp.x * rdx + mp.y * rdy + mp.z * rdz;
+  if (t <= 0 || t >= sl) return false;
+  const cx = rdx * t - mp.x, cy = rdy * t - mp.y, cz = rdz * t - mp.z;
+  const r = MOON_RADIUS_KM * SCENE_SCALE;
+  return cx*cx + cy*cy + cz*cz < r * r;
+}
+
+// Eclipse intensity: 0 = none, 1 = total solar eclipse by Moon
+let eclipseIntensity = 0;
+let coronaSprite = null;
+const CORONA_RADIUS_MULT = 2.5; // corona sprite = 2.5× Moon diameter
+
+function makeCoronaTexture() {
+  const SIZE = 512, cx = SIZE / 2;
+  const c = document.createElement('canvas');
+  c.width = c.height = SIZE;
+  const ctx = c.getContext('2d');
+  // Moon disc radius in canvas pixels
+  const moonPx = cx / CORONA_RADIUS_MULT;
+  // Radial corona glow peaking at Moon rim, fading outward
+  const grad = ctx.createRadialGradient(cx, cx, moonPx * 0.85, cx, cx, cx);
+  grad.addColorStop(0.00, 'rgba(255,252,235,0.90)'); // bright at Moon rim
+  grad.addColorStop(0.07, 'rgba(255,248,220,0.78)'); // sustained brightness close in
+  grad.addColorStop(0.15, 'rgba(255,238,180,0.42)'); // 15% mark — starts falling off
+  grad.addColorStop(0.28, 'rgba(255,220,130,0.10)'); // rapid dissipation
+  grad.addColorStop(0.45, 'rgba(255,200, 80,0.02)'); // nearly gone
+  grad.addColorStop(1.00, 'rgba(255,180, 40,0.00)'); // transparent edge
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  // Cut transparent hole where the Moon disc is (so its dark surface shows through)
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.beginPath();
+  ctx.arc(cx, cx, moonPx, 0, Math.PI * 2);
+  ctx.fillStyle = 'black';
+  ctx.fill();
+  return new THREE.CanvasTexture(c);
+}
+
+function buildCorona() {
+  const mat = new THREE.SpriteMaterial({
+    map: makeCoronaTexture(),
+    blending: THREE.AdditiveBlending,
+    transparent: true,
+    depthWrite: false,
+    opacity: 0,
+  });
+  coronaSprite = new THREE.Sprite(mat);
+  coronaSprite.visible = false;
+  scene.add(coronaSprite);
+}
+
+buildCorona();
+
+function updateEclipseEffect(delta) {
+  if (!moonMesh || !sunMesh) return;
+
+  // Angular separation between Moon center and Sun center from camera
+  const moonPos = moonMesh.position, sunPos = sunMesh.position;
+  const moonDist = moonPos.length(), sunDist = sunPos.length();
+  const moonDir = moonPos.clone().normalize();
+  const sunDir  = sunPos.clone().normalize();
+  const angSep  = Math.acos(Math.max(-1, Math.min(1, moonDir.dot(sunDir))));
+
+  // Angular radii of Moon and Sun as seen from camera
+  const moonAngR = Math.atan(MOON_RADIUS_KM * SCENE_SCALE / moonDist);
+  const sunAngR  = Math.atan(SUN_SPHERE_R / sunDist);
+
+  // Eclipse: Moon must be closer than Sun and angular discs must overlap
+  let target = 0;
+  if (moonDist < sunDist) {
+    if (angSep < moonAngR - sunAngR) {
+      target = 1; // total — Sun fully inside Moon disc
+    } else if (angSep < moonAngR + sunAngR) {
+      target = Math.max(0, 1 - (angSep - (moonAngR - sunAngR)) / (2 * sunAngR));
+    }
+  }
+
+  // Smooth: fast into eclipse, slow exit
+  const tau = target > eclipseIntensity ? 0.25 : 2.0;
+  eclipseIntensity += (target - eclipseIntensity) * (1 - Math.exp(-delta / tau));
+
+  // Position + scale corona sprite to match Moon's apparent size × radius mult
+  if (coronaSprite) {
+    coronaSprite.position.copy(moonPos);
+    coronaSprite.scale.setScalar(MOON_RADIUS_KM * SCENE_SCALE * 2 * CORONA_RADIUS_MULT);
+    coronaSprite.material.opacity = Math.min(1, eclipseIntensity * 0.9);
+    coronaSprite.visible = eclipseIntensity > 0.01;
+  }
 }
 
 function updatePupilEffect(delta) {
   if (!sunMesh) return;
 
-  // Camera look direction from yaw/pitch (YXZ euler)
   const lx = -Math.sin(yaw) * Math.cos(pitch);
   const ly =  Math.sin(pitch);
   const lz = -Math.cos(yaw) * Math.cos(pitch);
 
-  // Normalized sun direction
   const sp = sunMesh.position, sl = sp.length();
   const dot = Math.max(-1, Math.min(1, (lx*sp.x + ly*sp.y + lz*sp.z) / sl));
   const angleDeg = Math.acos(dot) * 180 / Math.PI;
 
-  // Influence: peaks at 0°, zero beyond 80° — sun doesn't need to be in FOV to affect pupil
-  // Zero out if Earth is blocking the sun from the camera's position
-  const occluded = sunOccludedByEarth();
+  // Sun occluded by Earth OR Moon → pupil fully dilated (dark-adapted)
+  const occluded = sunOccludedByEarth() || sunOccludedByMoon();
   const target = occluded ? 0 : Math.max(0, 1 - angleDeg / 30) ** 3;
 
-  // Asymmetric time constants: iris contracts fast (sun appears), dilates slowly (sun leaves)
   const tau = target > currentExposure ? 0.6 : 3.5;
   currentExposure += (target - currentExposure) * (1 - Math.exp(-delta / tau));
 
-  bloomEl.style.opacity = (currentExposure * 0.62).toFixed(3);
-  if (starsPoints) starsPoints.material.uniforms.u_opacity.value = 1.0 - currentExposure * 0.92;
+  bloomEl.style.opacity = 0;
+
+  if (starsPoints) {
+    // Pupil-based dimming, but always fully bright when Sun is occluded
+    const pupilOpacity = 1.0 - currentExposure * 0.92;
+    // During lunar eclipse or Earth occlusion: coronagraph effect
+    const eclipseBoost = eclipseIntensity * 1.0;
+    const darkAdapted = occluded ? 1.0 : eclipseBoost;
+    starsPoints.material.uniforms.u_opacity.value = Math.max(pupilOpacity, darkAdapted);
+    // Scale up point sizes so faint (1px) stars become visible
+    const targetSizeMult = occluded ? 10.0 : (1.0 + eclipseIntensity * 9.0);
+    const curMult = starsPoints.material.uniforms.u_size_mult.value;
+    const sizeTau = targetSizeMult > curMult ? 0.4 : 3.0;
+    starsPoints.material.uniforms.u_size_mult.value += (targetSizeMult - curMult) * (1 - Math.exp(-delta / sizeTau));
+  }
 }
 
 // ─── WELCOME OVERLAY ─────────────────────────────────────────────────────────
@@ -2411,6 +2573,20 @@ function render() {
       earthMat.uniforms.u_sunDir.value.copy(sunMesh.position).normalize();
       earthMat.uniforms.u_cameraPos.value.copy(camera.position);
       earthMat.uniforms.u_cloudOffset.value = (GMST * 0.00015) % 1.0;
+      // Brightness based on fraction of Earth→Moon distance
+      // 0% → 0.8, 25% → 1.0, 75% → 1.5, then holds (return trip mirrors naturally)
+      const _eDist = earthMesh.position.length();
+      const _mDist = moonMesh ? moonMesh.position.length() : 1;
+      const frac = Math.max(0, Math.min(1, _eDist / (_eDist + _mDist)));
+      let bright;
+      if (frac < 0.25)      bright = 0.8 + (frac / 0.25) * 0.2;           // 0.8 → 1.0
+      else if (frac < 0.75) bright = 1.0 + ((frac - 0.25) / 0.5) * 0.5;  // 1.0 → 1.5
+      else                  bright = 1.5;                                   // hold at peak
+      earthMat.uniforms.u_brightness.value = bright;
+      if (atmosMat) {
+        atmosMat.uniforms.u_sunDir.value.copy(sunMesh.position).normalize();
+        atmosMat.uniforms.u_cameraPos.value.copy(camera.position);
+      }
     }
   }
 
@@ -2484,6 +2660,7 @@ function render() {
   // Helmet tracking disabled until sizing is worked out
 
   updatePupilEffect(delta);
+  updateEclipseEffect(delta);
   updatePlanetLabels();
 
   // Pulse Orion glow in mission view
