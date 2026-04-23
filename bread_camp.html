@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bread Camp</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bdr:#000;--lbdr:#ddd;--dust:#666}
+body{background:#fff;color:#000;font-family:'DM Sans',sans-serif;min-height:100vh}
+header{background:#fff;color:#000;padding:1.6rem 2.5rem;display:flex;align-items:baseline;gap:1.25rem;border-bottom:2px solid #000}
+header h1{font-family:'Playfair Display',serif;font-size:1.9rem;font-weight:900;letter-spacing:-.02em;line-height:1}
+header span{font-family:'DM Mono',monospace;font-size:.7rem;color:#666;letter-spacing:.12em;text-transform:uppercase}
+#selector{max-width:940px;margin:3.5rem auto;padding:0 1.75rem;animation:fu .5s ease both}
+#selector h2{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;margin-bottom:.3rem}
+#selector>p{color:#666;font-size:.85rem;margin-bottom:1.25rem;font-family:'DM Mono',monospace;letter-spacing:.04em}
+.slbl{font-family:'DM Mono',monospace;font-size:.61rem;letter-spacing:.14em;text-transform:uppercase;color:#666;margin:1.5rem 0 .6rem;padding-bottom:.4rem;border-bottom:1px solid #000}
+.rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:.9rem}
+.rcard{background:#fff;color:#000;border:1.5px solid #000;border-radius:0;padding:1.25rem 1.3rem 1.1rem;cursor:pointer;transition:background .15s}
+.rcard:hover{background:#f5f5f5}
+.rcard.tmpl{border-style:dashed}
+.ci{display:none}
+.rcard h3{font-family:'Playfair Display',serif;font-size:1.15rem;font-weight:700;margin-bottom:.3rem}
+.rcard p{font-size:.7rem;color:#666;font-family:'DM Mono',monospace;letter-spacing:.03em;margin:0;line-height:1.4}
+#calculator{display:none;max-width:1060px;margin:0 auto;padding:2.25rem 1.75rem 4rem}
+#calculator.active{display:block;animation:fu .4s ease both}
+.ctop{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.75rem;flex-wrap:wrap;gap:.9rem}
+.ctop h2{font-family:'Playfair Display',serif;font-size:1.45rem;font-weight:900}
+.bgrp{display:flex;gap:.6rem}
+.btn{font-family:'DM Mono',monospace;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;padding:.48rem .95rem;border-radius:0;cursor:pointer;border:1.5px solid #000;background:#fff;color:#000;transition:all .15s}
+.btn:hover{background:#000;color:#fff}
+.bd{border-color:#000;color:#000}.bd:hover{background:#000;color:#fff}
+.clay{display:grid;grid-template-columns:1fr 295px;gap:1.6rem;align-items:start}
+@media(max-width:740px){.clay{grid-template-columns:1fr}}
+.step{background:#fff;border:1.5px solid #000;border-radius:0;margin-bottom:1.1rem;overflow:hidden}
+.shdr{background:#000;color:#fff;padding:.65rem 1.15rem;display:flex;align-items:center;gap:.65rem}
+.snum{font-family:'DM Mono',monospace;font-size:.61rem;letter-spacing:.1em;color:#fff;text-transform:uppercase;opacity:.6}
+.stit{font-family:'Playfair Display',serif;font-size:.92rem;font-weight:700}
+.sbod{padding:1.05rem 1.15rem}
+.brow{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+.fld{display:flex;flex-direction:column;gap:.28rem}
+.fld label{font-family:'DM Mono',monospace;font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;color:#666}
+.fld input{background:#fff;border:1.5px solid #000;border-radius:0;padding:.52rem .68rem;font-family:'DM Mono',monospace;font-size:1.05rem;font-weight:500;color:#000;width:100%;outline:none}
+.fld input:focus{border-width:2px}
+.sumr{margin-top:.85rem;background:#f5f5f5;border:1px solid #000;border-radius:0;padding:.6rem .95rem;display:flex;justify-content:space-between;align-items:center}
+.sl{font-family:'DM Mono',monospace;font-size:.64rem;text-transform:uppercase;letter-spacing:.08em;color:#666}
+.sv{font-family:'DM Mono',monospace;font-size:1.1rem;font-weight:500;color:#000}
+table{width:100%;border-collapse:collapse}
+th{font-family:'DM Mono',monospace;font-size:.61rem;letter-spacing:.1em;text-transform:uppercase;color:#666;text-align:left;padding:.26rem .42rem .52rem;border-bottom:1.5px solid #000}
+td{padding:.4rem .42rem;border-bottom:1px solid #ddd;font-size:.86rem}
+tr:last-child td{border-bottom:none}
+.pi{background:#fff;border:1.5px solid #000;border-radius:0;padding:.28rem .42rem;font-family:'DM Mono',monospace;font-size:.86rem;font-weight:500;color:#000;width:82px;text-align:center;outline:none}
+.pi:focus{border-width:2px}
+.r{text-align:right}.c{text-align:center}
+.mn{font-family:'DM Mono',monospace}
+.dm{color:#666;font-size:.78rem}
+.bld{font-weight:600}
+.big{text-align:right;font-family:'DM Mono',monospace;font-size:1.3rem;font-weight:500;color:#000}
+.ing small{display:block;font-size:.7rem;color:#666;font-family:'DM Mono',monospace;margin-top:.08rem}
+tr.sec td{padding-top:.8rem;border-top:1px solid #000}
+tr.sub td:first-child{padding-left:1.05rem;color:#666;font-size:.8rem}
+.pcc{margin-top:.6rem;padding:.42rem .88rem;border-radius:0;font-family:'DM Mono',monospace;font-size:.76rem;text-align:right}
+.ok{background:#f0f0f0;color:#000;border:1px solid #000}.wn{background:#fff;color:#000;border:1px solid #000}
+.yr{margin-top:.65rem;background:#000;color:#fff;border-radius:0;padding:.65rem .95rem;display:flex;justify-content:space-between;align-items:center}
+.yl{font-family:'DM Mono',monospace;font-size:.64rem;letter-spacing:.1em;text-transform:uppercase}
+.yv{font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:500;color:#fff}
+.hint{font-family:'DM Mono',monospace;font-size:.66rem;color:#666;margin-top:.42rem}
+.np{background:#fff;color:#000;border:1.5px solid #000;border-radius:0;padding:1.3rem;position:sticky;top:1.5rem}
+.np h3{font-family:'Playfair Display',serif;font-size:.92rem;font-weight:700;color:#000;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid #000}
+.ni{margin-bottom:.95rem}.ni:last-child{margin-bottom:0}
+.nl{font-family:'DM Mono',monospace;font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:#000;margin-bottom:.22rem;font-weight:600}
+.nv{font-size:.8rem;color:#000;line-height:1.5}
+hr.nd{border:none;border-top:1px solid #ddd;margin:.75rem 0}
+@keyframes fu{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<header><h1>Bread Camp</h1><span>Recipe Calculator</span></header>
+
+<div id="selector">
+  <h2>What are we baking today?</h2>
+  <p>Select a recipe to open the calculator</p>
+  <div class="slbl">Sourdough</div>
+  <div class="rgrid">
+    <div class="rcard" onclick="openRecipe('sd80')"><span class="ci">🌾</span><h3>Country Sourdough 80%</h3><p>Bread flour · whole wheat · rye · levain</p></div>
+    <div class="rcard" onclick="openRecipe('sd88')"><span class="ci">💧</span><h3>Country Sourdough 88%</h3><p>High hydration · bassinage · open crumb</p></div>
+    <div class="rcard" onclick="openRecipe('fmill')"><span class="ci">⚙️</span><h3>Fresh Milled 100%</h3><p>Single flour · ascorbic acid · levain</p></div>
+    <div class="rcard" onclick="openRecipe('bbOat')"><span class="ci">🧈</span><h3>Browned Butter Oat</h3><p>Einkorn · oat porridge · hazelnuts · levain</p></div>
+    <div class="rcard" onclick="openRecipe('ubuck')"><span class="ci">🌰</span><h3>Uncle Buck</h3><p>Bread flour · buckwheat scald · levain</p></div>
+  </div>
+  <div class="slbl">Yeast</div>
+  <div class="rgrid">
+    <div class="rcard" onclick="openRecipe('chal')"><span class="ci">🍞</span><h3>Challah</h3><p>Enriched · poolish · honey · eggs · oil</p></div>
+    <div class="rcard" onclick="openRecipe('chalS')"><span class="ci">🌿</span><h3>Challah with Spelt</h3><p>80% bread flour · 20% spelt · poolish</p></div>
+    <div class="rcard" onclick="openRecipe('ciab')"><span class="ci">🥖</span><h3>Ciabatta</h3><p>100% hydration · poolish · bassinage · malt</p></div>
+    <div class="rcard" onclick="openRecipe('brio')"><span class="ci">🥐</span><h3>Brioche</h3><p>Straight dough · milk · butter · eggs · sugar</p></div>
+  </div>
+  <div class="slbl">Blank Templates</div>
+  <div class="rgrid">
+    <div class="rcard tmpl" onclick="openRecipe('tSt')"><span class="ci">📋</span><h3>Straight Dough</h3><p>No preferment · yeast · adjust freely</p></div>
+    <div class="rcard tmpl" onclick="openRecipe('tSD')"><span class="ci">📋</span><h3>Sourdough</h3><p>Levain · up to 5 flours · adjust freely</p></div>
+    <div class="rcard tmpl" onclick="openRecipe('tPL')"><span class="ci">📋</span><h3>Yeast + Preferment</h3><p>Poolish or biga · up to 5 flours</p></div>
+  </div>
+</div>
+
+<div id="calculator">
+  <div class="ctop">
+    <h2 id="ctitle"></h2>
+    <div class="bgrp">
+      <button class="btn bd" onclick="resetToDefaults()">↺ Restore Defaults</button>
+      <button class="btn bo" onclick="goBack()">← Back</button>
+    </div>
+  </div>
+  <div class="clay">
+    <div id="cmain"></div>
+    <div id="cnotes" class="np"></div>
+  </div>
+</div>
+
+<script>
+var RR = {
+  sd80:{name:"80% Hydration Country Sourdough",type:"sd",
+    def:{lw:900,nl:6,hyd:80,bass:0,salt:2.2,malt:.5,pf:20,lhyd:100,seed:2},
+    fl:[{n:"Bread Flour",p:75},{n:"Whole Wheat",p:20},{n:"Rye",p:5}],ex:[],
+    notes:[{l:"Preferment",v:"Sourdough levain"},{l:"Mix",v:"Autolyse flour + water 30-60 min. Add levain and fold in. Add salt + bassinage last."},{l:"Dough Temp",v:"26C / 79F"},{l:"Levain Timing",v:"2 hr: 50% seed · 4-6 hr: 10% · 8-10 hr: 5% · 12-16 hr: 2.5%"},{l:"Bulk",v:"3-4 hours at 26C with 2 stretch-and-fold sets"},{l:"Shaping",v:"Pre-shape, 20 min bench rest, final shape into banneton"},{l:"Proofing",v:"2 hrs room temp OR overnight cold retard in fridge"},{l:"Bake Temp",v:"450F / 230C — preheat Dutch oven 1 hour"},{l:"Bake Time",v:"35-45 min · internal 205-210F / 96-99C"},{l:"Notes",v:"Score decisively. Remove lid at 15 min for crust colour. Cool 1 hr before cutting."}]},
+  sd88:{name:"88% Hydration Country Sourdough",type:"sd",
+    def:{lw:900,nl:12,hyd:70,bass:18,salt:2.2,malt:.5,pf:20,lhyd:100,seed:2.5},
+    fl:[{n:"Bread Flour",p:75},{n:"Whole Wheat",p:20},{n:"Rye",p:5}],ex:[],
+    notes:[{l:"Preferment",v:"Sourdough levain"},{l:"Mix",v:"Autolyse, add levain, fold, add extra water in stages, salt last."},{l:"Dough Temp",v:"26C / 79F"},{l:"Levain Timing",v:"2 hr: 50% seed · 4-6 hr: 10% · 8-10 hr: 5% · 12-16 hr: 2.5%"},{l:"Bulk",v:"4 hours at 26C with 2 folds"},{l:"Bake Temp",v:"450F / 230C with steam"},{l:"Bake Time",v:"35-45 min · internal 205-210F / 96-99C"}]},
+  fmill:{name:"Fresh Milled 100%",type:"sd",
+    def:{lw:1350,nl:5,hyd:70,bass:10,salt:2.2,malt:0,pf:15,lhyd:100,seed:2,ascorbic:.2},
+    fl:[{n:"Fresh Milled (Cedar)",p:100}],
+    ex:[{k:"ascorbic",lb:"Ascorbic Acid %",def:"0.2%",note:"Add with salt."}],
+    notes:[{l:"Preferment",v:"Sourdough levain"},{l:"Mix",v:"Autolyse 30-60 min. Add levain, extra water, salt + ascorbic acid last."},{l:"Dough Temp",v:"26C / 79F"},{l:"Levain Timing",v:"2 hr: 50% seed · 4-6 hr: 10% · 8-10 hr: 5% · 12-16 hr: 2.5%"},{l:"Bulk",v:"3-4 hours with 2 folds"},{l:"Bake Temp",v:"450F / 230C with steam"},{l:"Bake Time",v:"35-45 min · internal 205-210F"},{l:"Notes",v:"Ascorbic acid strengthens fresh-milled gluten."}]},
+  bbOat:{name:"Browned Butter, Brown Sugar Oat",type:"sd",
+    def:{lw:900,nl:12,hyd:68,bass:5,salt:2.3,malt:0,pf:20,lhyd:100,seed:2.5,oatP:30,bButter:6,bSugar:4,hazel:10},
+    fl:[{n:"Bread Flour",p:80},{n:"Einkorn",p:20}],
+    ex:[{k:"oatP",lb:"Oat Porridge %",def:"30%",note:"oats ~33%, water ~67% of porridge weight"},{k:"bButter",lb:"Browned Butter %",def:"6%"},{k:"bSugar",lb:"Brown Sugar %",def:"4%"},{k:"hazel",lb:"Hazelnuts %",def:"10%"}],
+    notes:[{l:"Preferment",v:"Sourdough levain"},{l:"Mix",v:"Autolyse and staged: levain, extra water, salt, then porridge + inclusions at end."},{l:"Oat Porridge",v:"Boil water, add rolled oats, stir until thick. Cool completely before using."},{l:"Dough Temp",v:"26C / 79F"},{l:"Bulk",v:"3-4 hours with 2 folds"},{l:"Bake Temp",v:"500F / 260C with steam"},{l:"Bake Time",v:"30 min · internal 208-210F / 98-99C"}]},
+  ubuck:{name:"Uncle Buck",type:"sd",
+    def:{lw:1000,nl:14,hyd:70,bass:5,salt:2.4,malt:0,pf:15,lhyd:100,seed:2.5,bwScald:45},
+    fl:[{n:"Bread Flour",p:100}],
+    ex:[{k:"bwScald",lb:"Buckwheat Scald %",def:"45%",note:"buckwheat ~25%, water ~75% of scald weight"}],
+    notes:[{l:"Preferment",v:"Sourdough levain"},{l:"Mix",v:"Autolyse and staged — levain, extra water, salt, buckwheat scald last."},{l:"Buckwheat Scald",v:"Boil water, add buckwheat groats, stir until thick. Cool before using. Add at end of mixing."},{l:"Dough Temp",v:"26C / 79F"},{l:"Bulk",v:"3-4 hours with 2 folds"},{l:"Bake Temp",v:"500F / 260C with steam"},{l:"Bake Time",v:"30 min · internal 208-210F / 98-99C"}]},
+  chal:{name:"Challah",type:"pl",enr:["honey","yolks","eggs","oil"],
+    def:{lw:900,nl:14,hyd:37,bass:0,salt:2.2,yeast:1,pf:10,phyd:100,py:.2,malt:.5,honey:8.8,yolks:7,eggs:9.5,oil:8},
+    fl:[{n:"Bread Flour",p:100}],ex:[],
+    notes:[{l:"Preferment",v:"Levain + Poolish"},{l:"Mix",v:"Hold back oil. Develop gluten to windowpane, then slowly stream in oil."},{l:"Dough Temp",v:"26C / 79F"},{l:"Poolish Timing",v:"1 hr: 2% yeast · 2-4 hr: 1% · 6-8 hr: 0.5% · 12-14 hr: 0.25%"},{l:"Bulk",v:"None if using preferment — shape right out of mixer"},{l:"Proofing",v:"60-90 min at room temp. Cover lightly."},{l:"Bake Temp",v:"350-375F / 175-190C"},{l:"Bake Time",v:"Deep golden brown, internal 195F / 91C"},{l:"Notes",v:"1 yolk = 20g · 1 whole egg = 50g"}]},
+  chalS:{name:"Challah with Spelt",type:"pl",enr:["honey","yolks","eggs","oil"],
+    def:{lw:900,nl:14,hyd:37,bass:0,salt:2.2,yeast:1,pf:10,phyd:100,py:.2,malt:.5,honey:8.8,yolks:7,eggs:9.5,oil:8},
+    fl:[{n:"Bread Flour",p:80},{n:"Spelt",p:20}],ex:[],
+    notes:[{l:"Preferment",v:"Poolish (spelt flour)"},{l:"Mix",v:"Hold back oil. Develop gluten to windowpane, slowly stream in oil."},{l:"Dough Temp",v:"26C / 79F"},{l:"Poolish Timing",v:"1 hr: 2% yeast · 2-4 hr: 1% · 6-8 hr: 0.5% · 12-14 hr: 0.25%"},{l:"Proofing",v:"60-90 min at room temp. Cover lightly."},{l:"Bake Temp",v:"350-375F / 175-190C"},{l:"Bake Time",v:"Deep golden brown, internal 195F / 91C"},{l:"Notes",v:"Spelt goes into the poolish. Gluten is more extensible — don't overwork."}]},
+  ciab:{name:"Ciabatta",type:"pl",enr:[],
+    def:{lw:100,nl:16,hyd:70,bass:30,salt:2.2,yeast:.8,pf:15,phyd:100,py:.2,malt:.5,oliveOil:0},
+    fl:[{n:"Bread Flour",p:100}],
+    ex:[{k:"oliveOil",lb:"Olive Oil %",def:"0%"}],
+    notes:[{l:"Preferment",v:"Poolish — ferment until bubbly and domed"},{l:"Mix",v:"Mix flour + poolish + water. Develop gluten. Add salt. Add bassinage in stages."},{l:"Dough Temp",v:"24-26C / 75-79F"},{l:"Poolish Timing",v:"1 hr: 2% yeast · 2-4 hr: 1% · 6-8 hr: 0.5% · 12-14 hr: 0.25%"},{l:"Bulk",v:"3-4 hours with folds — do not degas"},{l:"Shaping",v:"Eyeball size — handle gently, maintain gas bubbles"},{l:"Proofing",v:"45-60 min seam side up on floured cloth"},{l:"Bake Temp",v:"480-500F / 250-260C with steam"},{l:"Bake Time",v:"20-25 min — pale gold crust, hollow when tapped"}]},
+  brio:{name:"Brioche",type:"st",
+    def:{lw:900,nl:15,hyd:37,xw:5,salt:2.1,yeast:2,sugar:10,yolks:5,eggs:20,butter:30,oil:5},
+    fl:[{n:"Bread Flour",p:100}],ex:[],
+    notes:[{l:"Preferment",v:"None"},{l:"Mix",v:"Intensive mixing. Develop gluten to windowpane, then slowly incorporate cold cubed butter, then oil."},{l:"Dough Temp",v:"26C / 79F"},{l:"Bulk",v:"2 hours"},{l:"Shaping",v:"Various shapes"},{l:"Proofing",v:"1-1.5 hours"},{l:"Bake Temp",v:"350F / 175C"},{l:"Bake Time",v:"Depends on shape/size"},{l:"Notes",v:"1 yolk = 20g · 1 whole egg = 50g · Use cold butter, cubed."}]},
+  tSt:{name:"Straight Dough Template",type:"st",
+    def:{lw:900,nl:4,hyd:65,xw:0,salt:2,yeast:1,sugar:0,yolks:0,eggs:0,butter:0,oil:0},
+    fl:[{n:"Flour 1",p:100}],ex:[],
+    notes:[{l:"Template",v:"Blank straight dough. No preferment. Adjust all percentages freely."},{l:"Hydration Guide",v:"Sandwich 60-65% · Sourdough 72-85% · Ciabatta 80-100%"},{l:"Salt Range",v:"2-2.4%"},{l:"Yeast Timing",v:"1-2 hr: 2% · 3-4 hr: 1% · 8 hr: 0.5% · 12 hr: 0.25%"}]},
+  tSD:{name:"Sourdough Template",type:"sd",
+    def:{lw:1000,nl:4,hyd:70,bass:0,salt:2,malt:0,pf:20,lhyd:100,seed:2},
+    fl:[{n:"Flour 1",p:100}],ex:[],
+    notes:[{l:"Template",v:"Blank sourdough. Adjust all percentages freely."},{l:"Hydration Guide",v:"72-85% typical · 88%+ high-hydration"},{l:"Prefermented Flour",v:"5-20% of total flour"},{l:"Levain Timing",v:"2 hr: 50% seed · 4-6 hr: 10% · 8-10 hr: 5% · 12-16 hr: 2.5%"}]},
+  tPL:{name:"Yeast + Preferment Template",type:"pl",enr:[],
+    def:{lw:900,nl:4,hyd:65,bass:0,salt:2,yeast:1,pf:15,phyd:100,py:.5,malt:0},
+    fl:[{n:"Flour 1",p:100}],ex:[],
+    notes:[{l:"Template",v:"Blank yeast + poolish. Adjust all percentages freely."},{l:"Poolish Timing",v:"1 hr: 2% yeast · 2-4 hr: 1% · 6-8 hr: 0.5% · 12-14 hr: 0.25%"},{l:"Prefermented Flour",v:"10-30% of total flour typical"}]}
+};
+
+var CID=null,S={};
+function lk(id){return 'bc_'+id;}
+function openRecipe(id){
+  CID=id;var r=RR[id],sv=null;
+  try{sv=JSON.parse(localStorage.getItem(lk(id)));}catch(e){}
+  S=sv||mkDef(r);
+  document.getElementById('selector').style.display='none';
+  var c=document.getElementById('calculator');c.classList.add('active');
+  document.getElementById('ctitle').textContent=r.name;
+  render();window.scrollTo(0,0);
+}
+function mkDef(r){return Object.assign({},r.def,{fl:r.fl.map(function(f){return {n:f.n,p:f.p};})})}
+function goBack(){document.getElementById('calculator').classList.remove('active');document.getElementById('selector').style.display='block';window.scrollTo(0,0);}
+function resetToDefaults(){S=mkDef(RR[CID]);try{localStorage.removeItem(lk(CID));}catch(e){}render();}
+function persist(){try{localStorage.setItem(lk(CID),JSON.stringify(S));}catch(e){}}
+function g(v){return isNaN(v)||!isFinite(v)?0:v;}
+function f1(n){n=g(n);return n<0?'0.0':n.toFixed(1);}
+function fP(n){return g(n).toFixed(1)+'%';}
+function calcSD(){
+  var r=RR[CID],td=S.lw*S.nl;
+  var xSum=(r.ex||[]).reduce(function(a,e){return a+(S[e.k]||0)/100;},0);
+  var d=1+(S.hyd+S.bass+S.salt+(S.malt||0))/100+xSum;
+  var tf=td/d,w=tf*S.hyd/100,bs=tf*S.bass/100,sl=tf*S.salt/100,mt=tf*(S.malt||0)/100;
+  var exW=(r.ex||[]).map(function(e){return{k:e.k,lb:e.lb,note:e.note,wt:tf*(S[e.k]||0)/100};});
+  var lf=tf*S.pf/100,lw=lf*S.lhyd/100,sd=lf*S.seed/100,lt=lf+lw+sd;
+  var fw=S.fl.map(function(f){return{n:f.n,wt:tf*f.p/100,p:f.p};});
+  var pt=S.fl.reduce(function(a,f){return a+f.p;},0);
+  var ff=S.fl.map(function(f){return{n:f.n,wt:Math.max(0,tf*f.p/100-lf*f.p/100)};});
+  var fw2=w-lw;
+  var yd=ff.reduce(function(a,f){return a+f.wt;},0)+lt+fw2+bs+sl+mt+exW.reduce(function(a,e){return a+e.wt;},0);
+  return{td:td,tf:tf,w:w,bs:bs,sl:sl,mt:mt,exW:exW,lf:lf,lw:lw,sd:sd,lt:lt,fw:fw,pt:pt,ff:ff,fw2:fw2,yd:yd};
+}
+function calcPL(){
+  var r=RR[CID],td=S.lw*S.nl;
+  var enr=r.enr||[],eSum=enr.reduce(function(a,k){return a+(S[k]||0)/100;},0);
+  var xSum=(r.ex||[]).reduce(function(a,e){return a+(S[e.k]||0)/100;},0);
+  var d=1+(S.hyd+S.bass+S.salt+S.yeast+(S.malt||0))/100+eSum+xSum;
+  var tf=td/d,w=tf*S.hyd/100,bs=tf*S.bass/100,sl=tf*S.salt/100,ys=tf*S.yeast/100,mt=tf*(S.malt||0)/100;
+  var eW=enr.map(function(k){return{k:k,wt:tf*(S[k]||0)/100};});
+  var xW=(r.ex||[]).map(function(e){return{k:e.k,lb:e.lb,wt:tf*(S[e.k]||0)/100};});
+  var pf=tf*S.pf/100,pw=pf*S.phyd/100,pys=pf*S.py/100,pt2=pf+pw+pys;
+  var fw=S.fl.map(function(f){return{n:f.n,wt:tf*f.p/100,p:f.p};});
+  var pt=S.fl.reduce(function(a,f){return a+f.p;},0);
+  var ff=S.fl.map(function(f){return{n:f.n,wt:Math.max(0,tf*f.p/100-pf*f.p/100)};});
+  var fw2=w-pw,fy=ys-pys;
+  var yd=ff.reduce(function(a,f){return a+f.wt;},0)+pt2+fw2+bs+fy+sl+mt+eW.reduce(function(a,e){return a+e.wt;},0)+xW.reduce(function(a,e){return a+e.wt;},0);
+  return{td:td,tf:tf,w:w,bs:bs,sl:sl,ys:ys,mt:mt,eW:eW,xW:xW,pf:pf,pw:pw,pys:pys,pt2:pt2,fw:fw,pt:pt,ff:ff,fw2:fw2,fy:fy,yd:yd};
+}
+function calcST(){
+  var r=RR[CID],td=S.lw*S.nl;
+  var d=1+(S.hyd+(S.xw||0)+S.salt+S.yeast+(S.sugar||0)+(S.yolks||0)+(S.eggs||0)+(S.butter||0)+(S.oil||0))/100;
+  var tf=td/d,w=tf*S.hyd/100,xw=tf*(S.xw||0)/100,sl=tf*S.salt/100,ys=tf*S.yeast/100;
+  var sg=tf*(S.sugar||0)/100,yk=tf*(S.yolks||0)/100,eg=tf*(S.eggs||0)/100,bt=tf*(S.butter||0)/100,ol=tf*(S.oil||0)/100;
+  var fw=S.fl.map(function(f){return{n:f.n,wt:tf*f.p/100,p:f.p};});
+  var pt=S.fl.reduce(function(a,f){return a+f.p;},0);
+  var yd=tf+w+xw+sl+ys+sg+yk+eg+bt+ol;
+  return{td:td,tf:tf,w:w,xw:xw,sl:sl,ys:ys,sg:sg,yk:yk,eg:eg,bt:bt,ol:ol,fw:fw,pt:pt,yd:yd};
+}
+function cm(){var t=RR[CID].type;if(t==='sd')return calcSD();if(t==='pl')return calcPL();return calcST();}
+function render(){renderMain();renderNotes();}
+function renderMain(){
+  var r=RR[CID],m=cm(),t=r.type,h='';
+  // Step 1
+  h+='<div class="step"><div class="shdr"><span class="snum">Step 01</span><span class="stit">How many loaves, and how big?</span></div><div class="sbod">';
+  h+='<div class="brow"><div class="fld"><label>Loaf Weight (g)</label><input type="number" value="'+S.lw+'" min="50" oninput="upd(\'lw\',this.value)"></div>';
+  h+='<div class="fld"><label>Number of Loaves</label><input type="number" value="'+S.nl+'" min="1" oninput="upd(\'nl\',this.value)"></div></div>';
+  h+='<div class="sumr"><span class="sl">Total Dough Weight</span><span class="sv">'+f1(m.td)+' g</span></div></div></div>';
+
+  // Step 2
+  var ass=[];
+  if(t==='sd'){ass=[{k:'hyd',lb:'Hydration %',d:r.def.hyd+'%'},{k:'bass',lb:'Bassinage %',d:r.def.bass+'%'},{k:'salt',lb:'Salt %',d:r.def.salt+'%'},{k:'malt',lb:'Diastatic Malt %',d:(r.def.malt||0)+'%'},{k:'pf',lb:'Prefermented Flour %',d:r.def.pf+'%'},{k:'lhyd',lb:'Levain Hydration %',d:r.def.lhyd+'%'},{k:'seed',lb:'Seed % (mature starter)',d:r.def.seed+'%'}];}
+  else if(t==='pl'){ass=[{k:'hyd',lb:'Hydration %',d:r.def.hyd+'%'},{k:'bass',lb:'Bassinage %',d:r.def.bass+'%'},{k:'salt',lb:'Salt %',d:r.def.salt+'%'},{k:'yeast',lb:'Instant Yeast %',d:r.def.yeast+'%'},{k:'pf',lb:'Prefermented Flour %',d:r.def.pf+'%'},{k:'phyd',lb:'Poolish Hydration %',d:r.def.phyd+'%'},{k:'py',lb:'Yeast in Poolish %',d:r.def.py+'%'},{k:'malt',lb:'Malt %',d:(r.def.malt||0)+'%'}];
+    var elnms={honey:'Honey %',yolks:'Egg Yolks %',eggs:'Eggs (whole) %',oil:'Oil %'};
+    (r.enr||[]).forEach(function(k){ass.push({k:k,lb:elnms[k]||k,d:(r.def[k]||0)+'%'});});}
+  else{ass=[{k:'hyd',lb:'Hydration (Milk/Water) %',d:r.def.hyd+'%'},{k:'xw',lb:'Extra Water %',d:(r.def.xw||0)+'%'},{k:'salt',lb:'Salt %',d:r.def.salt+'%'},{k:'yeast',lb:'Instant Yeast %',d:r.def.yeast+'%'},{k:'sugar',lb:'Sugar %',d:(r.def.sugar||0)+'%'},{k:'yolks',lb:'Egg Yolks %',d:(r.def.yolks||0)+'%'},{k:'eggs',lb:'Eggs (whole) %',d:(r.def.eggs||0)+'%'},{k:'butter',lb:'Butter (cold) %',d:(r.def.butter||0)+'%'},{k:'oil',lb:'Oil %',d:(r.def.oil||0)+'%'}];}
+  (r.ex||[]).forEach(function(e){ass.push({k:e.k,lb:e.lb,d:e.def});});
+  h+='<div class="step"><div class="shdr"><span class="snum">Step 02</span><span class="stit">Set Your Percentages</span></div><div class="sbod">';
+  h+='<table><thead><tr><th>Ingredient</th><th class="c">Default</th><th class="c">Your %</th></tr></thead><tbody>';
+  ass.forEach(function(a){var v=S[a.k]!==undefined?S[a.k]:0;h+='<tr><td>'+a.lb+'</td><td class="c dm">'+a.d+'</td><td class="c"><input class="pi" type="number" step="0.1" value="'+v+'" oninput="upd(\''+a.k+'\',this.value)"></td></tr>';});
+  h+='</tbody></table><div class="sumr"><span class="sl">Total Flour</span><span class="sv">'+f1(m.tf)+' g</span></div></div></div>';
+
+  // Step 3
+  var ptOk=Math.abs(m.pt-100)<.5;
+  h+='<div class="step"><div class="shdr"><span class="snum">Step 03</span><span class="stit">Flour Blend (must total 100%)</span></div><div class="sbod">';
+  h+='<table><thead><tr><th>Flour</th><th class="c">Your %</th><th class="r">Weight (g)</th></tr></thead><tbody>';
+  S.fl.forEach(function(fl,i){var fw=m.fw[i];h+='<tr><td>'+fl.n+'</td><td class="c"><input class="pi" type="number" step="1" value="'+fl.p+'" oninput="updF('+i+',this.value)"></td><td class="r mn">'+f1(fw?fw.wt:0)+'</td></tr>';});
+  h+='</tbody></table><div class="pcc '+(ptOk?'ok':'wn')+'">Total: '+fP(m.pt)+' '+(ptOk?'&#x2713;':'&#x26A0; must equal 100%')+'</div></div></div>';
+
+  // Step 4
+  h+='<div class="step"><div class="shdr"><span class="snum">Step 04</span><span class="stit">Your Recipe Weights</span></div><div class="sbod">';
+  h+='<table><thead><tr><th>Ingredient</th><th class="r">% of Flour</th><th class="r">Weight (g)</th></tr></thead><tbody>';
+  if(t==='sd'){
+    h+='<tr><td>Water</td><td class="r dm">'+fP(S.hyd)+'</td><td class="r mn bld">'+f1(m.w)+'</td></tr>';
+    if(S.bass>0)h+='<tr><td>Bassinage</td><td class="r dm">'+fP(S.bass)+'</td><td class="r mn bld">'+f1(m.bs)+'</td></tr>';
+    h+='<tr><td>Salt</td><td class="r dm">'+fP(S.salt)+'</td><td class="r mn bld">'+f1(m.sl)+'</td></tr>';
+    if(S.malt>0)h+='<tr><td>Diastatic Malt</td><td class="r dm">'+fP(S.malt)+'</td><td class="r mn bld">'+f1(m.mt)+'</td></tr>';
+    m.exW.forEach(function(e){h+='<tr><td>'+e.lb+'</td><td class="r dm"></td><td class="r mn bld">'+f1(e.wt)+'</td></tr>';});
+    h+='<tr class="sec"><td>Levain Flour</td><td class="r dm">'+fP(S.pf)+'</td><td class="r mn bld">'+f1(m.lf)+'</td></tr>';
+    h+='<tr class="sub"><td>&#x21B3; Seed Starter</td><td class="r dm">'+fP(S.seed)+'</td><td class="r mn">'+f1(m.sd)+'</td></tr>';
+    h+='<tr class="sub"><td>&#x21B3; Levain Water</td><td class="r dm">'+fP(S.lhyd)+'</td><td class="r mn">'+f1(m.lw)+'</td></tr>';
+    h+='<tr><td class="bld">Levain Total</td><td></td><td class="r mn bld">'+f1(m.lt)+'</td></tr>';
+  } else if(t==='pl'){
+    h+='<tr><td>Water</td><td class="r dm">'+fP(S.hyd)+'</td><td class="r mn bld">'+f1(m.w)+'</td></tr>';
+    if(S.bass>0)h+='<tr><td>Bassinage</td><td class="r dm">'+fP(S.bass)+'</td><td class="r mn bld">'+f1(m.bs)+'</td></tr>';
+    h+='<tr><td>Salt</td><td class="r dm">'+fP(S.salt)+'</td><td class="r mn bld">'+f1(m.sl)+'</td></tr>';
+    h+='<tr><td>Instant Yeast</td><td class="r dm">'+fP(S.yeast)+'</td><td class="r mn bld">'+f1(m.ys)+'</td></tr>';
+    if(S.malt>0)h+='<tr><td>Malt</td><td class="r dm">'+fP(S.malt)+'</td><td class="r mn bld">'+f1(m.mt)+'</td></tr>';
+    var elnms2={honey:'Honey',yolks:'Egg Yolks',eggs:'Eggs (whole)',oil:'Oil'};
+    m.eW.forEach(function(e){h+='<tr><td>'+(elnms2[e.k]||e.k)+'</td><td class="r dm">'+fP(S[e.k]||0)+'</td><td class="r mn bld">'+f1(e.wt)+'</td></tr>';});
+    m.xW.forEach(function(e){h+='<tr><td>'+e.lb+'</td><td class="r dm"></td><td class="r mn bld">'+f1(e.wt)+'</td></tr>';});
+    h+='<tr class="sec"><td>Poolish Flour</td><td class="r dm">'+fP(S.pf)+'</td><td class="r mn bld">'+f1(m.pf)+'</td></tr>';
+    h+='<tr class="sub"><td>&#x21B3; Poolish Water</td><td></td><td class="r mn">'+f1(m.pw)+'</td></tr>';
+    h+='<tr class="sub"><td>&#x21B3; Poolish Yeast</td><td></td><td class="r mn">'+f1(m.pys)+'</td></tr>';
+    h+='<tr><td class="bld">Poolish Total</td><td></td><td class="r mn bld">'+f1(m.pt2)+'</td></tr>';
+  } else {
+    h+='<tr><td>Milk / Water</td><td class="r dm">'+fP(S.hyd)+'</td><td class="r mn bld">'+f1(m.w)+'</td></tr>';
+    if(S.xw>0)h+='<tr><td>Extra Water</td><td class="r dm">'+fP(S.xw)+'</td><td class="r mn bld">'+f1(m.xw)+'</td></tr>';
+    h+='<tr><td>Salt</td><td class="r dm">'+fP(S.salt)+'</td><td class="r mn bld">'+f1(m.sl)+'</td></tr>';
+    h+='<tr><td>Instant Yeast</td><td class="r dm">'+fP(S.yeast)+'</td><td class="r mn bld">'+f1(m.ys)+'</td></tr>';
+    if(S.sugar>0)h+='<tr><td>Sugar</td><td class="r dm">'+fP(S.sugar)+'</td><td class="r mn bld">'+f1(m.sg)+'</td></tr>';
+    if(S.yolks>0)h+='<tr><td>Egg Yolks</td><td class="r dm">'+fP(S.yolks)+'</td><td class="r mn bld">'+f1(m.yk)+'</td></tr>';
+    if(S.eggs>0)h+='<tr><td>Eggs (whole)</td><td class="r dm">'+fP(S.eggs)+'</td><td class="r mn bld">'+f1(m.eg)+'</td></tr>';
+    if(S.butter>0)h+='<tr><td>Butter</td><td class="r dm">'+fP(S.butter)+'</td><td class="r mn bld">'+f1(m.bt)+'</td></tr>';
+    if(S.oil>0)h+='<tr><td>Oil</td><td class="r dm">'+fP(S.oil)+'</td><td class="r mn bld">'+f1(m.ol)+'</td></tr>';
+  }
+  h+='</tbody></table></div></div>';
+
+  // Step 5
+  h+='<div class="step"><div class="shdr"><span class="snum">Step 05</span><span class="stit">Final Mix — Weigh These at the Bench</span></div><div class="sbod">';
+  h+='<table><thead><tr><th>Ingredient</th><th class="r">Weight (g)</th></tr></thead><tbody>';
+  if(t==='sd'){
+    m.ff.forEach(function(f){h+='<tr><td class="ing">'+f.n+'</td><td class="big">'+f1(f.wt)+'</td></tr>';});
+    h+='<tr><td class="ing">Water<small>for autolyse</small></td><td class="big">'+f1(m.fw2)+'</td></tr>';
+    h+='<tr><td class="ing">Levain<small>add after autolyse</small></td><td class="big">'+f1(m.lt)+'</td></tr>';
+    if(m.bs>0)h+='<tr><td class="ing">Bassinage<small>add last</small></td><td class="big">'+f1(m.bs)+'</td></tr>';
+    h+='<tr><td class="ing">Salt<small>add with bassinage</small></td><td class="big">'+f1(m.sl)+'</td></tr>';
+    if(m.mt>0)h+='<tr><td class="ing">Diastatic Malt</td><td class="big">'+f1(m.mt)+'</td></tr>';
+    m.exW.forEach(function(e){var nt=e.note?'<small>'+e.note+'</small>':'';h+='<tr><td class="ing">'+e.lb+nt+'</td><td class="big">'+f1(e.wt)+'</td></tr>';});
+  } else if(t==='pl'){
+    m.ff.forEach(function(f){h+='<tr><td class="ing">'+f.n+'</td><td class="big">'+f1(f.wt)+'</td></tr>';});
+    h+='<tr><td class="ing">Water</td><td class="big">'+f1(m.fw2)+'</td></tr>';
+    h+='<tr><td class="ing">Poolish<small>add at start</small></td><td class="big">'+f1(m.pt2)+'</td></tr>';
+    if(m.bs>0)h+='<tr><td class="ing">Bassinage</td><td class="big">'+f1(m.bs)+'</td></tr>';
+    h+='<tr><td class="ing">Instant Yeast</td><td class="big">'+f1(m.fy)+'</td></tr>';
+    h+='<tr><td class="ing">Salt</td><td class="big">'+f1(m.sl)+'</td></tr>';
+    if(m.mt>0)h+='<tr><td class="ing">Malt</td><td class="big">'+f1(m.mt)+'</td></tr>';
+    var elnms3={honey:'Honey',yolks:'Egg Yolks',eggs:'Eggs (whole)',oil:'Oil (add last)'};
+    m.eW.forEach(function(e){h+='<tr><td class="ing">'+(elnms3[e.k]||e.k)+'</td><td class="big">'+f1(e.wt)+'</td></tr>';});
+    m.xW.forEach(function(e){h+='<tr><td class="ing">'+e.lb+'</td><td class="big">'+f1(e.wt)+'</td></tr>';});
+  } else {
+    m.fw.forEach(function(f){h+='<tr><td class="ing">'+f.n+'</td><td class="big">'+f1(f.wt)+'</td></tr>';});
+    h+='<tr><td class="ing">Milk / Water</td><td class="big">'+f1(m.w)+'</td></tr>';
+    if(S.xw>0)h+='<tr><td class="ing">Extra Water<small>for yeast</small></td><td class="big">'+f1(m.xw)+'</td></tr>';
+    h+='<tr><td class="ing">Instant Yeast</td><td class="big">'+f1(m.ys)+'</td></tr>';
+    h+='<tr><td class="ing">Salt</td><td class="big">'+f1(m.sl)+'</td></tr>';
+    if(S.sugar>0)h+='<tr><td class="ing">Sugar</td><td class="big">'+f1(m.sg)+'</td></tr>';
+    if(S.yolks>0)h+='<tr><td class="ing">Egg Yolks</td><td class="big">'+f1(m.yk)+'</td></tr>';
+    if(S.eggs>0)h+='<tr><td class="ing">Eggs (whole)</td><td class="big">'+f1(m.eg)+'</td></tr>';
+    if(S.butter>0)h+='<tr><td class="ing">Butter<small>add last, cold cubed</small></td><td class="big">'+f1(m.bt)+'</td></tr>';
+    if(S.oil>0)h+='<tr><td class="ing">Oil<small>add last</small></td><td class="big">'+f1(m.ol)+'</td></tr>';
+  }
+  h+='</tbody></table><div class="yr"><span class="yl">Total Yield</span><span class="yv">'+f1(m.yd)+' g</span></div>';
+  h+='<p class="hint">Target: '+f1(m.td)+' g</p></div></div>';
+  document.getElementById('cmain').innerHTML=h;
+}
+function renderNotes(){
+  var notes=RR[CID].notes,h='<h3>Process Notes</h3>';
+  notes.forEach(function(n,i){if(i>0)h+='<hr class="nd">';h+='<div class="ni"><div class="nl">'+n.l+'</div><div class="nv">'+n.v+'</div></div>';});
+  document.getElementById('cnotes').innerHTML=h;
+}
+function upd(k,v){S[k]=parseFloat(v)||0;persist();renderMain();}
+function updF(i,v){S.fl[i].p=parseFloat(v)||0;persist();renderMain();}
+</script>
+</body>
+</html>
