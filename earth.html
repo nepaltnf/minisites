@@ -566,7 +566,7 @@ window.addEventListener('mousemove', e => {
 
   if (dragAxis === 'h') camTheta -= dx * 0.005;
   if (dragAxis === 'v') {
-    camPhi -= dy * 0.00125;
+    camPhi += dy * 0.00125;
     camPhi = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, camPhi));
   }
   // Re-anchor geosync so it continues from new position
@@ -614,7 +614,7 @@ renderer.domElement.addEventListener('touchmove', e => {
 
     if (dragAxis === 'h') camTheta -= dx * 0.005;
     if (dragAxis === 'v') {
-      camPhi -= dy * 0.00125;
+      camPhi += dy * 0.00125;
       camPhi = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, camPhi));
     }
     if (geosyncActive) {
