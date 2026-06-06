@@ -113,7 +113,8 @@ hr.nd{border:none;border-top:1px solid #ddd;margin:.75rem 0}
     </div>
   </div>
   <div class="clay">
-    <div id="cmain"></div>
+    <div id="cmain-in"></div>
+    <div id="cmain-out"></div>
     <div id="cnotes" class="np"></div>
   </div>
 </div>
@@ -233,15 +234,16 @@ function calcST(){
   return{td:td,tf:tf,w:w,xw:xw,sl:sl,ys:ys,sg:sg,yk:yk,eg:eg,bt:bt,ol:ol,fw:fw,pt:pt,yd:yd};
 }
 function cm(){var t=RR[CID].type;if(t==='sd')return calcSD();if(t==='pl')return calcPL();return calcST();}
-function render(){renderMain();renderNotes();}
-function renderMain(){
+function render(){renderInputs();renderOutputs();renderNotes();}
+function renderMain(){renderInputs();renderOutputs();}
+
+function renderInputs(){
   var r=RR[CID],m=cm(),t=r.type,h='';
   // Step 1
   h+='<div class="step"><div class="shdr"><span class="snum">Step 01</span><span class="stit">How many loaves, and how big?</span></div><div class="sbod">';
   h+='<div class="brow"><div class="fld"><label>Loaf Weight (g)</label><input type="number" value="'+S.lw+'" min="50" oninput="upd(\'lw\',this.value)"></div>';
   h+='<div class="fld"><label>Number of Loaves</label><input type="number" value="'+S.nl+'" min="1" oninput="upd(\'nl\',this.value)"></div></div>';
-  h+='<div class="sumr"><span class="sl">Total Dough Weight</span><span class="sv">'+f1(m.td)+' g</span></div></div></div>';
-
+  h+='<div class="sumr"><span class="sl">Total Dough Weight</span><span class="sv" id="ov-td">'+f1(m.td)+' g</span></div></div></div>';
   // Step 2
   var ass=[];
   if(t==='sd'){ass=[{k:'hyd',lb:'Hydration %',d:r.def.hyd+'%'},{k:'bass',lb:'Bassinage %',d:r.def.bass+'%'},{k:'salt',lb:'Salt %',d:r.def.salt+'%'},{k:'malt',lb:'Diastatic Malt %',d:(r.def.malt||0)+'%'},{k:'pf',lb:'Prefermented Flour %',d:r.def.pf+'%'},{k:'lhyd',lb:'Levain Hydration %',d:r.def.lhyd+'%'},{k:'seed',lb:'Seed % (mature starter)',d:r.def.seed+'%'}];}
@@ -253,16 +255,26 @@ function renderMain(){
   h+='<div class="step"><div class="shdr"><span class="snum">Step 02</span><span class="stit">Set Your Percentages</span></div><div class="sbod">';
   h+='<table><thead><tr><th>Ingredient</th><th class="c">Default</th><th class="c">Your %</th></tr></thead><tbody>';
   ass.forEach(function(a){var v=S[a.k]!==undefined?S[a.k]:0;h+='<tr><td>'+a.lb+'</td><td class="c dm">'+a.d+'</td><td class="c"><input class="pi" type="number" step="0.1" value="'+v+'" oninput="upd(\''+a.k+'\',this.value)"></td></tr>';});
-  h+='</tbody></table><div class="sumr"><span class="sl">Total Flour</span><span class="sv">'+f1(m.tf)+' g</span></div></div></div>';
-
+  h+='</tbody></table><div class="sumr"><span class="sl">Total Flour</span><span class="sv" id="ov-tf">'+f1(m.tf)+' g</span></div></div></div>';
   // Step 3
   var ptOk=Math.abs(m.pt-100)<.5;
   h+='<div class="step"><div class="shdr"><span class="snum">Step 03</span><span class="stit">Flour Blend (must total 100%)</span></div><div class="sbod">';
   h+='<table><thead><tr><th>Flour</th><th class="c">Your %</th><th class="r">Weight (g)</th></tr></thead><tbody>';
-  S.fl.forEach(function(fl,i){var fw=m.fw[i];h+='<tr><td>'+fl.n+'</td><td class="c"><input class="pi" type="number" step="1" value="'+fl.p+'" oninput="updF('+i+',this.value)"></td><td class="r mn">'+f1(fw?fw.wt:0)+'</td></tr>';});
-  h+='</tbody></table><div class="pcc '+(ptOk?'ok':'wn')+'">Total: '+fP(m.pt)+' '+(ptOk?'&#x2713;':'&#x26A0; must equal 100%')+'</div></div></div>';
+  S.fl.forEach(function(fl,i){var fw=m.fw[i];h+='<tr><td>'+fl.n+'</td><td class="c"><input class="pi" type="number" step="1" value="'+fl.p+'" oninput="updF('+i+',this.value)"></td><td class="r mn" id="ov-fw-'+i+'">'+f1(fw?fw.wt:0)+'</td></tr>';});
+  h+='</tbody></table><div class="pcc '+(ptOk?'ok':'wn')+'" id="ov-pt">Total: '+fP(m.pt)+' '+(ptOk?'&#x2713;':'&#x26A0; must equal 100%')+'</div></div></div>';
+  document.getElementById('cmain-in').innerHTML=h;
+}
 
-  // Step 4
+function renderOutputs(){
+  var r=RR[CID],m=cm(),t=r.type,el;
+  // Update computed values inside Steps 1-3 in-place
+  el=document.getElementById('ov-td');if(el)el.textContent=f1(m.td)+' g';
+  el=document.getElementById('ov-tf');if(el)el.textContent=f1(m.tf)+' g';
+  var ptOk=Math.abs(m.pt-100)<.5;
+  el=document.getElementById('ov-pt');if(el){el.className='pcc '+(ptOk?'ok':'wn');el.innerHTML='Total: '+fP(m.pt)+' '+(ptOk?'&#x2713;':'&#x26A0; must equal 100%');}
+  S.fl.forEach(function(fl,i){el=document.getElementById('ov-fw-'+i);if(el){var fw=m.fw[i];el.textContent=f1(fw?fw.wt:0);}});
+  // Steps 4 and 5
+  var h='';
   h+='<div class="step"><div class="shdr"><span class="snum">Step 04</span><span class="stit">Your Recipe Weights</span></div><div class="sbod">';
   h+='<table><thead><tr><th>Ingredient</th><th class="r">% of Flour</th><th class="r">Weight (g)</th></tr></thead><tbody>';
   if(t==='sd'){
@@ -300,8 +312,6 @@ function renderMain(){
     if(S.oil>0)h+='<tr><td>Oil</td><td class="r dm">'+fP(S.oil)+'</td><td class="r mn bld">'+f1(m.ol)+'</td></tr>';
   }
   h+='</tbody></table></div></div>';
-
-  // Step 5
   h+='<div class="step"><div class="shdr"><span class="snum">Step 05</span><span class="stit">Final Mix — Weigh These at the Bench</span></div><div class="sbod">';
   h+='<table><thead><tr><th>Ingredient</th><th class="r">Weight (g)</th></tr></thead><tbody>';
   if(t==='sd'){
@@ -337,15 +347,16 @@ function renderMain(){
   }
   h+='</tbody></table><div class="yr"><span class="yl">Total Yield</span><span class="yv">'+f1(m.yd)+' g</span></div>';
   h+='<p class="hint">Target: '+f1(m.td)+' g</p></div></div>';
-  document.getElementById('cmain').innerHTML=h;
+  document.getElementById('cmain-out').innerHTML=h;
 }
+
 function renderNotes(){
   var notes=RR[CID].notes,h='<h3>Process Notes</h3>';
   notes.forEach(function(n,i){if(i>0)h+='<hr class="nd">';h+='<div class="ni"><div class="nl">'+n.l+'</div><div class="nv">'+n.v+'</div></div>';});
   document.getElementById('cnotes').innerHTML=h;
 }
-function upd(k,v){S[k]=parseFloat(v)||0;persist();renderMain();}
-function updF(i,v){S.fl[i].p=parseFloat(v)||0;persist();renderMain();}
+function upd(k,v){S[k]=parseFloat(v)||0;persist();renderOutputs();}
+function updF(i,v){S.fl[i].p=parseFloat(v)||0;persist();renderOutputs();}
 </script>
 </body>
 </html>
