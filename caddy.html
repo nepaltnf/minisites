@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Caddy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg:       #080C08;
+      --surface:  #111811;
+      --surface2: #192019;
+      --border:   #223022;
+      --text:     #FFFFFF;
+      --muted:    #566056;
+      --dim:      #2E3E2E;
+      --accent:   #AAFF00;
+      --green:    #52B788;
+      --danger:   #FF453A;
+      --font: 'Space Mono', ui-monospace, 'Courier New', monospace;
+      --r: 6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100%;
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── AUTH ───────────────────────────────── */
+    #auth-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100svh;
+      padding: 32px 24px;
+    }
+    #auth-screen.hidden { display: none; }
+
+    .auth-mark {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .auth-sub {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      margin-bottom: 52px;
+    }
+    .auth-form {
+      width: 100%;
+      max-width: 340px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .auth-label {
+      display: block;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 5px;
+    }
+    .auth-input {
+      width: 100%;
+      padding: 14px 16px;
+      font-family: var(--font);
+      font-size: 15px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: var(--r);
+      outline: none;
+    }
+    .auth-input:focus { border-color: var(--accent); }
+    .auth-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: var(--bg);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      border: none;
+      border-radius: var(--r);
+      cursor: pointer;
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+    .auth-btn:active { opacity: 0.85; }
+    .auth-error {
+      font-size: 11px;
+      color: var(--danger);
+      text-align: center;
+      min-height: 16px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── APP SHELL ──────────────────────────── */
+    #app { display: none; flex-direction: column; min-height: 100svh; }
+    #app.visible { display: flex; }
+
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 0;
+    }
+    .app-mark {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.25em;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+    .signout-btn {
+      font-family: var(--font);
+      font-size: 10px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      padding: 6px 0;
+    }
+    .signout-btn:active { color: var(--text); }
+
+    /* ── TAB BAR ────────────────────────────── */
+    .tab-bar {
+      display: flex;
+      padding: 14px 20px 0;
+      gap: 6px;
+    }
+    .tab {
+      font-family: var(--font);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 8px 16px;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: var(--r);
+      cursor: pointer;
+      transition: none;
+    }
+    .tab.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+    .tab-panel { display: none; flex: 1; overflow-y: auto; }
+    .tab-panel.active { display: flex; flex-direction: column; }
+
+    /* ── ON COURSE ──────────────────────────── */
+    #panel-oncourse {
+      padding: 28px 20px calc(40px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .hero-label {
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      color: var(--muted);
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .hero-input-wrap {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    #yardage-input {
+      font-family: var(--font);
+      font-size: 80px;
+      font-weight: 700;
+      color: var(--accent);
+      background: none;
+      border: none;
+      outline: none;
+      width: 230px;
+      text-align: center;
+      caret-color: var(--accent);
+      -webkit-appearance: none;
+      appearance: none;
+      line-height: 1;
+    }
+    #yardage-input::placeholder { color: var(--dim); }
+
+    .hero-unit {
+      font-size: 14px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      padding-bottom: 8px;
+    }
+
+    .hero-divider {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      margin: 16px 0 20px;
+    }
+
+    /* conditions */
+    .conditions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+    .cond-field { flex: 1; }
+    .cond-label {
+      display: block;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .cond-input {
+      width: 100%;
+      font-family: var(--font);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 11px 12px;
+      outline: none;
+      text-align: center;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .cond-input:focus { border-color: var(--accent); }
+
+    /* ── CADDY RESULT ───────────────────────── */
+    #caddy-result { display: none; }
+    #caddy-result.visible { display: block; }
+
+    .effective-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .effective-label {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .effective-yds {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+    .effective-unit {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: 2px;
+      font-weight: 400;
+    }
+    .effective-adj {
+      font-size: 11px;
+      color: var(--green);
+      letter-spacing: 0.04em;
+    }
+
+    .caddy-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .caddy-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px 14px;
+    }
+    .caddy-card.commit { border-color: var(--accent); }
+
+    .card-badge {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .caddy-card.commit .card-badge { color: var(--accent); }
+
+    .card-main {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .card-club {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.3px;
+    }
+    .card-carry {
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .caddy-card.alt .card-carry { color: var(--green); }
+
+    .card-sub {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-swing {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+    .card-diff {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+    .card-diff.exact { color: var(--accent); }
+    .card-diff.long  { color: #FF9F0A; }
+    .card-diff.short { color: var(--muted); }
+
+    .no-clubs-prompt {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      line-height: 1.9;
+      padding: 32px 0;
+    }
+
+    /* ── YARDAGES TAB ───────────────────────── */
+    #panel-yardages {
+      padding: 20px 20px calc(80px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .section-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .add-btn {
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      padding: 9px 14px;
+      border-radius: var(--r);
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .add-btn:active { opacity: 0.8; }
+
+    .club-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .club-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .club-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+    }
+    .club-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .club-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .club-type-badge {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--bg);
+      background: var(--muted);
+      padding: 2px 7px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+    .club-edit-btn {
+      font-family: var(--font);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 4px;
+    }
+    .club-edit-btn:active { color: var(--accent); }
+
+    .club-swings {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 16px 14px;
+    }
+    .swing-cell {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      min-width: 80px;
+    }
+    .swing-cell-label {
+      font-size: 8px;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .swing-cell-carry {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+      cursor: pointer;
+      user-select: none;
+    }
+    .swing-cell-carry:active { opacity: 0.7; }
+    .swing-carry-input {
+      font-family: var(--font);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent);
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--accent);
+      outline: none;
+      width: 70px;
+      -webkit-appearance: none;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 52px 20px;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      line-height: 2;
+    }
+
+    /* ── MODAL ──────────────────────────────── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      z-index: 200;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-top: 1px solid var(--border);
+      border-radius: 14px 14px 0 0;
+      padding: 24px 20px calc(32px + env(safe-area-inset-bottom, 0px));
+      width: 100%;
+      max-width: 500px;
+      max-height: 92svh;
+      overflow-y: auto;
+    }
+
+    .modal-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      color: var(--text);
+      text-transform: uppercase;
+      margin-bottom: 22px;
+    }
+
+    .modal-field { margin-bottom: 16px; }
+
+    .modal-label {
+      display: block;
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .modal-input, .modal-select {
+      width: 100%;
+      font-family: var(--font);
+      font-size: 15px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px 14px;
+      outline: none;
+    }
+    .modal-input:focus, .modal-select:focus { border-color: var(--accent); }
+    .modal-select { -webkit-appearance: none; appearance: none; }
+
+    .swings-editor { margin-bottom: 4px; }
+    .swings-editor-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .swing-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .swing-row-label {
+      flex: 1;
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 10px 12px;
+      outline: none;
+    }
+    .swing-row-carry {
+      width: 84px;
+      font-family: var(--font);
+      font-size: 13px;
+      color: var(--accent);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 10px 12px;
+      outline: none;
+      text-align: center;
+      -webkit-appearance: none;
+    }
+    .swing-row-label:focus, .swing-row-carry:focus { border-color: var(--accent); }
+
+    .swing-remove-btn {
+      font-family: var(--font);
+      font-size: 18px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 8px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .swing-remove-btn:active { color: var(--danger); }
+
+    .add-swing-btn {
+      font-family: var(--font);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      background: none;
+      border: 1px dashed var(--dim);
+      border-radius: var(--r);
+      padding: 10px 14px;
+      cursor: pointer;
+      width: 100%;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .add-swing-btn:active { border-color: var(--accent); color: var(--accent); }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 22px;
+    }
+    .modal-cancel {
+      flex: 1;
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px;
+      cursor: pointer;
+    }
+    .modal-save {
+      flex: 2;
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: var(--bg);
+      background: var(--accent);
+      border: none;
+      border-radius: var(--r);
+      padding: 14px;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .modal-save:active { opacity: 0.85; }
+    .modal-save:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .modal-delete {
+      font-family: var(--font);
+      font-size: 10px;
+      color: var(--danger);
+      background: none;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      text-align: center;
+      margin-top: 18px;
+      width: 100%;
+      padding: 6px;
+    }
+    .modal-delete:active { opacity: 0.7; }
+  </style>
+</head>
+<body>
+
+<!-- ── AUTH ──────────────────────────────────── -->
+<div id="auth-screen">
+  <div class="auth-mark">Caddy</div>
+  <div class="auth-sub">yardage tracker</div>
+  <form class="auth-form" onsubmit="handleAuth(event)">
+    <div>
+      <label class="auth-label" for="auth-email">Email</label>
+      <input class="auth-input" id="auth-email" type="email"
+        autocomplete="email" autocapitalize="none" spellcheck="false" />
+    </div>
+    <div>
+      <label class="auth-label" for="auth-password">Password</label>
+      <input class="auth-input" id="auth-password" type="password"
+        autocomplete="current-password" />
+    </div>
+    <div class="auth-error" id="auth-error"></div>
+    <button class="auth-btn" type="submit">Sign In</button>
+  </form>
+</div>
+
+<!-- ── APP ───────────────────────────────────── -->
+<div id="app">
+
+  <div class="app-header">
+    <div class="app-mark">Caddy</div>
+    <button class="signout-btn" onclick="signOut()">sign out</button>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" id="tab-oncourse" onclick="switchTab('oncourse')">On Course</button>
+    <button class="tab" id="tab-yardages" onclick="switchTab('yardages')">Yardages</button>
+  </div>
+
+  <!-- ── ON COURSE ─────────────────────────── -->
+  <div class="tab-panel active" id="panel-oncourse">
+
+    <div class="hero-label">Yardage to Pin</div>
+    <div class="hero-input-wrap">
+      <input
+        type="number"
+        id="yardage-input"
+        inputmode="numeric"
+        placeholder="—"
+        min="1" max="400"
+        oninput="calcCaddy()"
+      />
+      <span class="hero-unit">yds</span>
+    </div>
+
+    <div class="hero-divider"></div>
+
+    <div class="conditions">
+      <div class="cond-field">
+        <label class="cond-label" for="cond-temp">Temp °F</label>
+        <input class="cond-input" id="cond-temp" type="number"
+          inputmode="numeric" value="70"
+          oninput="saveConditions(); calcCaddy()" />
+      </div>
+      <div class="cond-field">
+        <label class="cond-label" for="cond-elev">Elev ft</label>
+        <input class="cond-input" id="cond-elev" type="number"
+          inputmode="numeric" value="0"
+          oninput="saveConditions(); calcCaddy()" />
+      </div>
+    </div>
+
+    <div id="caddy-result">
+      <div class="effective-bar">
+        <span class="effective-label">Effective</span>
+        <span class="effective-yds" id="eff-display">—<span class="effective-unit">yds</span></span>
+        <span class="effective-adj" id="eff-adj"></span>
+      </div>
+      <div class="caddy-cards" id="caddy-cards"></div>
+    </div>
+
+  </div>
+
+  <!-- ── YARDAGES ──────────────────────────── -->
+  <div class="tab-panel" id="panel-yardages">
+
+    <div class="section-hd">
+      <div class="section-title">Your Clubs</div>
+      <button class="add-btn" onclick="openAddClub()">+ Add Club</button>
+    </div>
+
+    <div class="club-list" id="club-list"></div>
+
+  </div>
+
+</div>
+
+<!-- ── CLUB MODAL ────────────────────────────── -->
+<div class="modal-overlay" id="club-modal" onclick="modalBgClick(event)">
+  <div class="modal">
+
+    <div class="modal-title" id="modal-title">Add Club</div>
+
+    <div class="modal-field">
+      <label class="modal-label" for="modal-name">Club Name</label>
+      <input class="modal-input" id="modal-name" type="text"
+        placeholder="e.g. 7 Iron" autocapitalize="words" />
+    </div>
+
+    <div class="modal-field">
+      <label class="modal-label" for="modal-type">Type</label>
+      <select class="modal-select" id="modal-type" onchange="onTypeChange()">
+        <option value="driver">Driver</option>
+        <option value="wood">Wood / Fairway</option>
+        <option value="hybrid">Hybrid</option>
+        <option value="iron" selected>Iron</option>
+        <option value="wedge">Wedge</option>
+      </select>
+    </div>
+
+    <div class="swings-editor">
+      <div class="swings-editor-hd">
+        <label class="modal-label" style="margin:0">Swing Types</label>
+      </div>
+      <div id="swing-rows"></div>
+      <button class="add-swing-btn" type="button" onclick="addSwingRow()">+ Add Swing Type</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-cancel" type="button" onclick="closeModal()">Cancel</button>
+      <button class="modal-save" type="button" onclick="saveClub()" id="modal-save-btn">Save</button>
+    </div>
+    <button class="modal-delete" type="button" id="modal-delete-btn"
+      onclick="deleteClub()" style="display:none">Delete Club</button>
+
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://qlbcgpbfpkkumvznvejs.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsYmNncGJmcGtrdW12em52ZWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mjk1ODUsImV4cCI6MjA4ODEwNTU4NX0.BzIHuf1Anb16cmwx7cqXMwEXO3R3kuzVDNjsVWP0wVE';
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const TYPE_ORDER = ['driver', 'wood', 'hybrid', 'iron', 'wedge'];
+
+  let clubs = [];
+  let editingClubId = null;
+
+  /* ── AUTH ──────────────────────────────── */
+
+  async function init() {
+    loadConditions();
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) showApp();
+  }
+
+  async function handleAuth(e) {
+    e.preventDefault();
+    const email    = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    const errEl    = document.getElementById('auth-error');
+    errEl.textContent = '';
+    if (!email || !password) { errEl.textContent = 'Enter email and password.'; return; }
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { errEl.textContent = error.message; return; }
+    showApp();
+  }
+
+  async function signOut() {
+    await sb.auth.signOut();
+    document.getElementById('app').classList.remove('visible');
+    document.getElementById('auth-screen').classList.remove('hidden');
+  }
+
+  function showApp() {
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app').classList.add('visible');
+    loadClubs();
+    setTimeout(() => document.getElementById('yardage-input').focus(), 120);
+  }
+
+  /* ── TABS ──────────────────────────────── */
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById(`tab-${name}`).classList.add('active');
+    document.getElementById(`panel-${name}`).classList.add('active');
+    if (name === 'oncourse') {
+      setTimeout(() => document.getElementById('yardage-input').focus(), 60);
+    }
+  }
+
+  /* ── CONDITIONS ────────────────────────── */
+
+  function saveConditions() {
+    localStorage.setItem('caddy_temp', document.getElementById('cond-temp').value);
+    localStorage.setItem('caddy_elev', document.getElementById('cond-elev').value);
+  }
+
+  function loadConditions() {
+    const t = localStorage.getItem('caddy_temp');
+    const e = localStorage.getItem('caddy_elev');
+    if (t !== null) document.getElementById('cond-temp').value = t;
+    if (e !== null) document.getElementById('cond-elev').value = e;
+  }
+
+  /* ── CADDY LOGIC ───────────────────────── */
+
+  function calcCaddy() {
+    const target = parseFloat(document.getElementById('yardage-input').value);
+    const temp   = parseFloat(document.getElementById('cond-temp').value) || 70;
+    const elev   = parseFloat(document.getElementById('cond-elev').value) || 0;
+    const result = document.getElementById('caddy-result');
+
+    if (!target || target <= 0) {
+      result.style.display = 'none';
+      return;
+    }
+
+    // Effective yardage: uphill adds, cold adds (ball flies shorter)
+    const elevAdj = elev / 10;
+    const tempAdj = (70 - temp) / 10;
+    const effective = Math.round(target + elevAdj + tempAdj);
+    const totalAdj  = Math.round(elevAdj + tempAdj);
+
+    document.getElementById('eff-display').innerHTML =
+      `${effective}<span class="effective-unit">yds</span>`;
+    document.getElementById('eff-adj').textContent =
+      totalAdj !== 0 ? `(${totalAdj > 0 ? '+' : ''}${totalAdj} adj)` : '';
+
+    // Build candidate pool
+    const candidates = [];
+    clubs.forEach(club => {
+      Object.entries(club.data.swings || {}).forEach(([key, swing]) => {
+        if (swing.carry > 0) {
+          candidates.push({
+            clubId:   club.id,
+            clubName: club.data.name,
+            clubType: club.data.type,
+            swingKey: key,
+            carry:    swing.carry,
+            diff:     swing.carry - effective
+          });
+        }
+      });
+    });
+
+    const cards = document.getElementById('caddy-cards');
+
+    if (!candidates.length) {
+      result.style.display = 'block';
+      cards.innerHTML = `<div class="no-clubs-prompt">
+        No yardages logged yet.<br>Add your clubs in the Yardages tab.
+      </div>`;
+      return;
+    }
+
+    // Primary: closest full swing to effective yardage
+    const fullSwings = candidates
+      .filter(c => c.swingKey === 'full')
+      .sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
+
+    const primary = fullSwings[0] ||
+      [...candidates].sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff))[0];
+
+    // Alt: closest non-full swing from a different club
+    const altSwings = candidates
+      .filter(c => c.swingKey !== 'full' && c.clubId !== primary.clubId)
+      .sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
+
+    const alt = altSwings[0] || null;
+
+    cards.innerHTML = caddyCardHTML(primary, true) + (alt ? caddyCardHTML(alt, false) : '');
+    result.style.display = 'block';
+  }
+
+  function caddyCardHTML(c, isPrimary) {
+    const diff     = Math.round(c.diff);
+    const diffAbs  = Math.abs(diff);
+    let diffLabel, diffClass;
+
+    if (diffAbs <= 2) {
+      diffLabel = 'dead yardage';
+      diffClass = 'exact';
+    } else if (diff > 0) {
+      diffLabel = `+${diff} long`;
+      diffClass = 'long';
+    } else {
+      diffLabel = `${diff} short`;
+      diffClass = 'short';
+    }
+
+    return `
+      <div class="caddy-card ${isPrimary ? 'commit' : 'alt'}">
+        <div class="card-badge">${isPrimary ? 'commit' : 'take something off'}</div>
+        <div class="card-main">
+          <div class="card-club">${c.clubName}</div>
+          <div class="card-carry">${c.carry}</div>
+        </div>
+        <div class="card-sub">
+          <div class="card-swing">${formatSwing(c.swingKey)}</div>
+          <div class="card-diff ${diffClass}">${diffLabel}</div>
+        </div>
+      </div>`;
+  }
+
+  function formatSwing(key) {
+    const labels = { 'full': 'Full swing', '3-4': '¾ swing', '1-2': '½ swing', '3/4': '¾ swing', '1/2': '½ swing' };
+    return labels[key] || key;
+  }
+
+  /* ── CLUBS ─────────────────────────────── */
+
+  async function loadClubs() {
+    const { data, error } = await sb.from('yardages').select('*');
+    if (error) { console.error('loadClubs:', error); return; }
+    clubs = data || [];
+    renderClubs();
+    calcCaddy();
+  }
+
+  function sortedClubs() {
+    return [...clubs].sort((a, b) => {
+      const ai = TYPE_ORDER.indexOf(a.data.type ?? '');
+      const bi = TYPE_ORDER.indexOf(b.data.type ?? '');
+      if (ai !== bi) return ai - bi;
+      return a.data.name.localeCompare(b.data.name);
+    });
+  }
+
+  function renderClubs() {
+    const list = document.getElementById('club-list');
+    const sorted = sortedClubs();
+
+    if (!sorted.length) {
+      list.innerHTML = `<div class="empty-state">
+        No clubs yet.<br>
+        Tap <strong style="color:var(--accent)">+ Add Club</strong> to get started.
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = '';
+    sorted.forEach(club => {
+      const swingCells = Object.entries(club.data.swings || {}).map(([key, sw]) => `
+        <div class="swing-cell">
+          <div class="swing-cell-label">${key}</div>
+          <div class="swing-cell-carry"
+            onclick="inlineEdit('${club.id}','${key}',this)"
+          >${sw.carry || '—'}</div>
+        </div>
+      `).join('');
+
+      const card = document.createElement('div');
+      card.className = 'club-card';
+      card.innerHTML = `
+        <div class="club-card-header">
+          <div class="club-name-wrap">
+            <div class="club-name">${club.data.name}</div>
+            <div class="club-type-badge">${club.data.type}</div>
+          </div>
+          <button class="club-edit-btn" onclick="openEditClub('${club.id}')">edit</button>
+        </div>
+        <div class="club-swings">${swingCells}</div>
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  /* ── INLINE EDIT ───────────────────────── */
+
+  function inlineEdit(clubId, swingKey, el) {
+    const current = el.textContent.trim();
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.className = 'swing-carry-input';
+    inp.value = current === '—' ? '' : current;
+    inp.inputMode = 'numeric';
+    el.replaceWith(inp);
+    inp.focus();
+    inp.select();
+
+    async function commit() {
+      const val = parseInt(inp.value);
+      const club = clubs.find(c => c.id === clubId);
+      if (club && val > 0) {
+        club.data.swings[swingKey].carry = val;
+        await sb.from('yardages').update({ data: club.data }).eq('id', clubId);
+      }
+      renderClubs();
+      calcCaddy();
+    }
+
+    inp.addEventListener('blur', commit);
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter')  { inp.blur(); }
+      if (e.key === 'Escape') { renderClubs(); }
+    });
+  }
+
+  /* ── ADD / EDIT MODAL ──────────────────── */
+
+  function openAddClub() {
+    editingClubId = null;
+    document.getElementById('modal-title').textContent = 'Add Club';
+    document.getElementById('modal-name').value = '';
+    document.getElementById('modal-type').value = 'iron';
+    document.getElementById('modal-delete-btn').style.display = 'none';
+    setDefaultSwings('iron');
+    document.getElementById('club-modal').classList.add('open');
+    setTimeout(() => document.getElementById('modal-name').focus(), 60);
+  }
+
+  function openEditClub(clubId) {
+    const club = clubs.find(c => c.id === clubId);
+    if (!club) return;
+    editingClubId = clubId;
+    document.getElementById('modal-title').textContent = 'Edit Club';
+    document.getElementById('modal-name').value = club.data.name;
+    document.getElementById('modal-type').value = club.data.type;
+    document.getElementById('modal-delete-btn').style.display = 'block';
+    document.getElementById('swing-rows').innerHTML = '';
+    Object.entries(club.data.swings || {}).forEach(([key, sw]) => {
+      addSwingRow(key, sw.carry || '');
+    });
+    document.getElementById('club-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('club-modal').classList.remove('open');
+  }
+
+  function modalBgClick(e) {
+    if (e.target === document.getElementById('club-modal')) closeModal();
+  }
+
+  function onTypeChange() {
+    if (editingClubId) return;
+    setDefaultSwings(document.getElementById('modal-type').value);
+  }
+
+  function setDefaultSwings(type) {
+    document.getElementById('swing-rows').innerHTML = '';
+    if (type === 'wedge') {
+      addSwingRow('full');
+      addSwingRow('3-4');
+      addSwingRow('1-2');
+    } else if (type === 'driver') {
+      addSwingRow('full');
+    } else {
+      addSwingRow('full');
+      addSwingRow('3-4');
+    }
+  }
+
+  function addSwingRow(label = '', carry = '') {
+    const rows = document.getElementById('swing-rows');
+    const row  = document.createElement('div');
+    row.className = 'swing-row';
+    row.innerHTML = `
+      <input class="swing-row-label" type="text" value="${label}"
+        placeholder="swing type" autocapitalize="none" />
+      <input class="swing-row-carry" type="number" inputmode="numeric"
+        value="${carry}" placeholder="yds" />
+      <button class="swing-remove-btn" type="button"
+        onclick="this.closest('.swing-row').remove()">×</button>
+    `;
+    rows.appendChild(row);
+  }
+
+  async function saveClub() {
+    const name = document.getElementById('modal-name').value.trim();
+    const type = document.getElementById('modal-type').value;
+    if (!name) { alert('Club name is required.'); return; }
+
+    const swings = {};
+    document.querySelectorAll('#swing-rows .swing-row').forEach(row => {
+      const lbl   = row.querySelector('.swing-row-label').value.trim();
+      const carry = parseInt(row.querySelector('.swing-row-carry').value) || 0;
+      if (lbl) swings[lbl] = { carry, notes: '' };
+    });
+
+    const saveBtn = document.getElementById('modal-save-btn');
+    saveBtn.disabled = true;
+
+    if (editingClubId) {
+      const club = clubs.find(c => c.id === editingClubId);
+      club.data = { ...club.data, name, type, swings };
+      await sb.from('yardages').update({ data: club.data }).eq('id', editingClubId);
+    } else {
+      const { data: { user } } = await sb.auth.getUser();
+      const slug = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      const id   = `club_${slug}_${Date.now()}`;
+      const rec  = { id, data: { name, type, swings }, user_id: user.id };
+      const { data, error } = await sb.from('yardages').insert(rec).select().single();
+      if (!error) clubs.push(data);
+    }
+
+    saveBtn.disabled = false;
+    closeModal();
+    await loadClubs();
+  }
+
+  async function deleteClub() {
+    if (!editingClubId) return;
+    if (!confirm('Delete this club and all its yardages?')) return;
+    await sb.from('yardages').delete().eq('id', editingClubId);
+    clubs = clubs.filter(c => c.id !== editingClubId);
+    closeModal();
+    renderClubs();
+    calcCaddy();
+  }
+
+  init();
+</script>
+</body>
+</html>
