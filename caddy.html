@@ -1383,8 +1383,8 @@
     </div>
 
     <div class="miss-gate-row">
-      <button class="miss-gate-btn" id="gate-short" onclick="toggleMissGate('short')">← Can't miss short</button>
-      <button class="miss-gate-btn" id="gate-long"  onclick="toggleMissGate('long')">Can't miss long →</button>
+      <button class="miss-gate-btn" id="gate-short" onclick="toggleMissGate('short')">Miss Short</button>
+      <button class="miss-gate-btn" id="gate-long"  onclick="toggleMissGate('long')">Miss Long</button>
     </div>
 
     <div id="caddy-result">
@@ -1876,12 +1876,12 @@
 
     // Apply miss gate filter if active
     let pool = candidates;
-    if (missGate === 'short') {
-      // Can't miss short — must carry at least the full distance
+    if (missGate === 'long') {
+      // Prefer missing long — only clubs that carry at least the full distance
       const clearing = candidates.filter(c => c.carry >= effective);
       if (clearing.length) pool = clearing;
-    } else if (missGate === 'long') {
-      // Can't miss long — must not overshoot
+    } else if (missGate === 'short') {
+      // Prefer missing short — only clubs that stay under the distance
       const staying = candidates.filter(c => c.carry <= effective);
       if (staying.length) pool = staying;
     }
