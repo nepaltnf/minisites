@@ -1886,18 +1886,20 @@
       if (staying.length) pool = staying;
     }
 
-    // Primary: closest carry from filtered pool
+    // Pick up to 4 closest carries, one per club
     const byDiff = [...pool].sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
-    const primary = byDiff[0];
+    const seen = new Set();
+    const picks = [];
+    for (const c of byDiff) {
+      if (!seen.has(c.clubId)) { seen.add(c.clubId); picks.push(c); }
+      if (picks.length === 4) break;
+    }
 
-    // Alt: closest from a different club in the same pool
-    const alt = byDiff.find(c => c.clubId !== primary.clubId) || null;
-
-    const primaryHint = findApproachHint(effective - primary.carry);
-    const altHint     = alt ? findApproachHint(effective - alt.carry) : null;
-    cards.innerHTML = caddyCardHTML(primary, true, primaryHint, effective) + (alt ? caddyCardHTML(alt, false, altHint, effective) : '');
+    cards.innerHTML = picks.map((c, i) =>
+      caddyCardHTML(c, i === 0, findApproachHint(effective - c.carry), effective)
+    ).join('');
     result.style.display = 'block';
-    lastPrimary = primary;
+    lastPrimary = picks[0];
     feedbackLogged = false;
     renderFeedback();
   }
