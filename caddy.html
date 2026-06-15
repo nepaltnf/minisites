@@ -1567,9 +1567,11 @@
     }
 
     // Effective yardage adjustments
+    // Elevation: high altitude = ball flies farther = need less club = lower effective yardage (~2% per 1000 ft)
+    // Temp: cold air is denser = shorter shots = higher effective yardage (~1 yd per 10°F below 70)
     // Headwind (+mph): +1% per mph — headwinds hurt more than tailwinds help
     // Tailwind (-mph): -0.5% per mph
-    const elevAdj = elev / 10;
+    const elevAdj = -Math.round(target * elev / 50000);
     const tempAdj = (70 - temp) / 10;
     const hurtAdj = Math.round(target * (-hurt / 100));
     const windAdj = wind > 0
