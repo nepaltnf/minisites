@@ -211,11 +211,15 @@
       font-family: var(--font);
       font-size: 16px;
       font-weight: 700;
-      color: var(--text);
+      color: var(--muted);
       align-self: flex-start;
       padding-top: 10px;
-      min-width: 28px;
       letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .hero-eff {
+      color: var(--accent);
+      margin-left: 4px;
     }
 
     .hero-unit {
@@ -1713,7 +1717,9 @@
     const effective = Math.round(target + elevAdj + tempAdj + hurtAdj + windAdj);
     const totalAdj  = Math.round(elevAdj + tempAdj + hurtAdj + windAdj);
 
-    adjEl.textContent = totalAdj !== 0 ? (totalAdj > 0 ? '+' : '') + totalAdj : '';
+    adjEl.innerHTML = totalAdj !== 0
+      ? `${totalAdj > 0 ? '+' : ''}${totalAdj} <span class="hero-eff">${effective}</span>`
+      : '';
 
     // Build candidate pool — filtered to active bag if one is selected
     const bag         = activeBag();
