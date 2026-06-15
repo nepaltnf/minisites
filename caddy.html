@@ -247,6 +247,33 @@
       margin-bottom: 10px;
     }
     .yardage-adj-row.visible { display: flex; }
+
+    .miss-gate-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .miss-gate-btn {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 8px 12px;
+      text-align: center;
+      cursor: pointer;
+      font-family: var(--font);
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--muted);
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .miss-gate-btn.active {
+      background: var(--surface2);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
     .yardage-pill {
       flex: 1;
       background: var(--surface);
@@ -1355,6 +1382,11 @@
       </div>
     </div>
 
+    <div class="miss-gate-row">
+      <button class="miss-gate-btn" id="gate-short" onclick="toggleMissGate('short')">← Can't miss short</button>
+      <button class="miss-gate-btn" id="gate-long"  onclick="toggleMissGate('long')">Can't miss long →</button>
+    </div>
+
     <div id="caddy-result">
       <div class="caddy-cards" id="caddy-cards"></div>
     </div>
@@ -1498,6 +1530,14 @@
   let activeBagId    = localStorage.getItem('caddy_active_bag') || null;
   let lastPrimary    = null;
   let feedbackLogged = false;
+  let missGate       = null; // null | 'short' | 'long'
+
+  function toggleMissGate(side) {
+    missGate = (missGate === side) ? null : side;
+    document.getElementById('gate-short').classList.toggle('active', missGate === 'short');
+    document.getElementById('gate-long').classList.toggle('active', missGate === 'long');
+    calcCaddy();
+  }
   let expandedClubId = null;
 
   /* ── SHOT LOG ──────────────────────────────── */
@@ -1834,11 +1874,23 @@
       return;
     }
 
-    // Primary: closest carry to effective yardage (full or partial)
-    const byDiff = [...candidates].sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
+    // Apply miss gate filter if active
+    let pool = candidates;
+    if (missGate === 'short') {
+      // Can't miss short — must carry at least the full distance
+      const clearing = candidates.filter(c => c.carry >= effective);
+      if (clearing.length) pool = clearing;
+    } else if (missGate === 'long') {
+      // Can't miss long — must not overshoot
+      const staying = candidates.filter(c => c.carry <= effective);
+      if (staying.length) pool = staying;
+    }
+
+    // Primary: closest carry from filtered pool
+    const byDiff = [...pool].sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
     const primary = byDiff[0];
 
-    // Alt: closest overall from a different club
+    // Alt: closest from a different club in the same pool
     const alt = byDiff.find(c => c.clubId !== primary.clubId) || null;
 
     const primaryHint = findApproachHint(effective - primary.carry);
