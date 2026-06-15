@@ -1179,7 +1179,7 @@
           oninput="saveConditions(); calcCaddy()" />
       </div>
       <div class="cond-field">
-        <label class="cond-label">Hurt %</label>
+        <label class="cond-label">Manual %</label>
         <div class="hurt-stepper">
           <button class="hurt-step-btn"
             onpointerdown="startHurt(-1)" onpointerup="stopHurt()" onpointerleave="stopHurt()">−</button>
@@ -1454,15 +1454,15 @@
   /* ── CONDITIONS ────────────────────────── */
 
   function saveConditions() {
-    localStorage.setItem('caddy_temp', document.getElementById('cond-temp').value);
-    localStorage.setItem('caddy_elev', document.getElementById('cond-elev').value);
-    localStorage.setItem('caddy_hurt', document.getElementById('cond-hurt').value);
+    localStorage.setItem('caddy_temp',   document.getElementById('cond-temp').value);
+    localStorage.setItem('caddy_elev',   document.getElementById('cond-elev').value);
+    localStorage.setItem('caddy_manual', document.getElementById('cond-hurt').value);
   }
 
   function loadConditions() {
     const t = localStorage.getItem('caddy_temp');
     const e = localStorage.getItem('caddy_elev');
-    const h = localStorage.getItem('caddy_hurt');
+    const h = localStorage.getItem('caddy_manual');
     if (t !== null) document.getElementById('cond-temp').value = t;
     if (e !== null) document.getElementById('cond-elev').value = e;
     if (h !== null) { document.getElementById('cond-hurt').value = h; renderHurt(parseInt(h)); }
@@ -1516,7 +1516,7 @@
     // Effective yardage: uphill adds, cold adds, hurt% scales up target
     const elevAdj = elev / 10;
     const tempAdj = (70 - temp) / 10;
-    const hurtAdj = Math.round(target * (hurt / 100));
+    const hurtAdj = Math.round(target * (-hurt / 100));
     const effective = Math.round(target + elevAdj + tempAdj + hurtAdj);
     const totalAdj  = Math.round(elevAdj + tempAdj + hurtAdj);
 
