@@ -1758,8 +1758,8 @@
     // Alt: closest overall from a different club
     const alt = byDiff.find(c => c.clubId !== primary.clubId) || null;
 
-    const primaryHint = findApproachHint(target - primary.carry);
-    const altHint     = alt ? findApproachHint(target - alt.carry) : null;
+    const primaryHint = findApproachHint(effective - primary.carry);
+    const altHint     = alt ? findApproachHint(effective - alt.carry) : null;
     cards.innerHTML = caddyCardHTML(primary, true, primaryHint, effective) + (alt ? caddyCardHTML(alt, false, altHint, effective) : '');
     result.style.display = 'block';
     lastPrimary = primary;
