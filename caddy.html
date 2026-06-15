@@ -237,6 +237,7 @@
     }
     .cond-input {
       width: 100%;
+      height: 44px;
       font-family: var(--font);
       font-size: 20px;
       font-weight: 700;
@@ -254,20 +255,24 @@
 
     .hurt-stepper {
       display: flex;
-      align-items: center;
+      align-items: stretch;
+      height: 44px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--r);
       overflow: hidden;
     }
     .hurt-step-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-family: var(--font);
       font-size: 22px;
       font-weight: 700;
       color: var(--muted);
       background: none;
       border: none;
-      padding: 9px 12px;
+      padding: 0 12px;
       cursor: pointer;
       user-select: none;
       -webkit-user-select: none;
@@ -1191,6 +1196,19 @@
         </div>
         <input type="hidden" id="cond-hurt" value="0" />
       </div>
+      <div class="cond-field">
+        <label class="cond-label">Wind mph</label>
+        <div class="hurt-stepper">
+          <button class="hurt-step-btn"
+            onmousedown="startWind(-1)" onmouseup="stopWind()" onmouseleave="stopWind()"
+            ontouchstart="startWind(-1,event)" ontouchend="stopWind()">−</button>
+          <div class="hurt-step-val" id="wind-display">0</div>
+          <button class="hurt-step-btn"
+            onmousedown="startWind(1)" onmouseup="stopWind()" onmouseleave="stopWind()"
+            ontouchstart="startWind(1,event)" ontouchend="stopWind()">+</button>
+        </div>
+        <input type="hidden" id="cond-wind" value="0" />
+      </div>
     </div>
 
     <div id="caddy-result">
@@ -1459,15 +1477,18 @@
     localStorage.setItem('caddy_temp',   document.getElementById('cond-temp').value);
     localStorage.setItem('caddy_elev',   document.getElementById('cond-elev').value);
     localStorage.setItem('caddy_manual', document.getElementById('cond-hurt').value);
+    localStorage.setItem('caddy_wind',   document.getElementById('cond-wind').value);
   }
 
   function loadConditions() {
     const t = localStorage.getItem('caddy_temp');
     const e = localStorage.getItem('caddy_elev');
     const h = localStorage.getItem('caddy_manual');
+    const w = localStorage.getItem('caddy_wind');
     if (t !== null) document.getElementById('cond-temp').value = t;
     if (e !== null) document.getElementById('cond-elev').value = e;
     if (h !== null) { document.getElementById('cond-hurt').value = h; renderHurt(parseInt(h)); }
+    if (w !== null) { document.getElementById('cond-wind').value = w; renderWind(parseInt(w)); }
   }
 
   let hurtTimer = null;
@@ -1498,6 +1519,34 @@
     hurtTimer = null;
   }
 
+  let windTimer = null;
+
+  function renderWind(val) {
+    const el = document.getElementById('wind-display');
+    el.textContent = (val > 0 ? '+' : '') + val;
+    el.className   = 'hurt-step-val' + (val !== 0 ? ' active' : '');
+  }
+
+  function changeWind(dir) {
+    const cur = parseInt(document.getElementById('cond-wind').value) || 0;
+    const val = Math.max(-40, Math.min(40, cur + dir));
+    document.getElementById('cond-wind').value = val;
+    renderWind(val);
+    saveConditions();
+    calcCaddy();
+  }
+
+  function startWind(dir, e) {
+    if (e) e.preventDefault();
+    changeWind(dir);
+    windTimer = setInterval(() => changeWind(dir), 140);
+  }
+
+  function stopWind() {
+    clearInterval(windTimer);
+    windTimer = null;
+  }
+
   /* ── CADDY LOGIC ───────────────────────── */
 
   function calcCaddy() {
@@ -1505,6 +1554,7 @@
     const temp   = parseFloat(document.getElementById('cond-temp').value) || 70;
     const elev   = parseFloat(document.getElementById('cond-elev').value) || 0;
     const hurt   = parseFloat(document.getElementById('cond-hurt').value) || 0;
+    const wind   = parseFloat(document.getElementById('cond-wind').value) || 0;
     const result = document.getElementById('caddy-result');
 
     if (!target || target <= 0) {
@@ -1516,12 +1566,17 @@
       return;
     }
 
-    // Effective yardage: uphill adds, cold adds, hurt% scales up target
+    // Effective yardage adjustments
+    // Headwind (+mph): +1% per mph — headwinds hurt more than tailwinds help
+    // Tailwind (-mph): -0.5% per mph
     const elevAdj = elev / 10;
     const tempAdj = (70 - temp) / 10;
     const hurtAdj = Math.round(target * (-hurt / 100));
-    const effective = Math.round(target + elevAdj + tempAdj + hurtAdj);
-    const totalAdj  = Math.round(elevAdj + tempAdj + hurtAdj);
+    const windAdj = wind > 0
+      ? Math.round(target * wind / 100)
+      : Math.round(target * wind / 200);
+    const effective = Math.round(target + elevAdj + tempAdj + hurtAdj + windAdj);
+    const totalAdj  = Math.round(elevAdj + tempAdj + hurtAdj + windAdj);
 
     document.getElementById('eff-display').innerHTML =
       `${effective}<span class="effective-unit">yds</span>`;
@@ -1586,7 +1641,7 @@
     let diffLabel, diffClass;
 
     if (diffAbs <= 2) {
-      diffLabel = 'dead yardage';
+      diffLabel = 'dead on';
       diffClass = 'exact';
     } else if (diff > 0) {
       diffLabel = `+${diff} long`;
