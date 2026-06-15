@@ -252,6 +252,40 @@
     }
     .cond-input:focus { border-color: var(--accent); }
 
+    .hurt-stepper {
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      overflow: hidden;
+    }
+    .hurt-step-btn {
+      font-family: var(--font);
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--muted);
+      background: none;
+      border: none;
+      padding: 9px 12px;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .hurt-step-btn:active { background: var(--surface2); color: var(--text); }
+    .hurt-step-val {
+      flex: 1;
+      text-align: center;
+      font-family: var(--font);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      pointer-events: none;
+    }
+    .hurt-step-val.active { color: #FF9F0A; }
+
     /* ── CADDY RESULT ───────────────────────── */
     #caddy-result { display: none; }
     #caddy-result.visible { display: block; }
@@ -1145,10 +1179,15 @@
           oninput="saveConditions(); calcCaddy()" />
       </div>
       <div class="cond-field">
-        <label class="cond-label" for="cond-hurt">Hurt %</label>
-        <input class="cond-input" id="cond-hurt" type="number"
-          inputmode="numeric" value="0" min="-20" max="20"
-          oninput="saveConditions(); calcCaddy()" />
+        <label class="cond-label">Hurt %</label>
+        <div class="hurt-stepper">
+          <button class="hurt-step-btn"
+            onpointerdown="startHurt(-1)" onpointerup="stopHurt()" onpointerleave="stopHurt()">−</button>
+          <div class="hurt-step-val" id="hurt-display">0%</div>
+          <button class="hurt-step-btn"
+            onpointerdown="startHurt(1)" onpointerup="stopHurt()" onpointerleave="stopHurt()">+</button>
+        </div>
+        <input type="hidden" id="cond-hurt" value="0" />
       </div>
     </div>
 
@@ -1426,7 +1465,34 @@
     const h = localStorage.getItem('caddy_hurt');
     if (t !== null) document.getElementById('cond-temp').value = t;
     if (e !== null) document.getElementById('cond-elev').value = e;
-    if (h !== null) document.getElementById('cond-hurt').value = h;
+    if (h !== null) { document.getElementById('cond-hurt').value = h; renderHurt(parseInt(h)); }
+  }
+
+  let hurtTimer = null;
+
+  function renderHurt(val) {
+    const el = document.getElementById('hurt-display');
+    el.textContent = (val > 0 ? '+' : '') + val + '%';
+    el.className   = 'hurt-step-val' + (val !== 0 ? ' active' : '');
+  }
+
+  function changeHurt(dir) {
+    const cur = parseInt(document.getElementById('cond-hurt').value) || 0;
+    const val = Math.max(-20, Math.min(20, cur + dir));
+    document.getElementById('cond-hurt').value = val;
+    renderHurt(val);
+    saveConditions();
+    calcCaddy();
+  }
+
+  function startHurt(dir) {
+    changeHurt(dir);
+    hurtTimer = setInterval(() => changeHurt(dir), 140);
+  }
+
+  function stopHurt() {
+    clearInterval(hurtTimer);
+    hurtTimer = null;
   }
 
   /* ── CADDY LOGIC ───────────────────────── */
