@@ -178,6 +178,7 @@
       color: var(--muted);
       text-transform: uppercase;
       text-align: center;
+      margin-top: 12px;
       margin-bottom: 8px;
     }
 
@@ -221,10 +222,51 @@
     }
 
     /* conditions */
+    .env-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      padding: 8px 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    .env-toggle-label {
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .env-toggle-summary {
+      flex: 1;
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 700;
+      color: #FF9F0A;
+      letter-spacing: 0.06em;
+    }
+    .env-chevron {
+      display: inline-block;
+      font-size: 13px;
+      color: var(--muted);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .env-chevron.open { transform: rotate(180deg); }
+    .env-fields {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.25s ease, margin-bottom 0.25s ease;
+      margin-bottom: 0;
+    }
+    .env-fields.open {
+      max-height: 90px;
+      margin-bottom: 20px;
+    }
     .conditions {
       display: flex;
       gap: 10px;
-      margin-bottom: 28px;
     }
     .cond-field { flex: 1; }
     .cond-label {
@@ -1147,12 +1189,52 @@
   <!-- ── ON COURSE ─────────────────────────── -->
   <div class="tab-panel active" id="panel-oncourse">
 
-    <div class="bag-selector-row">
-      <span class="bag-selector-label">Playing Bag</span>
-      <button class="bag-selector-btn" id="bag-selector-btn" onclick="openBagPicker()">
-        <span id="bag-selector-name">All Clubs</span>
-        <span class="bag-selector-arrow">▾</span>
-      </button>
+    <div class="env-toggle" onclick="toggleEnv()">
+      <span class="env-toggle-label">Environmental</span>
+      <span class="env-toggle-summary" id="env-summary"></span>
+      <span class="env-chevron" id="env-chevron">▾</span>
+    </div>
+    <div class="env-fields" id="env-fields">
+      <div class="conditions">
+        <div class="cond-field">
+          <label class="cond-label" for="cond-temp">Temp °F</label>
+          <input class="cond-input" id="cond-temp" type="number"
+            inputmode="numeric" value="70"
+            oninput="saveConditions(); calcCaddy()" />
+        </div>
+        <div class="cond-field">
+          <label class="cond-label" for="cond-elev">Elev ft</label>
+          <input class="cond-input" id="cond-elev" type="number"
+            inputmode="numeric" value="0"
+            oninput="saveConditions(); calcCaddy()" />
+        </div>
+        <div class="cond-field">
+          <label class="cond-label">Manual %</label>
+          <div class="hurt-stepper">
+            <button class="hurt-step-btn"
+              onmousedown="startHurt(-1)" onmouseup="stopHurt()" onmouseleave="stopHurt()"
+              ontouchstart="startHurt(-1,event)" ontouchend="stopHurt()">−</button>
+            <div class="hurt-step-val" id="hurt-display">0%</div>
+            <button class="hurt-step-btn"
+              onmousedown="startHurt(1)" onmouseup="stopHurt()" onmouseleave="stopHurt()"
+              ontouchstart="startHurt(1,event)" ontouchend="stopHurt()">+</button>
+          </div>
+          <input type="hidden" id="cond-hurt" value="0" />
+        </div>
+        <div class="cond-field">
+          <label class="cond-label">Wind mph</label>
+          <div class="hurt-stepper">
+            <button class="hurt-step-btn"
+              onmousedown="startWind(-1)" onmouseup="stopWind()" onmouseleave="stopWind()"
+              ontouchstart="startWind(-1,event)" ontouchend="stopWind()">−</button>
+            <div class="hurt-step-val" id="wind-display">0</div>
+            <button class="hurt-step-btn"
+              onmousedown="startWind(1)" onmouseup="stopWind()" onmouseleave="stopWind()"
+              ontouchstart="startWind(1,event)" ontouchend="stopWind()">+</button>
+          </div>
+          <input type="hidden" id="cond-wind" value="0" />
+        </div>
+      </div>
     </div>
 
     <div class="hero-label">Yardage to Pin</div>
@@ -1166,49 +1248,6 @@
         oninput="calcCaddy()"
       />
       <span class="hero-unit">yds</span>
-    </div>
-
-    <div class="hero-divider"></div>
-
-    <div class="conditions">
-      <div class="cond-field">
-        <label class="cond-label" for="cond-temp">Temp °F</label>
-        <input class="cond-input" id="cond-temp" type="number"
-          inputmode="numeric" value="70"
-          oninput="saveConditions(); calcCaddy()" />
-      </div>
-      <div class="cond-field">
-        <label class="cond-label" for="cond-elev">Elev ft</label>
-        <input class="cond-input" id="cond-elev" type="number"
-          inputmode="numeric" value="0"
-          oninput="saveConditions(); calcCaddy()" />
-      </div>
-      <div class="cond-field">
-        <label class="cond-label">Manual %</label>
-        <div class="hurt-stepper">
-          <button class="hurt-step-btn"
-            onmousedown="startHurt(-1)" onmouseup="stopHurt()" onmouseleave="stopHurt()"
-            ontouchstart="startHurt(-1,event)" ontouchend="stopHurt()">−</button>
-          <div class="hurt-step-val" id="hurt-display">0%</div>
-          <button class="hurt-step-btn"
-            onmousedown="startHurt(1)" onmouseup="stopHurt()" onmouseleave="stopHurt()"
-            ontouchstart="startHurt(1,event)" ontouchend="stopHurt()">+</button>
-        </div>
-        <input type="hidden" id="cond-hurt" value="0" />
-      </div>
-      <div class="cond-field">
-        <label class="cond-label">Wind mph</label>
-        <div class="hurt-stepper">
-          <button class="hurt-step-btn"
-            onmousedown="startWind(-1)" onmouseup="stopWind()" onmouseleave="stopWind()"
-            ontouchstart="startWind(-1,event)" ontouchend="stopWind()">−</button>
-          <div class="hurt-step-val" id="wind-display">0</div>
-          <button class="hurt-step-btn"
-            onmousedown="startWind(1)" onmouseup="stopWind()" onmouseleave="stopWind()"
-            ontouchstart="startWind(1,event)" ontouchend="stopWind()">+</button>
-        </div>
-        <input type="hidden" id="cond-wind" value="0" />
-      </div>
     </div>
 
     <div id="caddy-result">
@@ -1478,6 +1517,8 @@
     localStorage.setItem('caddy_elev',   document.getElementById('cond-elev').value);
     localStorage.setItem('caddy_manual', document.getElementById('cond-hurt').value);
     localStorage.setItem('caddy_wind',   document.getElementById('cond-wind').value);
+    renderEnvSummary();
+    scheduleEnvClose();
   }
 
   function loadConditions() {
@@ -1489,6 +1530,39 @@
     if (e !== null) document.getElementById('cond-elev').value = e;
     if (h !== null) { document.getElementById('cond-hurt').value = h; renderHurt(parseInt(h)); }
     if (w !== null) { document.getElementById('cond-wind').value = w; renderWind(parseInt(w)); }
+    renderEnvSummary();
+  }
+
+  function renderEnvSummary() {
+    const temp = parseFloat(document.getElementById('cond-temp').value) || 70;
+    const elev = parseFloat(document.getElementById('cond-elev').value) || 0;
+    const hurt = parseInt(document.getElementById('cond-hurt').value) || 0;
+    const wind = parseInt(document.getElementById('cond-wind').value) || 0;
+    const parts = [];
+    if (temp !== 70) parts.push(temp + '°F');
+    if (elev !== 0) parts.push((elev > 0 ? '+' : '') + elev + 'ft');
+    if (hurt !== 0) parts.push((hurt > 0 ? '+' : '') + hurt + '%');
+    if (wind !== 0) parts.push((wind > 0 ? '+' : '') + wind + 'mph');
+    document.getElementById('env-summary').textContent = parts.join(' · ');
+  }
+
+  let envCloseTimer = null;
+  function scheduleEnvClose() {
+    clearTimeout(envCloseTimer);
+    envCloseTimer = setTimeout(() => {
+      const fields  = document.getElementById('env-fields');
+      const chevron = document.getElementById('env-chevron');
+      fields.classList.remove('open');
+      chevron.classList.remove('open');
+    }, 2000);
+  }
+
+  function toggleEnv() {
+    clearTimeout(envCloseTimer);
+    const fields  = document.getElementById('env-fields');
+    const chevron = document.getElementById('env-chevron');
+    const open = fields.classList.toggle('open');
+    chevron.classList.toggle('open', open);
   }
 
   let hurtTimer = null;
@@ -1793,9 +1867,10 @@
   }
 
   function renderBagSelector() {
-    const bag  = activeBag();
-    const name = bag ? bag.data.name : 'All Clubs';
-    document.getElementById('bag-selector-name').textContent = name;
+    const el = document.getElementById('bag-selector-name');
+    if (!el) return;
+    const bag = activeBag();
+    el.textContent = bag ? bag.data.name : 'All Clubs';
   }
 
   function renderBags() {
