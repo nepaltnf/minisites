@@ -1791,11 +1791,7 @@
       if (club) {
         const entries = Object.entries(club.data.swings || {})
           .filter(([, sw]) => sw.carry > 0)
-          .sort(([a], [b]) => {
-            if (a === 'full') return -1;
-            if (b === 'full') return 1;
-            return (club.data.swings[b].carry || 0) - (club.data.swings[a].carry || 0);
-          });
+          .sort(([, a], [, b]) => (a.carry || 0) - (b.carry || 0));
         const clubFullCarry = club.data.swings?.['full']?.carry || 0;
         swingListHtml = `<div class="swing-options-list">` +
           entries.map(([key, sw]) => {
@@ -2171,7 +2167,7 @@
     list.innerHTML = '';
     sorted.forEach(club => {
       const fullCarry = club.data.swings?.['full']?.carry || 0;
-      const swingCells = Object.entries(club.data.swings || {}).map(([key, sw]) => {
+      const swingCells = Object.entries(club.data.swings || {}).sort(([,a],[,b]) => (a.carry||0) - (b.carry||0)).map(([key, sw]) => {
         const flag = getSwingFlag(club.id, key);
         const flagHtml = flag
           ? `<div class="swing-flag ${flag}">${flag === 'long' ? '↑ long' : '↓ short'}</div>`
