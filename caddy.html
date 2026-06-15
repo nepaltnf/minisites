@@ -198,13 +198,13 @@
 
     #yardage-input {
       font-family: var(--font);
-      font-size: 72px;
+      font-size: 140px;
       font-weight: 700;
       color: var(--accent);
       background: none;
       border: none;
       outline: none;
-      width: 210px;
+      width: 100%;
       text-align: center;
       caret-color: var(--accent);
       -webkit-appearance: none;
@@ -212,13 +212,6 @@
       line-height: 1;
     }
     #yardage-input::placeholder { color: var(--dim); }
-
-    .hero-unit {
-      font-size: 14px;
-      color: var(--muted);
-      letter-spacing: 0.08em;
-      padding-bottom: 6px;
-    }
 
     .yardage-adj-row {
       display: none;
@@ -1311,7 +1304,6 @@
           min="1" max="400"
           oninput="calcCaddy()"
         />
-        <span class="hero-unit">yds</span>
       </div>
     </div>
 
