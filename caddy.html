@@ -172,33 +172,39 @@
       padding: 12px 20px calc(40px + env(safe-area-inset-bottom, 0px));
     }
 
+    .yardage-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 12px 16px 10px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
     .hero-label {
       font-size: 9px;
       letter-spacing: 0.22em;
       color: var(--muted);
       text-transform: uppercase;
-      text-align: center;
-      margin-top: 12px;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     .hero-input-wrap {
       display: flex;
-      align-items: flex-start;
+      align-items: baseline;
       justify-content: center;
       gap: 8px;
-      margin-bottom: 6px;
     }
 
     #yardage-input {
       font-family: var(--font);
-      font-size: 80px;
+      font-size: 72px;
       font-weight: 700;
       color: var(--accent);
       background: none;
       border: none;
       outline: none;
-      width: 230px;
+      width: 210px;
       text-align: center;
       caret-color: var(--accent);
       -webkit-appearance: none;
@@ -207,27 +213,42 @@
     }
     #yardage-input::placeholder { color: var(--dim); }
 
-    .hero-adj {
-      font-family: var(--font);
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--muted);
-      padding-top: 6px;
-      letter-spacing: 0.04em;
-      white-space: nowrap;
-    }
-    .hero-eff {
-      color: var(--accent);
-      margin-left: 4px;
-    }
-
     .hero-unit {
       font-size: 14px;
       color: var(--muted);
       letter-spacing: 0.08em;
-      align-self: flex-end;
       padding-bottom: 6px;
     }
+
+    .yardage-adj-row {
+      display: none;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .yardage-adj-row.visible { display: flex; }
+    .yardage-pill {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 10px 12px 8px;
+      text-align: center;
+    }
+    .yardage-pill-label {
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .yardage-pill-val {
+      font-family: var(--font);
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+    .yardage-pill-val.accent { color: var(--accent); }
 
     .hero-divider {
       width: 100%;
@@ -1279,18 +1300,30 @@
     </div>
     </div>
 
-    <div class="hero-label">Yardage to Pin</div>
-    <div class="hero-input-wrap">
-      <input
-        type="number"
-        id="yardage-input"
-        inputmode="numeric"
-        placeholder="—"
-        min="1" max="400"
-        oninput="calcCaddy()"
-      />
-      <span class="hero-adj" id="hero-adj"></span>
-      <span class="hero-unit">yds</span>
+    <div class="yardage-card">
+      <div class="hero-label">Yardage to Pin</div>
+      <div class="hero-input-wrap">
+        <input
+          type="number"
+          id="yardage-input"
+          inputmode="numeric"
+          placeholder="—"
+          min="1" max="400"
+          oninput="calcCaddy()"
+        />
+        <span class="hero-unit">yds</span>
+      </div>
+    </div>
+
+    <div class="yardage-adj-row" id="yardage-adj-row">
+      <div class="yardage-pill">
+        <div class="yardage-pill-label">Adjustment</div>
+        <div class="yardage-pill-val" id="hero-adj"></div>
+      </div>
+      <div class="yardage-pill">
+        <div class="yardage-pill-label">Playing</div>
+        <div class="yardage-pill-val accent" id="hero-eff"></div>
+      </div>
     </div>
 
     <div id="caddy-result">
@@ -1691,11 +1724,13 @@
     const wind   = parseFloat(document.getElementById('cond-wind').value) || 0;
     const result = document.getElementById('caddy-result');
 
-    const adjEl = document.getElementById('hero-adj');
+    const adjEl    = document.getElementById('hero-adj');
+    const effEl    = document.getElementById('hero-eff');
+    const adjRow   = document.getElementById('yardage-adj-row');
 
     if (!target || target <= 0) {
       result.style.display = 'none';
-      adjEl.textContent = '';
+      adjRow.classList.remove('visible');
       lastPrimary = null;
       feedbackLogged = false;
       expandedClubId = null;
@@ -1717,9 +1752,13 @@
     const effective = Math.round(target + elevAdj + tempAdj + hurtAdj + windAdj);
     const totalAdj  = Math.round(elevAdj + tempAdj + hurtAdj + windAdj);
 
-    adjEl.innerHTML = totalAdj !== 0
-      ? `${totalAdj > 0 ? '+' : ''}${totalAdj} <span class="hero-eff">${effective}</span>`
-      : '';
+    if (totalAdj !== 0) {
+      adjEl.textContent = (totalAdj > 0 ? '+' : '') + totalAdj;
+      effEl.textContent = effective;
+      adjRow.classList.add('visible');
+    } else {
+      adjRow.classList.remove('visible');
+    }
 
     // Build candidate pool — filtered to active bag if one is selected
     const bag         = activeBag();
