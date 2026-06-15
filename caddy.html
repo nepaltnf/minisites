@@ -188,24 +188,41 @@
       justify-content: center;
       gap: 8px;
       margin-bottom: 6px;
+      position: relative;
+      cursor: text;
     }
 
     #yardage-input {
+      position: absolute;
+      opacity: 0;
+      width: 1px;
+      height: 1px;
+      font-size: 16px;
+      pointer-events: none;
+    }
+
+    .yardage-display {
       font-family: var(--font);
       font-size: 80px;
       font-weight: 700;
       color: var(--accent);
-      background: none;
-      border: none;
-      outline: none;
       width: 230px;
       text-align: center;
-      caret-color: var(--accent);
-      -webkit-appearance: none;
-      appearance: none;
       line-height: 1;
+      display: inline-block;
     }
-    #yardage-input::placeholder { color: var(--dim); }
+    .yardage-display.placeholder { color: var(--dim); }
+
+    .hero-adj {
+      font-family: var(--font);
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      align-self: flex-start;
+      padding-top: 10px;
+      min-width: 28px;
+      letter-spacing: 0.04em;
+    }
 
     .hero-unit {
       font-size: 14px;
@@ -1265,24 +1282,20 @@
     </div>
 
     <div class="hero-label">Yardage to Pin</div>
-    <div class="hero-input-wrap">
+    <div class="hero-input-wrap" onclick="document.getElementById('yardage-input').focus()">
+      <span class="yardage-display placeholder" id="yardage-display">—</span>
+      <span class="hero-adj" id="hero-adj"></span>
+      <span class="hero-unit">yds</span>
       <input
         type="number"
         id="yardage-input"
         inputmode="numeric"
-        placeholder="—"
         min="1" max="400"
         oninput="calcCaddy()"
       />
-      <span class="hero-unit">yds</span>
     </div>
 
     <div id="caddy-result">
-      <div class="effective-bar">
-        <span class="effective-label">Effective</span>
-        <span class="effective-yds" id="eff-display">—<span class="effective-unit">yds</span></span>
-        <span class="effective-adj" id="eff-adj"></span>
-      </div>
       <div class="caddy-cards" id="caddy-cards"></div>
     </div>
 
@@ -1680,8 +1693,14 @@
     const wind   = parseFloat(document.getElementById('cond-wind').value) || 0;
     const result = document.getElementById('caddy-result');
 
+    const dispEl = document.getElementById('yardage-display');
+    const adjEl  = document.getElementById('hero-adj');
+
     if (!target || target <= 0) {
       result.style.display = 'none';
+      dispEl.textContent = '—';
+      dispEl.className = 'yardage-display placeholder';
+      adjEl.textContent = '';
       lastPrimary = null;
       feedbackLogged = false;
       expandedClubId = null;
@@ -1703,10 +1722,9 @@
     const effective = Math.round(target + elevAdj + tempAdj + hurtAdj + windAdj);
     const totalAdj  = Math.round(elevAdj + tempAdj + hurtAdj + windAdj);
 
-    document.getElementById('eff-display').innerHTML =
-      `${effective}<span class="effective-unit">yds</span>`;
-    document.getElementById('eff-adj').textContent =
-      totalAdj !== 0 ? `(${totalAdj > 0 ? '+' : ''}${totalAdj} adj)` : '';
+    dispEl.textContent = effective;
+    dispEl.className = 'yardage-display';
+    adjEl.textContent = totalAdj !== 0 ? (totalAdj > 0 ? '+' : '') + totalAdj : '';
 
     // Build candidate pool — filtered to active bag if one is selected
     const bag         = activeBag();
