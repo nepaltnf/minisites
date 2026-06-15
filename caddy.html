@@ -229,6 +229,18 @@
       padding: 0 12px;
       margin-bottom: 16px;
     }
+    .env-locate-btn {
+      background: none;
+      border: none;
+      padding: 4px 6px 4px 0;
+      cursor: pointer;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      transition: opacity 0.2s;
+    }
+    .env-locate-btn.loading { opacity: 0.3; pointer-events: none; }
     .env-toggle {
       display: flex;
       align-items: center;
@@ -1197,6 +1209,13 @@
 
     <div class="env-section">
     <div class="env-toggle" onclick="toggleEnv()">
+      <button class="env-locate-btn" id="env-locate-btn"
+        onclick="getLocationTemp(); event.stopPropagation()">
+        <svg width="14" height="18" viewBox="0 0 14 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M7 0C3.13 0 0 3.13 0 7c0 5.25 7 11 7 11s7-5.75 7-11c0-3.87-3.13-7-7-7z" fill="currentColor"/>
+          <circle cx="7" cy="7" r="2.5" fill="var(--bg)"/>
+        </svg>
+      </button>
       <span class="env-toggle-label">Environmental</span>
       <span class="env-toggle-summary" id="env-summary"></span>
       <span class="env-chevron" id="env-chevron">▾</span>
@@ -1539,6 +1558,28 @@
     if (h !== null) { document.getElementById('cond-hurt').value = h; renderHurt(parseInt(h)); }
     if (w !== null) { document.getElementById('cond-wind').value = w; renderWind(parseInt(w)); }
     renderEnvSummary();
+  }
+
+  function getLocationTemp() {
+    if (!navigator.geolocation) return;
+    const btn = document.getElementById('env-locate-btn');
+    btn.classList.add('loading');
+    navigator.geolocation.getCurrentPosition(
+      async pos => {
+        try {
+          const { latitude: lat, longitude: lon } = pos.coords;
+          const res  = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&temperature_unit=fahrenheit&forecast_days=1`);
+          const data = await res.json();
+          const temp = Math.round(data.current.temperature_2m);
+          document.getElementById('cond-temp').value = temp;
+          saveConditions();
+          calcCaddy();
+        } catch(e) {}
+        btn.classList.remove('loading');
+      },
+      () => btn.classList.remove('loading'),
+      { timeout: 8000 }
+    );
   }
 
   function renderEnvSummary() {
