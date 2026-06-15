@@ -669,6 +669,298 @@
       padding: 6px;
     }
     .modal-delete:active { opacity: 0.7; }
+
+    /* ── BAGS TAB ───────────────────────────────── */
+    #panel-bags {
+      padding: 20px 20px calc(80px + env(safe-area-inset-bottom, 0px));
+    }
+    .bag-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .bag-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .bag-card.active-bag { border-color: var(--accent); }
+    .bag-card-left { display: flex; flex-direction: column; gap: 4px; }
+    .bag-card-name { font-size: 16px; font-weight: 700; color: var(--text); }
+    .bag-card-meta { font-size: 10px; color: var(--muted); letter-spacing: 0.06em; }
+    .bag-active-pill {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--bg);
+      background: var(--accent);
+      padding: 3px 8px;
+      border-radius: 3px;
+      margin-left: 10px;
+    }
+    .bag-edit-btn {
+      font-family: var(--font);
+      font-size: 10px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      padding: 6px 4px;
+    }
+    .bag-edit-btn:active { color: var(--accent); }
+
+    /* bag selector row on On Course */
+    .bag-selector-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .bag-selector-label {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .bag-selector-btn {
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 7px 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .bag-selector-btn:active { border-color: var(--accent); }
+    .bag-selector-arrow { font-size: 9px; color: var(--muted); }
+
+    /* club checklist inside bag edit modal */
+    .club-check-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-top: 4px;
+      max-height: 45svh;
+      overflow-y: auto;
+    }
+    .club-check-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      cursor: pointer;
+      user-select: none;
+    }
+    .club-check-item.checked { border-color: var(--accent); }
+    .club-check-box {
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--bg);
+    }
+    .club-check-item.checked .club-check-box {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .club-check-name { font-size: 14px; font-weight: 700; color: var(--text); }
+    .club-check-type {
+      font-size: 8px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-left: auto;
+    }
+    .bag-count-note {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      text-align: right;
+      margin-top: 6px;
+    }
+
+    /* bag picker sheet */
+    .picker-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .picker-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .picker-item:active { border-color: var(--accent); }
+    .picker-item.selected { border-color: var(--accent); color: var(--accent); }
+    .picker-item-meta { font-size: 10px; color: var(--muted); font-weight: 400; letter-spacing: 0.06em; }
+
+    /* ── NOTES TAB ──────────────────────────────── */
+    #panel-notes {
+      padding: 20px 20px calc(80px + env(safe-area-inset-bottom, 0px));
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .note-textarea {
+      width: 100%;
+      font-family: var(--font);
+      font-size: 14px;
+      color: var(--text);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 14px 16px;
+      outline: none;
+      resize: none;
+      min-height: 100px;
+      line-height: 1.6;
+    }
+    .note-textarea:focus { border-color: var(--accent); }
+    .note-textarea::placeholder { color: var(--muted); }
+    .save-note-btn {
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: var(--r);
+      padding: 14px;
+      cursor: pointer;
+      width: 100%;
+    }
+    .save-note-btn:active { opacity: 0.85; }
+    .save-note-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .notes-list-hd {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .note-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+    }
+    .note-item-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .note-date {
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .note-delete-btn {
+      font-family: var(--font);
+      font-size: 16px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .note-delete-btn:active { color: var(--danger); }
+    .note-text {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.65;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ── SHOT FEEDBACK ──────────────────────────── */
+    .feedback-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .feedback-label {
+      font-size: 9px;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .feedback-btns {
+      display: flex;
+      gap: 6px;
+      flex: 1;
+    }
+    .feedback-btn {
+      font-family: var(--font);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 8px 0;
+      border-radius: var(--r);
+      border: 1px solid var(--border);
+      background: none;
+      color: var(--muted);
+      cursor: pointer;
+      flex: 1;
+    }
+    .feedback-btn.short:active { border-color: var(--muted); color: var(--text); }
+    .feedback-btn.good:active  { border-color: var(--accent); color: var(--accent); }
+    .feedback-btn.long:active  { border-color: #FF9F0A; color: #FF9F0A; }
+    .feedback-logged {
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-align: center;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+    .swing-flag {
+      font-size: 8px;
+      letter-spacing: 0.08em;
+      margin-top: 3px;
+    }
+    .swing-flag.long  { color: #FF9F0A; }
+    .swing-flag.short { color: var(--muted); }
   </style>
 </head>
 <body>
@@ -704,10 +996,20 @@
   <div class="tab-bar">
     <button class="tab active" id="tab-oncourse" onclick="switchTab('oncourse')">On Course</button>
     <button class="tab" id="tab-yardages" onclick="switchTab('yardages')">Yardages</button>
+    <button class="tab" id="tab-bags" onclick="switchTab('bags')">Bags</button>
+    <button class="tab" id="tab-notes" onclick="switchTab('notes')">Notes</button>
   </div>
 
   <!-- ── ON COURSE ─────────────────────────── -->
   <div class="tab-panel active" id="panel-oncourse">
+
+    <div class="bag-selector-row">
+      <span class="bag-selector-label">Playing Bag</span>
+      <button class="bag-selector-btn" id="bag-selector-btn" onclick="openBagPicker()">
+        <span id="bag-selector-name">All Clubs</span>
+        <span class="bag-selector-arrow">▾</span>
+      </button>
+    </div>
 
     <div class="hero-label">Yardage to Pin</div>
     <div class="hero-input-wrap">
@@ -746,8 +1048,31 @@
         <span class="effective-adj" id="eff-adj"></span>
       </div>
       <div class="caddy-cards" id="caddy-cards"></div>
+      <div id="shot-feedback"></div>
     </div>
 
+  </div>
+
+  <!-- ── BAGS ─────────────────────────────── -->
+  <div class="tab-panel" id="panel-bags">
+    <div class="section-hd">
+      <div class="section-title">Your Bags</div>
+      <button class="add-btn" onclick="openNewBag()">+ New Bag</button>
+    </div>
+    <div class="bag-list" id="bag-list"></div>
+  </div>
+
+  <!-- ── NOTES ────────────────────────────── -->
+  <div class="tab-panel" id="panel-notes">
+    <div>
+      <textarea class="note-textarea" id="note-input"
+        placeholder="Swing thought, course note, range session..."></textarea>
+      <button class="save-note-btn" id="save-note-btn" onclick="saveNote()">Save Note</button>
+    </div>
+    <div>
+      <div class="notes-list-hd" style="margin-bottom:12px">Past Notes</div>
+      <div id="note-list"></div>
+    </div>
   </div>
 
   <!-- ── YARDAGES ──────────────────────────── -->
@@ -805,15 +1130,112 @@
   </div>
 </div>
 
+<!-- ── BAG EDIT MODAL ─────────────────────────── -->
+<div class="modal-overlay" id="bag-modal" onclick="bagModalBgClick(event)">
+  <div class="modal">
+    <div class="modal-title" id="bag-modal-title">New Bag</div>
+
+    <div class="modal-field">
+      <label class="modal-label" for="bag-name-input">Bag Name</label>
+      <input class="modal-input" id="bag-name-input" type="text"
+        placeholder="e.g. Weekend Round" autocapitalize="words" />
+    </div>
+
+    <div class="modal-field">
+      <label class="modal-label">Clubs in Bag</label>
+      <div class="club-check-list" id="club-check-list"></div>
+      <div class="bag-count-note" id="bag-count-note"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="modal-cancel" type="button" onclick="closeBagModal()">Cancel</button>
+      <button class="modal-save" type="button" onclick="saveBag()" id="bag-save-btn">Save</button>
+    </div>
+    <button class="modal-delete" type="button" id="bag-delete-btn"
+      onclick="deleteBag()" style="display:none">Delete Bag</button>
+  </div>
+</div>
+
+<!-- ── BAG PICKER SHEET ───────────────────────── -->
+<div class="modal-overlay" id="bag-picker-modal" onclick="bagPickerBgClick(event)">
+  <div class="modal">
+    <div class="modal-title">Playing Bag</div>
+    <div class="picker-list" id="picker-list"></div>
+  </div>
+</div>
+
 <script>
   const SUPABASE_URL = 'https://qlbcgpbfpkkumvznvejs.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsYmNncGJmcGtrdW12em52ZWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mjk1ODUsImV4cCI6MjA4ODEwNTU4NX0.BzIHuf1Anb16cmwx7cqXMwEXO3R3kuzVDNjsVWP0wVE';
-  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+  });
 
   const TYPE_ORDER = ['driver', 'wood', 'hybrid', 'iron', 'wedge'];
 
   let clubs = [];
-  let editingClubId = null;
+  let notes = [];
+  let bags  = [];
+  let editingClubId  = null;
+  let editingBagId   = null;
+  let activeBagId    = localStorage.getItem('caddy_active_bag') || null;
+  let lastPrimary = null;
+  let feedbackLogged = false;
+
+  /* ── SHOT LOG ──────────────────────────────── */
+
+  function getShotLog() {
+    try { return JSON.parse(localStorage.getItem('caddy_shot_log') || '[]'); }
+    catch { return []; }
+  }
+
+  function addShotEntry(entry) {
+    const log = getShotLog();
+    log.push({ ...entry, ts: Date.now() });
+    if (log.length > 500) log.splice(0, log.length - 500);
+    localStorage.setItem('caddy_shot_log', JSON.stringify(log));
+  }
+
+  function getSwingFlag(clubId, swingKey) {
+    const recent = getShotLog()
+      .filter(e => e.clubId === clubId && e.swingKey === swingKey)
+      .slice(-3);
+    if (recent.length < 2) return null;
+    if (recent.filter(e => e.result === 'long').length  >= 2) return 'long';
+    if (recent.filter(e => e.result === 'short').length >= 2) return 'short';
+    return null;
+  }
+
+  function renderFeedback() {
+    const el = document.getElementById('shot-feedback');
+    if (!lastPrimary) { el.innerHTML = ''; return; }
+    if (feedbackLogged) {
+      el.innerHTML = `<div class="feedback-logged">logged ✓</div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div class="feedback-row">
+        <span class="feedback-label">Result</span>
+        <div class="feedback-btns">
+          <button class="feedback-btn short" onclick="logShotResult('short')">Short</button>
+          <button class="feedback-btn good"  onclick="logShotResult('good')">Good</button>
+          <button class="feedback-btn long"  onclick="logShotResult('long')">Long</button>
+        </div>
+      </div>`;
+  }
+
+  function logShotResult(result) {
+    if (!lastPrimary) return;
+    addShotEntry({
+      clubId:        lastPrimary.clubId,
+      swingKey:      lastPrimary.swingKey,
+      targetYardage: parseFloat(document.getElementById('yardage-input').value),
+      result
+    });
+    feedbackLogged = true;
+    renderFeedback();
+    renderClubs();
+  }
 
   /* ── AUTH ──────────────────────────────── */
 
@@ -821,6 +1243,15 @@
     loadConditions();
     const { data: { session } } = await sb.auth.getSession();
     if (session) showApp();
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && document.getElementById('auth-screen').classList.contains('hidden') === false) {
+        showApp();
+      }
+      if (event === 'SIGNED_OUT') {
+        document.getElementById('app').classList.remove('visible');
+        document.getElementById('auth-screen').classList.remove('hidden');
+      }
+    });
   }
 
   async function handleAuth(e) {
@@ -884,6 +1315,9 @@
 
     if (!target || target <= 0) {
       result.style.display = 'none';
+      lastPrimary = null;
+      feedbackLogged = false;
+      document.getElementById('shot-feedback').innerHTML = '';
       return;
     }
 
@@ -898,9 +1332,12 @@
     document.getElementById('eff-adj').textContent =
       totalAdj !== 0 ? `(${totalAdj > 0 ? '+' : ''}${totalAdj} adj)` : '';
 
-    // Build candidate pool
-    const candidates = [];
+    // Build candidate pool — filtered to active bag if one is selected
+    const bag         = activeBag();
+    const bagClubSet  = bag ? new Set(bag.data.clubIds || []) : null;
+    const candidates  = [];
     clubs.forEach(club => {
+      if (bagClubSet && !bagClubSet.has(club.id)) return;
       Object.entries(club.data.swings || {}).forEach(([key, swing]) => {
         if (swing.carry > 0) {
           candidates.push({
@@ -942,6 +1379,9 @@
 
     cards.innerHTML = caddyCardHTML(primary, true) + (alt ? caddyCardHTML(alt, false) : '');
     result.style.display = 'block';
+    lastPrimary = primary;
+    feedbackLogged = false;
+    renderFeedback();
   }
 
   function caddyCardHTML(c, isPrimary) {
@@ -984,9 +1424,248 @@
   async function loadClubs() {
     const { data, error } = await sb.from('yardages').select('*');
     if (error) { console.error('loadClubs:', error); return; }
-    clubs = data || [];
+    const all = data || [];
+    clubs = all.filter(r => !r.id.startsWith('note_') && !r.id.startsWith('bag_'));
+    notes = all.filter(r => r.id.startsWith('note_'))
+               .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    bags  = all.filter(r => r.id.startsWith('bag_'));
+    // validate active bag still exists
+    if (activeBagId && !bags.find(b => b.id === activeBagId)) {
+      activeBagId = null;
+      localStorage.removeItem('caddy_active_bag');
+    }
     renderClubs();
+    renderNotes();
+    renderBags();
+    renderBagSelector();
     calcCaddy();
+  }
+
+  /* ── BAGS ──────────────────────────────────── */
+
+  function activeBag() {
+    return activeBagId ? bags.find(b => b.id === activeBagId) : null;
+  }
+
+  function setActiveBag(id) {
+    activeBagId = id;
+    if (id) localStorage.setItem('caddy_active_bag', id);
+    else localStorage.removeItem('caddy_active_bag');
+    renderBagSelector();
+    renderBags();
+    calcCaddy();
+  }
+
+  function renderBagSelector() {
+    const bag  = activeBag();
+    const name = bag ? bag.data.name : 'All Clubs';
+    document.getElementById('bag-selector-name').textContent = name;
+  }
+
+  function renderBags() {
+    const list = document.getElementById('bag-list');
+    if (!list) return;
+    if (!bags.length) {
+      list.innerHTML = `<div class="empty-state">
+        No bags yet.<br>
+        Tap <strong style="color:var(--accent)">+ New Bag</strong> to get started.
+      </div>`;
+      return;
+    }
+    list.innerHTML = '';
+    bags.forEach(bag => {
+      const ids     = bag.data.clubIds || [];
+      const count   = ids.length;
+      const isActive = bag.id === activeBagId;
+      const card = document.createElement('div');
+      card.className = `bag-card${isActive ? ' active-bag' : ''}`;
+      card.innerHTML = `
+        <div class="bag-card-left">
+          <div class="bag-card-name">
+            ${bag.data.name}
+            ${isActive ? '<span class="bag-active-pill">active</span>' : ''}
+          </div>
+          <div class="bag-card-meta">${count} club${count !== 1 ? 's' : ''}</div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center">
+          ${!isActive ? `<button class="bag-edit-btn" style="color:var(--accent)" onclick="setActiveBag('${bag.id}')">use</button>` : `<button class="bag-edit-btn" onclick="setActiveBag(null)">deselect</button>`}
+          <button class="bag-edit-btn" onclick="openEditBag('${bag.id}')">edit</button>
+        </div>`;
+      list.appendChild(card);
+    });
+  }
+
+  function openBagPicker() {
+    const pickerList = document.getElementById('picker-list');
+    const items = [{ id: null, name: 'All Clubs', meta: `${clubs.length} clubs` }]
+      .concat(bags.map(b => ({
+        id:   b.id,
+        name: b.data.name,
+        meta: `${(b.data.clubIds || []).length} clubs`
+      })));
+    pickerList.innerHTML = items.map(item => `
+      <div class="picker-item${item.id === activeBagId ? ' selected' : ''}"
+        onclick="selectFromPicker(${item.id ? `'${item.id}'` : 'null'})">
+        ${item.name}
+        <span class="picker-item-meta">${item.meta}</span>
+      </div>`).join('');
+    document.getElementById('bag-picker-modal').classList.add('open');
+  }
+
+  function selectFromPicker(id) {
+    setActiveBag(id);
+    document.getElementById('bag-picker-modal').classList.remove('open');
+  }
+
+  function bagPickerBgClick(e) {
+    if (e.target === document.getElementById('bag-picker-modal'))
+      document.getElementById('bag-picker-modal').classList.remove('open');
+  }
+
+  function openNewBag() {
+    editingBagId = null;
+    document.getElementById('bag-modal-title').textContent = 'New Bag';
+    document.getElementById('bag-name-input').value = '';
+    document.getElementById('bag-delete-btn').style.display = 'none';
+    renderClubChecklist([]);
+    document.getElementById('bag-modal').classList.add('open');
+    setTimeout(() => document.getElementById('bag-name-input').focus(), 60);
+  }
+
+  function openEditBag(bagId) {
+    const bag = bags.find(b => b.id === bagId);
+    if (!bag) return;
+    editingBagId = bagId;
+    document.getElementById('bag-modal-title').textContent = 'Edit Bag';
+    document.getElementById('bag-name-input').value = bag.data.name;
+    document.getElementById('bag-delete-btn').style.display = 'block';
+    renderClubChecklist(bag.data.clubIds || []);
+    document.getElementById('bag-modal').classList.add('open');
+  }
+
+  function renderClubChecklist(selectedIds) {
+    const sel  = new Set(selectedIds);
+    const list = document.getElementById('club-check-list');
+    list.innerHTML = sortedClubs().map(club => `
+      <div class="club-check-item${sel.has(club.id) ? ' checked' : ''}"
+        data-club-id="${club.id}"
+        onclick="toggleClubCheck(this)">
+        <div class="club-check-box">${sel.has(club.id) ? '✓' : ''}</div>
+        <div class="club-check-name">${club.data.name}</div>
+        <div class="club-check-type">${club.data.type}</div>
+      </div>`).join('');
+    updateBagCountNote();
+  }
+
+  function toggleClubCheck(el) {
+    el.classList.toggle('checked');
+    el.querySelector('.club-check-box').textContent = el.classList.contains('checked') ? '✓' : '';
+    updateBagCountNote();
+  }
+
+  function updateBagCountNote() {
+    const count = document.querySelectorAll('#club-check-list .club-check-item.checked').length;
+    const note  = document.getElementById('bag-count-note');
+    note.textContent = `${count} club${count !== 1 ? 's' : ''} selected${count > 14 ? ' — over 14-club limit' : ''}`;
+    note.style.color = count > 14 ? 'var(--danger)' : 'var(--muted)';
+  }
+
+  function checkedClubIds() {
+    return [...document.querySelectorAll('#club-check-list .club-check-item.checked')]
+      .map(el => el.dataset.clubId);
+  }
+
+  function closeBagModal() {
+    document.getElementById('bag-modal').classList.remove('open');
+  }
+
+  function bagModalBgClick(e) {
+    if (e.target === document.getElementById('bag-modal')) closeBagModal();
+  }
+
+  async function saveBag() {
+    const name     = document.getElementById('bag-name-input').value.trim();
+    const clubIds  = checkedClubIds();
+    if (!name) { alert('Bag name is required.'); return; }
+    const saveBtn = document.getElementById('bag-save-btn');
+    saveBtn.disabled = true;
+
+    if (editingBagId) {
+      const bag = bags.find(b => b.id === editingBagId);
+      bag.data = { ...bag.data, name, clubIds };
+      await sb.from('yardages').update({ data: bag.data }).eq('id', editingBagId);
+    } else {
+      const { data: { user } } = await sb.auth.getUser();
+      const id  = `bag_${Date.now()}`;
+      const rec = { id, data: { type: 'bag', name, clubIds }, user_id: user.id };
+      const { data, error } = await sb.from('yardages').insert(rec).select().single();
+      if (!error) bags.push(data);
+    }
+
+    saveBtn.disabled = false;
+    closeBagModal();
+    await loadClubs();
+  }
+
+  async function deleteBag() {
+    if (!editingBagId) return;
+    if (!confirm('Delete this bag?')) return;
+    await sb.from('yardages').delete().eq('id', editingBagId);
+    if (activeBagId === editingBagId) setActiveBag(null);
+    bags = bags.filter(b => b.id !== editingBagId);
+    closeBagModal();
+    renderBags();
+  }
+
+  /* ── NOTES ─────────────────────────────── */
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function renderNotes() {
+    const list = document.getElementById('note-list');
+    if (!list) return;
+    if (!notes.length) {
+      list.innerHTML = `<div class="empty-state">No notes yet.<br>Add your first swing thought above.</div>`;
+      return;
+    }
+    list.innerHTML = notes.map(n => {
+      const d = new Date(n.created_at);
+      const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      return `
+        <div class="note-item">
+          <div class="note-item-hd">
+            <div class="note-date">${dateStr}</div>
+            <button class="note-delete-btn" onclick="deleteNote('${n.id}')">×</button>
+          </div>
+          <div class="note-text">${escapeHtml(n.data.text)}</div>
+        </div>`;
+    }).join('');
+  }
+
+  async function saveNote() {
+    const text = document.getElementById('note-input').value.trim();
+    if (!text) return;
+    const btn = document.getElementById('save-note-btn');
+    btn.disabled = true;
+    const { data: { user } } = await sb.auth.getUser();
+    const id  = `note_${Date.now()}`;
+    const rec = { id, data: { type: 'note', text }, user_id: user.id };
+    const { data, error } = await sb.from('yardages').insert(rec).select().single();
+    btn.disabled = false;
+    if (!error && data) {
+      notes.unshift(data);
+      document.getElementById('note-input').value = '';
+      renderNotes();
+    }
+  }
+
+  async function deleteNote(noteId) {
+    if (!confirm('Delete this note?')) return;
+    await sb.from('yardages').delete().eq('id', noteId);
+    notes = notes.filter(n => n.id !== noteId);
+    renderNotes();
   }
 
   function sortedClubs() {
@@ -1012,14 +1691,20 @@
 
     list.innerHTML = '';
     sorted.forEach(club => {
-      const swingCells = Object.entries(club.data.swings || {}).map(([key, sw]) => `
+      const swingCells = Object.entries(club.data.swings || {}).map(([key, sw]) => {
+        const flag = getSwingFlag(club.id, key);
+        const flagHtml = flag
+          ? `<div class="swing-flag ${flag}">${flag === 'long' ? '↑ long' : '↓ short'}</div>`
+          : '';
+        return `
         <div class="swing-cell">
           <div class="swing-cell-label">${key}</div>
           <div class="swing-cell-carry"
             onclick="inlineEdit('${club.id}','${key}',this)"
           >${sw.carry || '—'}</div>
-        </div>
-      `).join('');
+          ${flagHtml}
+        </div>`;
+      }).join('');
 
       const card = document.createElement('div');
       card.className = 'club-card';
