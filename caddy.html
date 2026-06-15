@@ -677,6 +677,65 @@
     }
     .modal-delete:active { opacity: 0.7; }
 
+    /* ── TEE TAB ────────────────────────────────── */
+    #panel-tee {
+      padding: 20px 20px calc(80px + env(safe-area-inset-bottom, 0px));
+    }
+    .tee-plans { display: flex; flex-direction: column; gap: 8px; }
+    .tee-plan {
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      display: flex;
+    }
+    .tee-plan-bar { width: 4px; flex-shrink: 0; background: var(--dim); }
+    .tee-plan.quality-stock .tee-plan-bar { background: var(--accent); }
+    .tee-plan.quality-close .tee-plan-bar { background: #FF9F0A; }
+    .tee-plan-body {
+      display: flex;
+      flex: 1;
+      padding: 14px 16px;
+    }
+    .tee-plan-shot { flex: 1; }
+    .tee-plan-shot-label {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .tee-plan.quality-stock .tee-plan-shot.tee-shot .tee-plan-shot-label { color: var(--accent); }
+    .tee-plan-shot-club { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+    .tee-plan-shot-meta { font-size: 10px; color: var(--muted); letter-spacing: 0.05em; }
+    .tee-plan-shot-yards {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1;
+      margin-top: 6px;
+    }
+    .tee-plan-shot.tee-shot   .tee-plan-shot-yards { color: var(--text); }
+    .tee-plan-shot.appr-shot  .tee-plan-shot-yards { color: var(--accent); }
+    .tee-plan-divider { width: 1px; background: var(--border); margin: 0 16px; flex-shrink: 0; }
+    .tee-section-label {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin: 16px 0 8px;
+    }
+    .tee-section-label:first-child { margin-top: 0; }
+    .tee-no-result {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      line-height: 1.9;
+      padding: 32px 0;
+    }
+
     /* ── BAGS TAB ───────────────────────────────── */
     #panel-bags {
       padding: 20px 20px calc(80px + env(safe-area-inset-bottom, 0px));
@@ -1036,6 +1095,7 @@
 
   <div class="tab-bar">
     <button class="tab active" id="tab-oncourse" onclick="switchTab('oncourse')">On Course</button>
+    <button class="tab" id="tab-tee" onclick="switchTab('tee')">Tee</button>
     <button class="tab" id="tab-yardages" onclick="switchTab('yardages')">Yardages</button>
     <button class="tab" id="tab-bags" onclick="switchTab('bags')">Bags</button>
     <button class="tab" id="tab-notes" onclick="switchTab('notes')">Notes</button>
@@ -1094,6 +1154,23 @@
 
     <div class="notes-preview" id="notes-preview"></div>
 
+  </div>
+
+  <!-- ── TEE ──────────────────────────────── -->
+  <div class="tab-panel" id="panel-tee">
+    <div class="hero-label">Hole Yardage</div>
+    <div class="hero-input-wrap">
+      <input
+        type="number"
+        id="tee-yardage-input"
+        inputmode="numeric"
+        placeholder="—"
+        min="1" max="600"
+        oninput="calcTee()"
+      />
+      <span class="hero-unit">yds</span>
+    </div>
+    <div id="tee-plans"></div>
   </div>
 
   <!-- ── BAGS ─────────────────────────────── -->
@@ -1339,6 +1416,9 @@
     if (name === 'oncourse') {
       setTimeout(() => document.getElementById('yardage-input').focus(), 60);
     }
+    if (name === 'tee') {
+      setTimeout(() => document.getElementById('tee-yardage-input').focus(), 60);
+    }
   }
 
   /* ── CONDITIONS ────────────────────────── */
@@ -1434,6 +1514,105 @@
     renderFeedback();
   }
 
+  /* ── TEE CALCULATOR ───────────────────────── */
+
+  function calcTee() {
+    const total   = parseFloat(document.getElementById('tee-yardage-input').value);
+    const plansEl = document.getElementById('tee-plans');
+    if (!plansEl) return;
+
+    if (!total || total <= 0) { plansEl.innerHTML = ''; return; }
+
+    const bag        = activeBag();
+    const bagClubSet = bag ? new Set(bag.data.clubIds || []) : null;
+
+    const allShots = [];
+    clubs.forEach(club => {
+      if (bagClubSet && !bagClubSet.has(club.id)) return;
+      Object.entries(club.data.swings || {}).forEach(([key, swing]) => {
+        if (swing.carry > 0) allShots.push({
+          clubId: club.id, clubName: club.data.name,
+          swingKey: key, carry: swing.carry, isFull: key === 'full'
+        });
+      });
+    });
+
+    if (!allShots.length) {
+      plansEl.innerHTML = `<div class="tee-no-result">No clubs in your bag yet.<br>Add clubs in the Yardages tab.</div>`;
+      return;
+    }
+
+    // Approach options: full swings only, must leave a reasonable tee shot
+    const approachOptions = allShots.filter(s => s.isFull && s.carry < total - 30);
+
+    const plans = approachOptions.map(approach => {
+      const teeNeeded = total - approach.carry;
+      const teeCandidates = allShots
+        .map(s => ({ ...s, diff: Math.abs(s.carry - teeNeeded) }))
+        .sort((a, b) => {
+          const dd = a.diff - b.diff;
+          if (Math.abs(dd) <= 2) return (b.isFull ? 1 : 0) - (a.isFull ? 1 : 0);
+          return dd;
+        });
+      const bestTee = teeCandidates[0] || null;
+      let quality = 'off';
+      if (bestTee) {
+        if (bestTee.isFull && bestTee.diff <= 5)  quality = 'stock';
+        else if (bestTee.diff <= 15)               quality = 'close';
+      }
+      return { approach, teeNeeded, bestTee, quality };
+    });
+
+    const qOrder = { stock: 0, close: 1, off: 2 };
+    plans.sort((a, b) => {
+      const qd = qOrder[a.quality] - qOrder[b.quality];
+      if (qd !== 0) return qd;
+      return b.approach.carry - a.approach.carry;
+    });
+
+    if (!plans.length) {
+      plansEl.innerHTML = `<div class="tee-no-result">No combinations found for that yardage.</div>`;
+      return;
+    }
+
+    const qLabels = {
+      stock: 'Both shots stock yardage',
+      close: 'Partial swing off the tee',
+      off:   'Awkward tee yardage'
+    };
+
+    let html = '';
+    let lastQuality = null;
+    plans.forEach(plan => {
+      if (plan.quality !== lastQuality) {
+        html += `<div class="tee-section-label">${qLabels[plan.quality]}</div>`;
+        lastQuality = plan.quality;
+      }
+      const teeMeta  = formatSwing(plan.bestTee.swingKey) +
+        (plan.bestTee.diff > 1 ? ` · ±${Math.round(plan.bestTee.diff)}` : '');
+      html += `
+        <div class="tee-plan quality-${plan.quality}">
+          <div class="tee-plan-bar"></div>
+          <div class="tee-plan-body">
+            <div class="tee-plan-shot tee-shot">
+              <div class="tee-plan-shot-label">Tee Shot</div>
+              <div class="tee-plan-shot-club">${plan.bestTee.clubName}</div>
+              <div class="tee-plan-shot-meta">${teeMeta}</div>
+              <div class="tee-plan-shot-yards">${plan.bestTee.carry}</div>
+            </div>
+            <div class="tee-plan-divider"></div>
+            <div class="tee-plan-shot appr-shot">
+              <div class="tee-plan-shot-label">Approach</div>
+              <div class="tee-plan-shot-club">${plan.approach.clubName}</div>
+              <div class="tee-plan-shot-meta">${formatSwing(plan.approach.swingKey)}</div>
+              <div class="tee-plan-shot-yards">${plan.approach.carry}</div>
+            </div>
+          </div>
+        </div>`;
+    });
+    plansEl.innerHTML = html;
+  }
+
   function caddyCardHTML(c, isPrimary) {
     const diff     = Math.round(c.diff);
     const diffAbs  = Math.abs(diff);
@@ -1489,6 +1668,7 @@
     renderBags();
     renderBagSelector();
     calcCaddy();
+    calcTee();
   }
 
   /* ── BAGS ──────────────────────────────────── */
@@ -1504,6 +1684,7 @@
     renderBagSelector();
     renderBags();
     calcCaddy();
+    calcTee();
   }
 
   function renderBagSelector() {
