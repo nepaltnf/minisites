@@ -169,7 +169,7 @@
 
     /* ── ON COURSE ──────────────────────────── */
     #panel-oncourse {
-      padding: 28px 20px calc(40px + env(safe-area-inset-bottom, 0px));
+      padding: 12px 20px calc(40px + env(safe-area-inset-bottom, 0px));
     }
 
     .hero-label {
@@ -222,12 +222,19 @@
     }
 
     /* conditions */
+    .env-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 0 12px;
+      margin-bottom: 16px;
+    }
     .env-toggle {
       display: flex;
       align-items: center;
       gap: 10px;
       cursor: pointer;
-      padding: 8px 0;
+      padding: 10px 0;
       user-select: none;
       -webkit-user-select: none;
     }
@@ -257,12 +264,11 @@
     .env-fields {
       overflow: hidden;
       max-height: 0;
-      transition: max-height 0.25s ease, margin-bottom 0.25s ease;
-      margin-bottom: 0;
+      transition: max-height 0.25s ease;
     }
     .env-fields.open {
       max-height: 90px;
-      margin-bottom: 20px;
+      padding-bottom: 12px;
     }
     .conditions {
       display: flex;
@@ -1189,6 +1195,7 @@
   <!-- ── ON COURSE ─────────────────────────── -->
   <div class="tab-panel active" id="panel-oncourse">
 
+    <div class="env-section">
     <div class="env-toggle" onclick="toggleEnv()">
       <span class="env-toggle-label">Environmental</span>
       <span class="env-toggle-summary" id="env-summary"></span>
@@ -1235,6 +1242,7 @@
           <input type="hidden" id="cond-wind" value="0" />
         </div>
       </div>
+    </div>
     </div>
 
     <div class="hero-label">Yardage to Pin</div>
