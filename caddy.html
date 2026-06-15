@@ -1533,7 +1533,7 @@
     clubs.forEach(club => {
       if (bagClubSet && !bagClubSet.has(club.id)) return;
       Object.entries(club.data.swings || {}).forEach(([key, swing]) => {
-        if (swing.carry > 0) {
+        if (swing.carry > 0 && !isHardSwing(club.id, key, swing.carry)) {
           candidates.push({
             clubId:   club.id,
             clubName: club.data.name,
@@ -1588,7 +1588,7 @@
     clubs.forEach(club => {
       if (bagClubSet && !bagClubSet.has(club.id)) return;
       Object.entries(club.data.swings || {}).forEach(([key, swing]) => {
-        if (swing.carry > 0) allShots.push({
+        if (swing.carry > 0 && !isHardSwing(club.id, key, swing.carry)) allShots.push({
           clubId: club.id, clubName: club.data.name, clubType: club.data.type,
           swingKey: key, carry: swing.carry, isFull: key === 'full'
         });
@@ -1753,7 +1753,7 @@
     clubs.forEach(club => {
       if (bagClubSet && !bagClubSet.has(club.id)) return;
       Object.entries(club.data.swings || {}).forEach(([key, swing]) => {
-        if (swing.carry > 0) candidates.push({
+        if (swing.carry > 0 && !isHardSwing(club.id, key, swing.carry)) candidates.push({
           clubName: club.data.name, clubType: club.data.type,
           swingKey: key, carry: swing.carry,
           isFull: key === 'full',
@@ -1776,8 +1776,19 @@
   }
 
   function formatSwing(key) {
-    const labels = { 'full': 'Full swing', '3-4': '¾ swing', '1-2': '½ swing', '3/4': '¾ swing', '1/2': '½ swing' };
+    const labels = {
+      'full': 'Full',
+      '3-4': '.75', '3/4': '.75', '¾': '.75', '.75': '.75',
+      '1-2': '.50', '1/2': '.50', '½': '.50', '.50': '.50', '.5': '.50',
+      '1-4': '.25', '1/4': '.25', '¼': '.25', '.25': '.25',
+    };
     return labels[key] || key;
+  }
+
+  function isHardSwing(clubId, swingKey, carry) {
+    const club = clubs.find(c => c.id === clubId);
+    const fullCarry = club?.data?.swings?.['full']?.carry;
+    return fullCarry > 0 && carry > fullCarry;
   }
 
   /* ── CLUBS ─────────────────────────────── */
