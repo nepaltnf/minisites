@@ -1492,17 +1492,12 @@
       return;
     }
 
-    // Primary: closest full swing to effective yardage
-    const fullSwings = candidates
-      .filter(c => c.swingKey === 'full')
-      .sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
+    // Primary: closest overall match — any swing type, any club
+    const primary = [...candidates].sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff))[0];
 
-    const primary = fullSwings[0] ||
-      [...candidates].sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff))[0];
-
-    // Alt: closest non-full swing from a different club
+    // Alt: closest match from a different club than primary
     const altSwings = candidates
-      .filter(c => c.swingKey !== 'full' && c.clubId !== primary.clubId)
+      .filter(c => c.clubId !== primary.clubId)
       .sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
 
     const alt = altSwings[0] || null;
@@ -1531,7 +1526,7 @@
       if (bagClubSet && !bagClubSet.has(club.id)) return;
       Object.entries(club.data.swings || {}).forEach(([key, swing]) => {
         if (swing.carry > 0) allShots.push({
-          clubId: club.id, clubName: club.data.name,
+          clubId: club.id, clubName: club.data.name, clubType: club.data.type,
           swingKey: key, carry: swing.carry, isFull: key === 'full'
         });
       });
@@ -1596,14 +1591,14 @@
           <div class="tee-plan-body">
             <div class="tee-plan-shot tee-shot">
               <div class="tee-plan-shot-label">Tee Shot</div>
-              <div class="tee-plan-shot-club">${plan.bestTee.clubName}</div>
+              <div class="tee-plan-shot-club">${displayName(plan.bestTee.clubName, plan.bestTee.clubType)}</div>
               <div class="tee-plan-shot-meta">${teeMeta}</div>
               <div class="tee-plan-shot-yards">${plan.bestTee.carry}</div>
             </div>
             <div class="tee-plan-divider"></div>
             <div class="tee-plan-shot appr-shot">
               <div class="tee-plan-shot-label">Approach</div>
-              <div class="tee-plan-shot-club">${plan.approach.clubName}</div>
+              <div class="tee-plan-shot-club">${displayName(plan.approach.clubName, plan.approach.clubType)}</div>
               <div class="tee-plan-shot-meta">${formatSwing(plan.approach.swingKey)}</div>
               <div class="tee-plan-shot-yards">${plan.approach.carry}</div>
             </div>
@@ -1633,7 +1628,7 @@
       <div class="caddy-card ${isPrimary ? 'commit' : 'alt'}">
         <div class="card-badge">${isPrimary ? 'commit' : 'take something off'}</div>
         <div class="card-main">
-          <div class="card-club">${c.clubName}</div>
+          <div class="card-club">${displayName(c.clubName, c.clubType)}</div>
           <div class="card-carry">${c.carry}</div>
         </div>
         <div class="card-sub">
@@ -1641,6 +1636,11 @@
           <div class="card-diff ${diffClass}">${diffLabel}</div>
         </div>
       </div>`;
+  }
+
+  function displayName(name, type) {
+    if (!type || name.toLowerCase().includes(type.toLowerCase())) return name;
+    return `${name} ${type.charAt(0).toUpperCase() + type.slice(1)}`;
   }
 
   function formatSwing(key) {
@@ -1782,7 +1782,7 @@
         data-club-id="${club.id}"
         onclick="toggleClubCheck(this)">
         <div class="club-check-box">${sel.has(club.id) ? '✓' : ''}</div>
-        <div class="club-check-name">${club.data.name}</div>
+        <div class="club-check-name">${displayName(club.data.name, club.data.type)}</div>
         <div class="club-check-type">${club.data.type}</div>
       </div>`).join('');
     updateBagCountNote();
@@ -1961,7 +1961,7 @@
         <div class="club-card-header">
           <div class="club-name-wrap">
             <div>
-              <div class="club-name">${club.data.name}</div>
+              <div class="club-name">${displayName(club.data.name, club.data.type)}</div>
               ${club.data.set ? `<div class="club-set-label">${club.data.set}</div>` : ''}
             </div>
             <div class="club-type-badge">${club.data.type}</div>
