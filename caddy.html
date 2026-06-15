@@ -1257,7 +1257,6 @@
         <span class="effective-adj" id="eff-adj"></span>
       </div>
       <div class="caddy-cards" id="caddy-cards"></div>
-      <div id="shot-feedback"></div>
     </div>
 
     <div class="notes-preview" id="notes-preview"></div>
@@ -1427,13 +1426,14 @@
 
   function renderFeedback() {
     const el = document.getElementById('shot-feedback');
+    if (!el) return;
     if (!lastPrimary) { el.innerHTML = ''; return; }
     if (feedbackLogged) {
-      el.innerHTML = `<div class="feedback-logged">logged ✓</div>`;
+      el.innerHTML = `<div class="feedback-logged" onclick="event.stopPropagation()">logged ✓</div>`;
       return;
     }
     el.innerHTML = `
-      <div class="feedback-row">
+      <div class="feedback-row" onclick="event.stopPropagation()">
         <span class="feedback-label">Result</span>
         <div class="feedback-btns">
           <button class="feedback-btn short" onclick="logShotResult('short')">Short</button>
@@ -1779,6 +1779,7 @@
         </div>
         ${swingListHtml}
         ${approachHtml}
+        ${isPrimary ? '<div id="shot-feedback"></div>' : ''}
         <div class="card-expand-toggle">${isExpanded ? '▲ less' : '▼ all swings'}</div>
       </div>`;
   }
