@@ -1689,9 +1689,9 @@
       return;
     }
 
-    // Primary: closest full swing; fall back to closest any swing
+    // Primary: closest carry to effective yardage (full or partial)
     const byDiff = [...candidates].sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
-    const primary = byDiff.find(c => c.swingKey === 'full') || byDiff[0];
+    const primary = byDiff[0];
 
     // Alt: closest overall from a different club
     const alt = byDiff.find(c => c.clubId !== primary.clubId) || null;
