@@ -515,10 +515,12 @@
     .swing-cell-carry {
       font-size: 24px;
       font-weight: 700;
-      color: var(--accent);
       cursor: pointer;
       user-select: none;
     }
+    .carry-full    { color: var(--accent); }
+    .carry-partial { color: var(--green); }
+    .carry-hard    { color: var(--muted); }
     .swing-cell-carry:active { opacity: 0.7; }
     .swing-carry-input {
       font-family: var(--font);
@@ -1712,15 +1714,18 @@
             if (b === 'full') return 1;
             return (club.data.swings[b].carry || 0) - (club.data.swings[a].carry || 0);
           });
+        const clubFullCarry = club.data.swings?.['full']?.carry || 0;
         swingListHtml = `<div class="swing-options-list">` +
           entries.map(([key, sw]) => {
             const d    = Math.round(sw.carry - effective);
             const dAbs = Math.abs(d);
             const dClass = dAbs <= 2 ? 'exact' : d > 0 ? 'long' : 'short';
             const dLabel = dAbs <= 2 ? 'dead' : d > 0 ? `+${d}` : `${d}`;
+            const isHard = clubFullCarry > 0 && sw.carry > clubFullCarry;
+            const carryClass = key === 'full' ? 'carry-full' : isHard ? 'carry-hard' : 'carry-partial';
             return `<div class="swing-option${key === c.swingKey ? ' current' : ''}">
               <span class="swing-opt-label">${formatSwing(key)}</span>
-              <span class="swing-opt-carry">${sw.carry}</span>
+              <span class="swing-opt-carry ${carryClass}">${sw.carry}</span>
               <span class="swing-opt-diff ${dClass}">${dLabel}</span>
             </div>`;
           }).join('') +
@@ -2083,15 +2088,18 @@
 
     list.innerHTML = '';
     sorted.forEach(club => {
+      const fullCarry = club.data.swings?.['full']?.carry || 0;
       const swingCells = Object.entries(club.data.swings || {}).map(([key, sw]) => {
         const flag = getSwingFlag(club.id, key);
         const flagHtml = flag
           ? `<div class="swing-flag ${flag}">${flag === 'long' ? '↑ long' : '↓ short'}</div>`
           : '';
+        const isHard = fullCarry > 0 && sw.carry > fullCarry;
+        const carryClass = key === 'full' ? 'carry-full' : isHard ? 'carry-hard' : 'carry-partial';
         return `
         <div class="swing-cell">
-          <div class="swing-cell-label">${key}</div>
-          <div class="swing-cell-carry"
+          <div class="swing-cell-label">${formatSwing(key)}</div>
+          <div class="swing-cell-carry ${carryClass}"
             onclick="inlineEdit('${club.id}','${key}',this)"
           >${sw.carry || '—'}</div>
           ${flagHtml}
