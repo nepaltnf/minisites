@@ -351,6 +351,17 @@
     .card-diff.long  { color: #FF9F0A; }
     .card-diff.short { color: var(--muted); }
 
+    .card-approach {
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .card-approach.full  { color: var(--accent); }
+    .card-approach.close { color: #FF9F0A; }
+
     .no-clubs-prompt {
       text-align: center;
       font-size: 12px;
@@ -1522,7 +1533,9 @@
 
     const alt = altSwings[0] || null;
 
-    cards.innerHTML = caddyCardHTML(primary, true) + (alt ? caddyCardHTML(alt, false) : '');
+    const primaryHint = findApproachHint(target - primary.carry);
+    const altHint     = alt ? findApproachHint(target - alt.carry) : null;
+    cards.innerHTML = caddyCardHTML(primary, true, primaryHint) + (alt ? caddyCardHTML(alt, false, altHint) : '');
     result.style.display = 'block';
     lastPrimary = primary;
     feedbackLogged = false;
@@ -1628,7 +1641,7 @@
     plansEl.innerHTML = html;
   }
 
-  function caddyCardHTML(c, isPrimary) {
+  function caddyCardHTML(c, isPrimary, hint) {
     const diff     = Math.round(c.diff);
     const diffAbs  = Math.abs(diff);
     let diffLabel, diffClass;
@@ -1644,6 +1657,14 @@
       diffClass = 'short';
     }
 
+    let approachHtml = '';
+    if (hint) {
+      const qualClass = (hint.isFull && hint.diff <= 5) ? 'full' : 'close';
+      approachHtml = `<div class="card-approach ${qualClass}">
+        leaves ${hint.remaining} yds → ${hint.clubDisplay} ${formatSwing(hint.swingKey)}
+      </div>`;
+    }
+
     return `
       <div class="caddy-card ${isPrimary ? 'commit' : 'alt'}">
         <div class="card-badge">${isPrimary ? 'commit' : 'take something off'}</div>
@@ -1655,7 +1676,33 @@
           <div class="card-swing">${formatSwing(c.swingKey)}</div>
           <div class="card-diff ${diffClass}">${diffLabel}</div>
         </div>
+        ${approachHtml}
       </div>`;
+  }
+
+  function findApproachHint(remaining) {
+    if (remaining < 30) return null;
+    const bag        = activeBag();
+    const bagClubSet = bag ? new Set(bag.data.clubIds || []) : null;
+    const candidates = [];
+    clubs.forEach(club => {
+      if (bagClubSet && !bagClubSet.has(club.id)) return;
+      Object.entries(club.data.swings || {}).forEach(([key, swing]) => {
+        if (swing.carry > 0) candidates.push({
+          clubName: club.data.name, clubType: club.data.type,
+          swingKey: key, carry: swing.carry,
+          isFull: key === 'full',
+          diff: Math.abs(swing.carry - remaining)
+        });
+      });
+    });
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => {
+      if (Math.abs(a.diff - b.diff) <= 3) return (b.isFull ? 1 : 0) - (a.isFull ? 1 : 0);
+      return a.diff - b.diff;
+    });
+    const best = candidates[0];
+    return { ...best, remaining, clubDisplay: displayName(best.clubName, best.clubType) };
   }
 
   function displayName(name, type) {
