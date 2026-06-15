@@ -1425,6 +1425,11 @@
       <button class="add-btn" onclick="openAddClub()">+ Add Club</button>
     </div>
 
+    <div class="miss-gate-row" style="margin-bottom:14px;">
+      <button class="miss-gate-btn active" id="profile-range" onclick="setActiveProfile('range')">Range</button>
+      <button class="miss-gate-btn" id="profile-course" onclick="setActiveProfile('course')">Course</button>
+    </div>
+
     <div class="club-list" id="club-list"></div>
 
   </div>
@@ -1531,6 +1536,23 @@
   let lastPrimary    = null;
   let feedbackLogged = false;
   let missGate       = null; // null | 'short' | 'long'
+  let activeProfile  = localStorage.getItem('caddy_active_profile') || 'range'; // 'range' | 'course'
+
+  // Range-ball carries live in sw.carry (unchanged); course-ball carries live
+  // in sw.carryCourse. Picking by profile means no migration of existing data.
+  function carryFor(sw) {
+    if (!sw) return 0;
+    return activeProfile === 'course' ? (sw.carryCourse || 0) : (sw.carry || 0);
+  }
+
+  function setActiveProfile(p) {
+    activeProfile = p;
+    localStorage.setItem('caddy_active_profile', p);
+    document.getElementById('profile-range')?.classList.toggle('active', p === 'range');
+    document.getElementById('profile-course')?.classList.toggle('active', p === 'course');
+    renderClubs();
+    calcCaddy();
+  }
 
   function toggleMissGate(side) {
     missGate = (missGate === side) ? null : side;
@@ -1615,6 +1637,8 @@
   async function init() {
     initTheme();
     loadConditions();
+    document.getElementById('profile-range')?.classList.toggle('active', activeProfile === 'range');
+    document.getElementById('profile-course')?.classList.toggle('active', activeProfile === 'course');
     const { data: { session } } = await sb.auth.getSession();
     if (session) showApp();
     sb.auth.onAuthStateChange((event, session) => {
@@ -1851,14 +1875,15 @@
     clubs.forEach(club => {
       if (bagClubSet && !bagClubSet.has(club.id)) return;
       Object.entries(club.data.swings || {}).forEach(([key, swing]) => {
-        if (swing.carry > 0 && !isHardSwing(club.id, key, swing.carry)) {
+        const carry = carryFor(swing);
+        if (carry > 0 && !isHardSwing(club.id, key, carry)) {
           candidates.push({
             clubId:   club.id,
             clubName: club.data.name,
             clubType: club.data.type,
             swingKey: key,
-            carry:    swing.carry,
-            diff:     swing.carry - effective
+            carry,
+            diff:     carry - effective
           });
         }
       });
@@ -1868,9 +1893,9 @@
 
     if (!candidates.length) {
       result.style.display = 'block';
-      cards.innerHTML = `<div class="no-clubs-prompt">
-        No yardages logged yet.<br>Add your clubs in the Yardages tab.
-      </div>`;
+      cards.innerHTML = activeProfile === 'course'
+        ? `<div class="no-clubs-prompt">No course yardages yet.<br>Tap a club's yardage in the Yardages tab (Course mode) to add real-ball numbers.</div>`
+        : `<div class="no-clubs-prompt">No yardages logged yet.<br>Add your clubs in the Yardages tab.</div>`;
       return;
     }
 
@@ -1940,20 +1965,21 @@
       const club = clubs.find(cl => cl.id === c.clubId);
       if (club) {
         const entries = Object.entries(club.data.swings || {})
-          .filter(([, sw]) => sw.carry > 0)
-          .sort(([, a], [, b]) => (a.carry || 0) - (b.carry || 0));
-        const clubFullCarry = club.data.swings?.['full']?.carry || 0;
+          .filter(([, sw]) => carryFor(sw) > 0)
+          .sort(([, a], [, b]) => carryFor(a) - carryFor(b));
+        const clubFullCarry = carryFor(club.data.swings?.['full']);
         swingListHtml = `<div class="swing-options-list">` +
           entries.map(([key, sw]) => {
-            const d    = Math.round(sw.carry - effective);
+            const carry = carryFor(sw);
+            const d    = Math.round(carry - effective);
             const dAbs = Math.abs(d);
             const dClass = dAbs <= 2 ? 'exact' : d > 0 ? 'long' : 'short';
             const dLabel = dAbs <= 2 ? 'dead' : d > 0 ? `+${d}` : `${d}`;
-            const isHard = clubFullCarry > 0 && sw.carry > clubFullCarry;
+            const isHard = clubFullCarry > 0 && carry > clubFullCarry;
             const carryClass = key === 'full' ? 'carry-full' : isHard ? 'carry-hard' : 'carry-partial';
             return `<div class="swing-option${key === c.swingKey ? ' current' : ''}">
               <span class="swing-opt-label">${formatSwing(key)}</span>
-              <span class="swing-opt-carry ${carryClass}">${sw.carry}</span>
+              <span class="swing-opt-carry ${carryClass}">${carry}</span>
               <span class="swing-opt-diff ${dClass}">${dLabel}</span>
             </div>`;
           }).join('') +
@@ -1987,11 +2013,12 @@
     clubs.forEach(club => {
       if (bagClubSet && !bagClubSet.has(club.id)) return;
       Object.entries(club.data.swings || {}).forEach(([key, swing]) => {
-        if (swing.carry > 0 && !isHardSwing(club.id, key, swing.carry)) candidates.push({
+        const carry = carryFor(swing);
+        if (carry > 0 && !isHardSwing(club.id, key, carry)) candidates.push({
           clubName: club.data.name, clubType: club.data.type,
-          swingKey: key, carry: swing.carry,
+          swingKey: key, carry,
           isFull: key === 'full',
-          diff: Math.abs(swing.carry - remaining)
+          diff: Math.abs(carry - remaining)
         });
       });
     });
@@ -2021,7 +2048,7 @@
 
   function isHardSwing(clubId, swingKey, carry) {
     const club = clubs.find(c => c.id === clubId);
-    const fullCarry = club?.data?.swings?.['full']?.carry;
+    const fullCarry = carryFor(club?.data?.swings?.['full']);
     return fullCarry > 0 && carry > fullCarry;
   }
 
@@ -2316,20 +2343,21 @@
 
     list.innerHTML = '';
     sorted.forEach(club => {
-      const fullCarry = club.data.swings?.['full']?.carry || 0;
-      const swingCells = Object.entries(club.data.swings || {}).sort(([,a],[,b]) => (a.carry||0) - (b.carry||0)).map(([key, sw]) => {
+      const fullCarry = carryFor(club.data.swings?.['full']);
+      const swingCells = Object.entries(club.data.swings || {}).sort(([,a],[,b]) => carryFor(a) - carryFor(b)).map(([key, sw]) => {
         const flag = getSwingFlag(club.id, key);
         const flagHtml = flag
           ? `<div class="swing-flag ${flag}">${flag === 'long' ? '↑ long' : '↓ short'}</div>`
           : '';
-        const isHard = fullCarry > 0 && sw.carry > fullCarry;
+        const carry = carryFor(sw);
+        const isHard = fullCarry > 0 && carry > fullCarry;
         const carryClass = key === 'full' ? 'carry-full' : isHard ? 'carry-hard' : 'carry-partial';
         return `
         <div class="swing-cell">
           <div class="swing-cell-label">${formatSwing(key)}</div>
           <div class="swing-cell-carry ${carryClass}"
             onclick="inlineEdit('${club.id}','${key}',this)"
-          >${sw.carry || '—'}</div>
+          >${carry || '—'}</div>
           ${flagHtml}
         </div>`;
       }).join('');
@@ -2370,7 +2398,8 @@
       const val = parseInt(inp.value);
       const club = clubs.find(c => c.id === clubId);
       if (club && val > 0) {
-        club.data.swings[swingKey].carry = val;
+        if (activeProfile === 'course') club.data.swings[swingKey].carryCourse = val;
+        else club.data.swings[swingKey].carry = val;
         await sb.from('yardages').update({ data: club.data }).eq('id', clubId);
       }
       renderClubs();
@@ -2436,7 +2465,7 @@
     updateSetFieldVisibility(club.data.type);
     document.getElementById('swing-rows').innerHTML = '';
     Object.entries(club.data.swings || {}).forEach(([key, sw]) => {
-      addSwingRow(key, sw.carry || '');
+      addSwingRow(key, carryFor(sw) || '');
     });
     document.getElementById('club-modal').classList.add('open');
   }
@@ -2492,11 +2521,17 @@
       : '';
     if (!name) { alert('Club name is required.'); return; }
 
+    const existingSwings = editingClubId ? (clubs.find(c => c.id === editingClubId)?.data?.swings || {}) : {};
     const swings = {};
     document.querySelectorAll('#swing-rows .swing-row').forEach(row => {
       const lbl   = row.querySelector('.swing-row-label').value.trim();
       const carry = parseInt(row.querySelector('.swing-row-carry').value) || 0;
-      if (lbl) swings[lbl] = { carry, notes: '' };
+      if (!lbl) return;
+      const prev = existingSwings[lbl] || {};
+      const sw = { ...prev, notes: prev.notes || '' };
+      if (activeProfile === 'course') sw.carryCourse = carry;
+      else sw.carry = carry;
+      swings[lbl] = sw;
     });
 
     const saveBtn = document.getElementById('modal-save-btn');
