@@ -442,6 +442,13 @@
       padding: 6px 4px;
     }
     .club-edit-btn:active { color: var(--accent); }
+    .club-set-label {
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
 
     .club-swings {
       display: flex;
@@ -1148,6 +1155,13 @@
       </select>
     </div>
 
+    <div class="modal-field" id="set-field" style="display:none">
+      <label class="modal-label" for="modal-set">Set</label>
+      <input class="modal-input" id="modal-set" type="text"
+        list="set-suggestions" placeholder="e.g. MP-58" autocapitalize="words" />
+      <datalist id="set-suggestions"></datalist>
+    </div>
+
     <div class="swings-editor">
       <div class="swings-editor-hd">
         <label class="modal-label" style="margin:0">Swing Types</label>
@@ -1724,6 +1738,9 @@
       const ai = TYPE_ORDER.indexOf(a.data.type ?? '');
       const bi = TYPE_ORDER.indexOf(b.data.type ?? '');
       if (ai !== bi) return ai - bi;
+      const as = a.data.set || '';
+      const bs = b.data.set || '';
+      if (as !== bs) return as.localeCompare(bs);
       return a.data.name.localeCompare(b.data.name);
     });
   }
@@ -1762,7 +1779,10 @@
       card.innerHTML = `
         <div class="club-card-header">
           <div class="club-name-wrap">
-            <div class="club-name">${club.data.name}</div>
+            <div>
+              <div class="club-name">${club.data.name}</div>
+              ${club.data.set ? `<div class="club-set-label">${club.data.set}</div>` : ''}
+            </div>
             <div class="club-type-badge">${club.data.type}</div>
           </div>
           <button class="club-edit-btn" onclick="openEditClub('${club.id}')">edit</button>
@@ -1806,12 +1826,33 @@
 
   /* ── ADD / EDIT MODAL ──────────────────── */
 
+  function getExistingSets() {
+    const sets = new Set();
+    clubs.forEach(c => {
+      if (c.data.set && (c.data.type === 'iron' || c.data.type === 'wedge'))
+        sets.add(c.data.set);
+    });
+    return [...sets].sort();
+  }
+
+  function updateSetFieldVisibility(type) {
+    const field = document.getElementById('set-field');
+    const show  = type === 'iron' || type === 'wedge';
+    field.style.display = show ? 'block' : 'none';
+    if (show) {
+      document.getElementById('set-suggestions').innerHTML =
+        getExistingSets().map(s => `<option value="${escapeHtml(s)}">`).join('');
+    }
+  }
+
   function openAddClub() {
     editingClubId = null;
     document.getElementById('modal-title').textContent = 'Add Club';
     document.getElementById('modal-name').value = '';
+    document.getElementById('modal-set').value = '';
     document.getElementById('modal-type').value = 'iron';
     document.getElementById('modal-delete-btn').style.display = 'none';
+    updateSetFieldVisibility('iron');
     setDefaultSwings('iron');
     document.getElementById('club-modal').classList.add('open');
     setTimeout(() => document.getElementById('modal-name').focus(), 60);
@@ -1824,7 +1865,9 @@
     document.getElementById('modal-title').textContent = 'Edit Club';
     document.getElementById('modal-name').value = club.data.name;
     document.getElementById('modal-type').value = club.data.type;
+    document.getElementById('modal-set').value = club.data.set || '';
     document.getElementById('modal-delete-btn').style.display = 'block';
+    updateSetFieldVisibility(club.data.type);
     document.getElementById('swing-rows').innerHTML = '';
     Object.entries(club.data.swings || {}).forEach(([key, sw]) => {
       addSwingRow(key, sw.carry || '');
@@ -1841,8 +1884,9 @@
   }
 
   function onTypeChange() {
-    if (editingClubId) return;
-    setDefaultSwings(document.getElementById('modal-type').value);
+    const type = document.getElementById('modal-type').value;
+    updateSetFieldVisibility(type);
+    if (!editingClubId) setDefaultSwings(type);
   }
 
   function setDefaultSwings(type) {
@@ -1877,6 +1921,9 @@
   async function saveClub() {
     const name = document.getElementById('modal-name').value.trim();
     const type = document.getElementById('modal-type').value;
+    const set  = (type === 'iron' || type === 'wedge')
+      ? document.getElementById('modal-set').value.trim()
+      : '';
     if (!name) { alert('Club name is required.'); return; }
 
     const swings = {};
@@ -1891,13 +1938,13 @@
 
     if (editingClubId) {
       const club = clubs.find(c => c.id === editingClubId);
-      club.data = { ...club.data, name, type, swings };
+      club.data = { ...club.data, name, type, set, swings };
       await sb.from('yardages').update({ data: club.data }).eq('id', editingClubId);
     } else {
       const { data: { user } } = await sb.auth.getUser();
       const slug = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
       const id   = `club_${slug}_${Date.now()}`;
-      const rec  = { id, data: { name, type, swings }, user_id: user.id };
+      const rec  = { id, data: { name, type, set, swings }, user_id: user.id };
       const { data, error } = await sb.from('yardages').insert(rec).select().single();
       if (!error) clubs.push(data);
     }
