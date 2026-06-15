@@ -1182,10 +1182,12 @@
         <label class="cond-label">Manual %</label>
         <div class="hurt-stepper">
           <button class="hurt-step-btn"
-            onpointerdown="startHurt(-1)" onpointerup="stopHurt()" onpointerleave="stopHurt()">−</button>
+            onmousedown="startHurt(-1)" onmouseup="stopHurt()" onmouseleave="stopHurt()"
+            ontouchstart="startHurt(-1,event)" ontouchend="stopHurt()">−</button>
           <div class="hurt-step-val" id="hurt-display">0%</div>
           <button class="hurt-step-btn"
-            onpointerdown="startHurt(1)" onpointerup="stopHurt()" onpointerleave="stopHurt()">+</button>
+            onmousedown="startHurt(1)" onmouseup="stopHurt()" onmouseleave="stopHurt()"
+            ontouchstart="startHurt(1,event)" ontouchend="stopHurt()">+</button>
         </div>
         <input type="hidden" id="cond-hurt" value="0" />
       </div>
@@ -1485,7 +1487,8 @@
     calcCaddy();
   }
 
-  function startHurt(dir) {
+  function startHurt(dir, e) {
+    if (e) e.preventDefault();
     changeHurt(dir);
     hurtTimer = setInterval(() => changeHurt(dir), 140);
   }
