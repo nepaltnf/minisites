@@ -598,6 +598,26 @@
     }
     .swing-row-label:focus, .swing-row-carry:focus { border-color: var(--accent); }
 
+    .set-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .set-chip {
+      font-family: var(--font);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .set-chip:active { border-color: var(--accent); color: var(--accent); }
+
     .swing-remove-btn {
       font-family: var(--font);
       font-size: 18px;
@@ -1235,8 +1255,8 @@
     <div class="modal-field" id="set-field" style="display:none">
       <label class="modal-label" for="modal-set">Set</label>
       <input class="modal-input" id="modal-set" type="text"
-        list="set-suggestions" placeholder="e.g. MP-58" autocapitalize="words" />
-      <datalist id="set-suggestions"></datalist>
+        placeholder="e.g. MP-58" autocapitalize="words" />
+      <div class="set-chips" id="set-chips"></div>
     </div>
 
     <div class="swings-editor">
@@ -2021,9 +2041,15 @@
     const show  = type === 'iron' || type === 'wedge';
     field.style.display = show ? 'block' : 'none';
     if (show) {
-      document.getElementById('set-suggestions').innerHTML =
-        getExistingSets().map(s => `<option value="${escapeHtml(s)}">`).join('');
+      const sets = getExistingSets();
+      document.getElementById('set-chips').innerHTML = sets
+        .map(s => `<button type="button" class="set-chip" onclick="pickSet('${escapeHtml(s)}')">${escapeHtml(s)}</button>`)
+        .join('');
     }
+  }
+
+  function pickSet(value) {
+    document.getElementById('modal-set').value = value;
   }
 
   function openAddClub() {
