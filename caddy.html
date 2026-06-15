@@ -1783,7 +1783,7 @@
         onclick="toggleClubCheck(this)">
         <div class="club-check-box">${sel.has(club.id) ? '✓' : ''}</div>
         <div class="club-check-name">${displayName(club.data.name, club.data.type)}</div>
-        <div class="club-check-type">${club.data.type}</div>
+        <div class="club-check-type">${club.data.set ? club.data.set + ' · ' : ''}${club.data.type}</div>
       </div>`).join('');
     updateBagCountNote();
   }
