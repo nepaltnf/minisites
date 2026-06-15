@@ -362,6 +362,37 @@
     .card-approach.full  { color: var(--accent); }
     .card-approach.close { color: #FF9F0A; }
 
+    .caddy-card { cursor: pointer; }
+    .swing-options-list {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .swing-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+    .swing-opt-label { color: var(--muted); flex: 1; letter-spacing: 0.04em; }
+    .swing-opt-carry { font-weight: 700; color: var(--text); min-width: 32px; text-align: right; }
+    .swing-opt-diff  { font-size: 11px; min-width: 64px; text-align: right; letter-spacing: 0.03em; }
+    .swing-opt-diff.exact { color: var(--accent); }
+    .swing-opt-diff.long  { color: #FF9F0A; }
+    .swing-opt-diff.short { color: var(--muted); }
+    .swing-option.current .swing-opt-label { color: var(--text); font-weight: 700; }
+    .card-expand-toggle {
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-align: center;
+      margin-top: 10px;
+      text-transform: uppercase;
+    }
+
     .no-clubs-prompt {
       text-align: center;
       font-size: 12px;
@@ -1337,8 +1368,9 @@
   let editingClubId  = null;
   let editingBagId   = null;
   let activeBagId    = localStorage.getItem('caddy_active_bag') || null;
-  let lastPrimary = null;
+  let lastPrimary    = null;
   let feedbackLogged = false;
+  let expandedClubId = null;
 
   /* ── SHOT LOG ──────────────────────────────── */
 
@@ -1478,6 +1510,7 @@
       result.style.display = 'none';
       lastPrimary = null;
       feedbackLogged = false;
+      expandedClubId = null;
       document.getElementById('shot-feedback').innerHTML = '';
       return;
     }
@@ -1523,19 +1556,16 @@
       return;
     }
 
-    // Primary: closest overall match — any swing type, any club
-    const primary = [...candidates].sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff))[0];
+    // Primary: closest full swing; fall back to closest any swing
+    const byDiff = [...candidates].sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
+    const primary = byDiff.find(c => c.swingKey === 'full') || byDiff[0];
 
-    // Alt: closest match from a different club than primary
-    const altSwings = candidates
-      .filter(c => c.clubId !== primary.clubId)
-      .sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
-
-    const alt = altSwings[0] || null;
+    // Alt: closest overall from a different club
+    const alt = byDiff.find(c => c.clubId !== primary.clubId) || null;
 
     const primaryHint = findApproachHint(target - primary.carry);
     const altHint     = alt ? findApproachHint(target - alt.carry) : null;
-    cards.innerHTML = caddyCardHTML(primary, true, primaryHint) + (alt ? caddyCardHTML(alt, false, altHint) : '');
+    cards.innerHTML = caddyCardHTML(primary, true, primaryHint, effective) + (alt ? caddyCardHTML(alt, false, altHint, effective) : '');
     result.style.display = 'block';
     lastPrimary = primary;
     feedbackLogged = false;
@@ -1641,7 +1671,12 @@
     plansEl.innerHTML = html;
   }
 
-  function caddyCardHTML(c, isPrimary, hint) {
+  function toggleCardExpand(clubId) {
+    expandedClubId = expandedClubId === clubId ? null : clubId;
+    calcCaddy();
+  }
+
+  function caddyCardHTML(c, isPrimary, hint, effective) {
     const diff     = Math.round(c.diff);
     const diffAbs  = Math.abs(diff);
     let diffLabel, diffClass;
@@ -1665,9 +1700,37 @@
       </div>`;
     }
 
+    const isExpanded = expandedClubId === c.clubId;
+    let swingListHtml = '';
+    if (isExpanded) {
+      const club = clubs.find(cl => cl.id === c.clubId);
+      if (club) {
+        const entries = Object.entries(club.data.swings || {})
+          .filter(([, sw]) => sw.carry > 0)
+          .sort(([a], [b]) => {
+            if (a === 'full') return -1;
+            if (b === 'full') return 1;
+            return (club.data.swings[b].carry || 0) - (club.data.swings[a].carry || 0);
+          });
+        swingListHtml = `<div class="swing-options-list">` +
+          entries.map(([key, sw]) => {
+            const d    = Math.round(sw.carry - effective);
+            const dAbs = Math.abs(d);
+            const dClass = dAbs <= 2 ? 'exact' : d > 0 ? 'long' : 'short';
+            const dLabel = dAbs <= 2 ? 'dead' : d > 0 ? `+${d}` : `${d}`;
+            return `<div class="swing-option${key === c.swingKey ? ' current' : ''}">
+              <span class="swing-opt-label">${formatSwing(key)}</span>
+              <span class="swing-opt-carry">${sw.carry}</span>
+              <span class="swing-opt-diff ${dClass}">${dLabel}</span>
+            </div>`;
+          }).join('') +
+          `</div>`;
+      }
+    }
+
     return `
-      <div class="caddy-card ${isPrimary ? 'commit' : 'alt'}">
-        <div class="card-badge">${isPrimary ? 'commit' : 'take something off'}</div>
+      <div class="caddy-card ${isPrimary ? 'commit' : 'alt'}" onclick="toggleCardExpand('${c.clubId}')">
+        <div class="card-badge">${isPrimary ? 'commit' : 'consider'}</div>
         <div class="card-main">
           <div class="card-club">${displayName(c.clubName, c.clubType)}</div>
           <div class="card-carry">${c.carry}</div>
@@ -1676,7 +1739,9 @@
           <div class="card-swing">${formatSwing(c.swingKey)}</div>
           <div class="card-diff ${diffClass}">${diffLabel}</div>
         </div>
+        ${swingListHtml}
         ${approachHtml}
+        <div class="card-expand-toggle">${isExpanded ? '▲ less' : '▼ all swings'}</div>
       </div>`;
   }
 
