@@ -1385,6 +1385,7 @@
     <div class="miss-gate-row">
       <button class="miss-gate-btn" id="gate-short" onclick="toggleMissGate('short')">Miss Short</button>
       <button class="miss-gate-btn" id="gate-long"  onclick="toggleMissGate('long')">Miss Long</button>
+      <button class="miss-gate-btn" id="gate-easy"  onclick="toggleSwingEasy()">Swing Easy</button>
     </div>
 
     <div id="caddy-result">
@@ -1536,6 +1537,7 @@
   let lastPrimary    = null;
   let feedbackLogged = false;
   let missGate       = null; // null | 'short' | 'long'
+  let swingEasy      = false; // when true, favor less-than-full swings over full swings
   let activeProfile  = localStorage.getItem('caddy_active_profile') || 'range'; // 'range' | 'course'
 
   // Range-ball carries live in sw.carry (unchanged); course-ball carries live
@@ -1558,6 +1560,12 @@
     missGate = (missGate === side) ? null : side;
     document.getElementById('gate-short').classList.toggle('active', missGate === 'short');
     document.getElementById('gate-long').classList.toggle('active', missGate === 'long');
+    calcCaddy();
+  }
+
+  function toggleSwingEasy() {
+    swingEasy = !swingEasy;
+    document.getElementById('gate-easy').classList.toggle('active', swingEasy);
     calcCaddy();
   }
   let expandedClubId = null;
@@ -1912,7 +1920,16 @@
     }
 
     // Pick up to 4 closest carries, one per club
-    const byDiff = [...pool].sort((a, b) => Math.abs(a.diff) - Math.abs(b.diff));
+    // Swing Easy: among carries within 5 yds of each other, prefer the less-than-full swing
+    const byDiff = [...pool].sort((a, b) => {
+      if (swingEasy) {
+        const aFull = a.swingKey === 'full', bFull = b.swingKey === 'full';
+        if (aFull !== bFull && Math.abs(Math.abs(a.diff) - Math.abs(b.diff)) <= 5) {
+          return aFull ? 1 : -1;
+        }
+      }
+      return Math.abs(a.diff) - Math.abs(b.diff);
+    });
     const seen = new Set();
     const picks = [];
     for (const c of byDiff) {
