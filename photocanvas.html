@@ -220,11 +220,29 @@
   }
   .action-btn:active { transform: scale(0.97); opacity: 0.85; }
 
-  #btn-pick {
-    background: var(--surface2);
-    color: var(--text);
-    border: 1.5px solid var(--border);
+  /* Floating camera button on stage */
+  #btn-pick-float {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(28,28,30,0.75);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7);
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: opacity 0.15s, transform 0.1s;
+    z-index: 5;
   }
+  #btn-pick-float:active { transform: scale(0.9); opacity: 0.7; }
+
   #btn-export {
     background: var(--accent);
     color: #fff;
@@ -309,6 +327,7 @@
     </div>
     <div id="pick-overlay" title="Tap to add photo"></div>
     <div id="reset-hint">double-tap to reset</div>
+    <button id="btn-pick-float" title="Change photo">📷</button>
   </div>
 
   <!-- Color Panel (collapsed by default) -->
@@ -322,7 +341,6 @@
 
   <!-- Action Bar -->
   <div id="action-bar">
-    <button class="action-btn" id="btn-pick">📷 Photo</button>
     <button id="btn-color" title="Background color"></button>
     <button class="action-btn" id="btn-export">Save to Photos</button>
   </div>
@@ -380,7 +398,7 @@ const fileInput = document.getElementById('file-input');
 const colorInput = document.getElementById('color-input');
 const hexInput = document.getElementById('hex-input');
 const swatchContainer = document.getElementById('swatches');
-const btnPick = document.getElementById('btn-pick');
+const btnPickFloat = document.getElementById('btn-pick-float');
 const btnExport = document.getElementById('btn-export');
 const btnColor = document.getElementById('btn-color');
 const colorPanel = document.getElementById('color-panel');
@@ -680,8 +698,8 @@ hexInput.addEventListener('blur', () => {
   hexInput.value = state.bgColor.toUpperCase();
 });
 
-// ── Pick button ────────────────────────────────────────────────────────────
-btnPick.addEventListener('click', () => fileInput.click());
+// ── Pick button (floating) ─────────────────────────────────────────────────
+btnPickFloat.addEventListener('click', () => fileInput.click());
 
 // ── Color panel toggle ─────────────────────────────────────────────────────
 btnColor.addEventListener('click', () => {
