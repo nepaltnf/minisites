@@ -1138,6 +1138,15 @@ previewCanvas.addEventListener('pointerdown', () => {
   btnColor.classList.remove('panel-open');
 }, { capture: true });
 
+// Scroll wheel zoom (desktop)
+previewCanvas.addEventListener('wheel', e => {
+  if (!state.img) return;
+  e.preventDefault();
+  const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
+  state.imgScale = Math.max(state.baseScale * 0.2, Math.min(state.imgScale * factor, state.baseScale * 8));
+  render();
+}, { passive: false });
+
 // ── Export (full-res render) ───────────────────────────────────────────────
 function buildFullResCanvasForEntry(entry) {
   const preset = getPreset();
@@ -1186,7 +1195,9 @@ btnExport.addEventListener('click', async () => {
     )
   );
 
-  if (navigator.canShare && navigator.canShare({ files })) {
+  const isTouchDevice = navigator.maxTouchPoints > 0;
+
+  if (isTouchDevice && navigator.canShare && navigator.canShare({ files })) {
     try {
       await navigator.share({ files, title: 'PhotoCanvas' });
       return;
@@ -1195,7 +1206,7 @@ btnExport.addEventListener('click', async () => {
     }
   }
 
-  // Fallback: sequential download for desktop
+  // Desktop: direct download
   for (const file of files) {
     const url = URL.createObjectURL(file);
     const a = document.createElement('a');
