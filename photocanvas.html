@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#111111">
+<title>PhotoCanvas</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #111;
+    --surface: #1c1c1e;
+    --surface2: #2c2c2e;
+    --border: #3a3a3c;
+    --text: #f5f5f7;
+    --text2: #8e8e93;
+    --accent: #0a84ff;
+    --radius: 12px;
+    --drawer-h: 220px;
+    --tab-h: 52px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow: hidden;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    height: 100vh;
+  }
+
+  /* ── Preset Tabs ── */
+  #presets {
+    display: flex;
+    gap: 6px;
+    padding: 10px 12px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 0;
+    background: var(--bg);
+  }
+  #presets::-webkit-scrollbar { display: none; }
+
+  .preset-btn {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    -webkit-user-select: none;
+  }
+  .preset-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* ── Canvas Stage ── */
+  #stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+  }
+
+  #preview-canvas {
+    display: block;
+    touch-action: none;
+    cursor: default;
+    border-radius: 4px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.6);
+  }
+
+  /* Drop hint */
+  #drop-hint {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    pointer-events: none;
+  }
+  #drop-hint .icon {
+    font-size: 48px;
+    opacity: 0.3;
+  }
+  #drop-hint p {
+    font-size: 15px;
+    color: var(--text2);
+    opacity: 0.7;
+  }
+  #drop-hint.hidden { display: none; }
+
+  /* Tap-target overlay for photo pick */
+  #pick-overlay {
+    position: absolute;
+    inset: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #pick-overlay.hidden { display: none; }
+
+  /* ── Bottom Drawer ── */
+  #drawer {
+    flex-shrink: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 14px 16px 16px;
+  }
+
+  .drawer-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+
+  /* Swatches */
+  #swatches {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.12s, border-color 0.12s;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .swatch.active {
+    border-color: var(--accent);
+    transform: scale(1.15);
+  }
+  .swatch.white-swatch { border-color: var(--border); }
+  .swatch.white-swatch.active { border-color: var(--accent); }
+
+  /* Color picker row */
+  #color-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  #color-input {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    padding: 0;
+    background: none;
+    flex-shrink: 0;
+    overflow: hidden;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  #color-input::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
+  #color-input::-webkit-color-swatch { border: none; border-radius: 50%; }
+
+  #hex-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'SF Mono', 'Menlo', monospace;
+    padding: 8px 10px;
+    text-transform: uppercase;
+  }
+  #hex-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ── Action Bar ── */
+  #action-bar {
+    flex-shrink: 0;
+    display: flex;
+    gap: 10px;
+    padding: 10px 16px 18px;
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: 13px 10px;
+    border-radius: var(--radius);
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.12s, transform 0.1s;
+  }
+  .action-btn:active { transform: scale(0.97); opacity: 0.85; }
+
+  #btn-pick {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+  #btn-export {
+    background: var(--accent);
+    color: #fff;
+  }
+  #btn-share {
+    background: var(--surface2);
+    color: var(--text);
+    border: 1.5px solid var(--border);
+    flex: 0 0 auto;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  /* Hidden file input */
+  #file-input { display: none; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(30,30,30,0.92);
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    white-space: nowrap;
+    z-index: 999;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  #toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Reset hint */
+  #reset-hint {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.5);
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  #reset-hint.visible { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Preset Tabs -->
+  <div id="presets">
+    <button class="preset-btn active" data-preset="story">Story 9:16</button>
+    <button class="preset-btn" data-preset="portrait">Feed Portrait</button>
+    <button class="preset-btn" data-preset="square">Square</button>
+    <button class="preset-btn" data-preset="landscape">Landscape</button>
+  </div>
+
+  <!-- Canvas Stage -->
+  <div id="stage">
+    <canvas id="preview-canvas"></canvas>
+    <div id="drop-hint">
+      <div class="icon">🖼️</div>
+      <p>Tap to add a photo</p>
+    </div>
+    <div id="pick-overlay" title="Tap to add photo"></div>
+    <div id="reset-hint">double-tap to reset</div>
+  </div>
+
+  <!-- Color Drawer -->
+  <div id="drawer">
+    <div class="drawer-section-label">Background</div>
+    <div id="swatches"></div>
+    <div id="color-picker-row">
+      <input type="color" id="color-input" value="#000000">
+      <input type="text" id="hex-input" value="#000000" maxlength="7" placeholder="#000000">
+    </div>
+  </div>
+
+  <!-- Action Bar -->
+  <div id="action-bar">
+    <button class="action-btn" id="btn-pick">📷 Photo</button>
+    <button class="action-btn" id="btn-export">Save</button>
+    <button class="action-btn" id="btn-share">Share</button>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+<input type="file" id="file-input" accept="image/*">
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const PRESETS = {
+  story:     { w: 1080, h: 1920, label: 'Story 9:16' },
+  portrait:  { w: 1080, h: 1350, label: 'Feed Portrait' },
+  square:    { w: 1080, h: 1080, label: 'Square' },
+  landscape: { w: 1080, h: 566,  label: 'Landscape' },
+};
+
+const SWATCHES = [
+  '#000000', '#ffffff', '#1a1a1a', '#f5f5f0',
+  '#e8e0d5', '#c9b99a', '#7a6a5a', '#3d3530',
+  '#e8e8e8', '#b0b0b0', '#2d4a3e', '#1e3a5f',
+];
+
+// ── State ──────────────────────────────────────────────────────────────────
+let state = {
+  preset: 'story',
+  bgColor: '#000000',
+  img: null,
+  imgX: 0,
+  imgY: 0,
+  imgScale: 1,
+  baseScale: 1,
+};
+
+// Gesture state
+let gesture = {
+  dragging: false,
+  pinching: false,
+  startX: 0, startY: 0,
+  startImgX: 0, startImgY: 0,
+  startDist: 0,
+  startScale: 1,
+  lastTap: 0,
+};
+
+// ── DOM refs ───────────────────────────────────────────────────────────────
+const previewCanvas = document.getElementById('preview-canvas');
+const ctx = previewCanvas.getContext('2d');
+const stage = document.getElementById('stage');
+const dropHint = document.getElementById('drop-hint');
+const pickOverlay = document.getElementById('pick-overlay');
+const fileInput = document.getElementById('file-input');
+const colorInput = document.getElementById('color-input');
+const hexInput = document.getElementById('hex-input');
+const swatchContainer = document.getElementById('swatches');
+const btnPick = document.getElementById('btn-pick');
+const btnExport = document.getElementById('btn-export');
+const btnShare = document.getElementById('btn-share');
+const toast = document.getElementById('toast');
+const resetHint = document.getElementById('reset-hint');
+
+// ── Canvas scale ───────────────────────────────────────────────────────────
+let displayScale = 1; // ratio of display canvas to full-res
+
+function getPreset() { return PRESETS[state.preset]; }
+
+function resizePreviewCanvas() {
+  const preset = getPreset();
+  const stageRect = stage.getBoundingClientRect();
+  const padding = 16;
+  const availW = stageRect.width - padding * 2;
+  const availH = stageRect.height - padding * 2;
+
+  const scaleW = availW / preset.w;
+  const scaleH = availH / preset.h;
+  displayScale = Math.min(scaleW, scaleH);
+
+  const dispW = Math.round(preset.w * displayScale);
+  const dispH = Math.round(preset.h * displayScale);
+
+  previewCanvas.width = dispW;
+  previewCanvas.height = dispH;
+  previewCanvas.style.width = dispW + 'px';
+  previewCanvas.style.height = dispH + 'px';
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function render() {
+  const cw = previewCanvas.width;
+  const ch = previewCanvas.height;
+
+  ctx.fillStyle = state.bgColor;
+  ctx.fillRect(0, 0, cw, ch);
+
+  if (state.img) {
+    ctx.save();
+    ctx.translate(state.imgX * displayScale, state.imgY * displayScale);
+    ctx.scale(state.imgScale * displayScale, state.imgScale * displayScale);
+    ctx.drawImage(state.img, -state.img.width / 2, -state.img.height / 2);
+    ctx.restore();
+  }
+}
+
+// ── Auto-fit ───────────────────────────────────────────────────────────────
+function fitImage() {
+  if (!state.img) return;
+  const preset = getPreset();
+  const scaleW = preset.w / state.img.width;
+  const scaleH = preset.h / state.img.height;
+  state.baseScale = Math.min(scaleW, scaleH);
+  state.imgScale = state.baseScale;
+  state.imgX = preset.w / 2;
+  state.imgY = preset.h / 2;
+}
+
+// ── Color helpers ──────────────────────────────────────────────────────────
+function setColor(hex) {
+  state.bgColor = hex;
+  colorInput.value = hex;
+  hexInput.value = hex.toUpperCase();
+  updateSwatchActive();
+  render();
+}
+
+function updateSwatchActive() {
+  document.querySelectorAll('.swatch').forEach(el => {
+    el.classList.toggle('active', el.dataset.color.toLowerCase() === state.bgColor.toLowerCase());
+  });
+}
+
+// ── Swatches ───────────────────────────────────────────────────────────────
+function buildSwatches() {
+  SWATCHES.forEach(hex => {
+    const el = document.createElement('div');
+    el.className = 'swatch' + (hex === '#ffffff' ? ' white-swatch' : '');
+    el.dataset.color = hex;
+    el.style.background = hex;
+    if (hex.toLowerCase() === state.bgColor.toLowerCase()) el.classList.add('active');
+    el.addEventListener('click', () => setColor(hex));
+    swatchContainer.appendChild(el);
+  });
+}
+
+// ── Gesture helpers ────────────────────────────────────────────────────────
+function getTouchMidpoint(t1, t2) {
+  const r = previewCanvas.getBoundingClientRect();
+  const x = ((t1.clientX + t2.clientX) / 2 - r.left) / displayScale;
+  const y = ((t1.clientY + t2.clientY) / 2 - r.top) / displayScale;
+  return { x, y };
+}
+
+function getTouchDist(t1, t2) {
+  const dx = t1.clientX - t2.clientX;
+  const dy = t1.clientY - t2.clientY;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+function pointerToCanvas(clientX, clientY) {
+  const r = previewCanvas.getBoundingClientRect();
+  return {
+    x: (clientX - r.left) / displayScale,
+    y: (clientY - r.top) / displayScale,
+  };
+}
+
+// ── Pointer events ─────────────────────────────────────────────────────────
+let activePointers = [];
+
+function updatePointer(e) {
+  const idx = activePointers.findIndex(p => p.pointerId === e.pointerId);
+  if (idx >= 0) activePointers[idx] = e;
+  else activePointers.push(e);
+}
+
+function removePointer(e) {
+  activePointers = activePointers.filter(p => p.pointerId !== e.pointerId);
+}
+
+previewCanvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  updatePointer(e);
+
+  if (activePointers.length === 1) {
+    // Check double-tap
+    const now = Date.now();
+    if (now - gesture.lastTap < 300) {
+      fitImage();
+      render();
+      showResetHint(false);
+      gesture.lastTap = 0;
+      return;
+    }
+    gesture.lastTap = now;
+
+    if (!state.img) {
+      // Tap to pick photo
+      fileInput.click();
+      return;
+    }
+
+    gesture.dragging = true;
+    gesture.pinching = false;
+    const pos = pointerToCanvas(e.clientX, e.clientY);
+    gesture.startX = pos.x;
+    gesture.startY = pos.y;
+    gesture.startImgX = state.imgX;
+    gesture.startImgY = state.imgY;
+
+  } else if (activePointers.length === 2) {
+    gesture.dragging = false;
+    gesture.pinching = true;
+    const [p1, p2] = activePointers;
+    gesture.startDist = getTouchDist(p1, p2);
+    gesture.startScale = state.imgScale;
+    const mid = getTouchMidpoint(p1, p2);
+    gesture.pinchMidX = mid.x;
+    gesture.pinchMidY = mid.y;
+    gesture.pinchStartImgX = state.imgX;
+    gesture.pinchStartImgY = state.imgY;
+  }
+});
+
+previewCanvas.addEventListener('pointermove', e => {
+  e.preventDefault();
+  updatePointer(e);
+
+  if (!state.img) return;
+
+  if (gesture.pinching && activePointers.length === 2) {
+    const [p1, p2] = activePointers;
+    const dist = getTouchDist(p1, p2);
+    const newScale = gesture.startScale * (dist / gesture.startDist);
+    state.imgScale = Math.max(state.baseScale * 0.2, Math.min(newScale, state.baseScale * 8));
+
+    // Zoom toward pinch midpoint
+    const mid = getTouchMidpoint(p1, p2);
+    const scaleRatio = state.imgScale / gesture.startScale;
+    state.imgX = mid.x + (gesture.pinchStartImgX - gesture.pinchMidX) * scaleRatio;
+    state.imgY = mid.y + (gesture.pinchStartImgY - gesture.pinchMidY) * scaleRatio;
+
+    showResetHint(true);
+    render();
+
+  } else if (gesture.dragging && activePointers.length === 1) {
+    const pos = pointerToCanvas(e.clientX, e.clientY);
+    state.imgX = gesture.startImgX + (pos.x - gesture.startX);
+    state.imgY = gesture.startImgY + (pos.y - gesture.startY);
+    showResetHint(true);
+    render();
+  }
+});
+
+function endGesture(e) {
+  removePointer(e);
+  if (activePointers.length < 2) gesture.pinching = false;
+  if (activePointers.length === 0) gesture.dragging = false;
+  if (activePointers.length === 1 && !gesture.pinching) {
+    // Continue drag with remaining finger
+    gesture.dragging = true;
+    const pos = pointerToCanvas(activePointers[0].clientX, activePointers[0].clientY);
+    gesture.startX = pos.x;
+    gesture.startY = pos.y;
+    gesture.startImgX = state.imgX;
+    gesture.startImgY = state.imgY;
+  }
+}
+
+previewCanvas.addEventListener('pointerup', e => { e.preventDefault(); endGesture(e); });
+previewCanvas.addEventListener('pointercancel', e => { e.preventDefault(); endGesture(e); });
+previewCanvas.setPointerCapture = () => {};
+
+// ── Reset hint ─────────────────────────────────────────────────────────────
+let resetHintTimer;
+function showResetHint(show) {
+  clearTimeout(resetHintTimer);
+  if (show) {
+    resetHint.classList.add('visible');
+    resetHintTimer = setTimeout(() => resetHint.classList.remove('visible'), 2000);
+  } else {
+    resetHint.classList.remove('visible');
+  }
+}
+
+// ── Pick overlay (no-image state) ──────────────────────────────────────────
+pickOverlay.addEventListener('click', () => fileInput.click());
+
+// ── File input ─────────────────────────────────────────────────────────────
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    state.img = img;
+    fitImage();
+    dropHint.classList.add('hidden');
+    pickOverlay.classList.add('hidden');
+    render();
+    fileInput.value = '';
+  };
+  img.src = url;
+});
+
+// ── Preset buttons ─────────────────────────────────────────────────────────
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.preset = btn.dataset.preset;
+    resizePreviewCanvas();
+    if (state.img) fitImage();
+    render();
+  });
+});
+
+// ── Color inputs ───────────────────────────────────────────────────────────
+colorInput.addEventListener('input', () => {
+  setColor(colorInput.value);
+});
+
+hexInput.addEventListener('input', () => {
+  const val = hexInput.value.trim();
+  const hex = val.startsWith('#') ? val : '#' + val;
+  if (/^#[0-9a-fA-F]{6}$/.test(hex)) {
+    setColor(hex);
+  }
+});
+
+hexInput.addEventListener('blur', () => {
+  hexInput.value = state.bgColor.toUpperCase();
+});
+
+// ── Pick button ────────────────────────────────────────────────────────────
+btnPick.addEventListener('click', () => fileInput.click());
+
+// ── Export (full-res render) ───────────────────────────────────────────────
+function buildFullResCanvas() {
+  const preset = getPreset();
+  const fc = document.createElement('canvas');
+  fc.width = preset.w;
+  fc.height = preset.h;
+  const fctx = fc.getContext('2d');
+
+  fctx.fillStyle = state.bgColor;
+  fctx.fillRect(0, 0, preset.w, preset.h);
+
+  if (state.img) {
+    fctx.save();
+    fctx.translate(state.imgX, state.imgY);
+    fctx.scale(state.imgScale, state.imgScale);
+    fctx.drawImage(state.img, -state.img.width / 2, -state.img.height / 2);
+    fctx.restore();
+  }
+
+  return fc;
+}
+
+function showToast(msg, duration = 2000) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+async function exportImage() {
+  if (!state.img) { showToast('Add a photo first'); return; }
+  const fc = buildFullResCanvas();
+  return new Promise(resolve => {
+    fc.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `photocanvas-${state.preset}-${Date.now()}.jpg`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      showToast('Saved!');
+      resolve(blob);
+    }, 'image/jpeg', 0.95);
+  });
+}
+
+btnExport.addEventListener('click', () => exportImage());
+
+// ── Share ──────────────────────────────────────────────────────────────────
+btnShare.addEventListener('click', async () => {
+  if (!state.img) { showToast('Add a photo first'); return; }
+
+  const fc = buildFullResCanvas();
+
+  fc.toBlob(async blob => {
+    const preset = getPreset();
+    const filename = `photocanvas-${state.preset}-${Date.now()}.jpg`;
+    const file = new File([blob], filename, { type: 'image/jpeg' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: 'PhotoCanvas' });
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          // Fall through to download
+        } else {
+          return;
+        }
+      }
+    }
+
+    // Fallback: download then try instagram deep link
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    showToast('Saved — open Instagram to share');
+  }, 'image/jpeg', 0.95);
+});
+
+// ── Drag-and-drop (desktop) ────────────────────────────────────────────────
+stage.addEventListener('dragover', e => e.preventDefault());
+stage.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.type.startsWith('image/')) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    state.img = img;
+    fitImage();
+    dropHint.classList.add('hidden');
+    pickOverlay.classList.add('hidden');
+    render();
+  };
+  img.src = url;
+});
+
+// ── Init ───────────────────────────────────────────────────────────────────
+function init() {
+  buildSwatches();
+  resizePreviewCanvas();
+  render();
+
+  // Handle resize
+  const ro = new ResizeObserver(() => {
+    resizePreviewCanvas();
+    render();
+  });
+  ro.observe(stage);
+}
+
+init();
+</script>
+</body>
+</html>
