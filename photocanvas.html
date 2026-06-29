@@ -1224,7 +1224,7 @@ function renderCropOverlay() {
 }
 
 function snapToRatio() {
-  const img = state.img;
+  const img = cropState.sourceImg || state.img;
   const ratio = cropState.ratio;
   const { x, y, w, h } = cropState.rect;
   const cx = x + w/2, cy = y + h/2;
@@ -1267,7 +1267,7 @@ cropStageEl.addEventListener('pointermove', e => {
   const dx  = (px - cropState.drag.startX) / cropState.cScale;
   const dy  = (py - cropState.drag.startY) / cropState.cScale;
   const sr  = cropState.drag.startRect;
-  const img = state.img;
+  const img = cropState.sourceImg || state.img;
   const MIN = 30;
   const ratio = cropState.ratio;
   const area = cropState.drag.area;
