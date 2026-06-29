@@ -549,19 +549,39 @@ previewCanvas.addEventListener('pointermove', e => {
     const newScale = gesture.startScale * (dist / gesture.startDist);
     state.imgScale = Math.max(state.baseScale * 0.2, Math.min(newScale, state.baseScale * 8));
 
-    // Zoom toward pinch midpoint
-    const mid = getTouchMidpoint(p1, p2);
+    // Zoom toward canvas center — keeps image centered as you resize
+    const preset = getPreset();
+    const cx = preset.w / 2, cy = preset.h / 2;
     const scaleRatio = state.imgScale / gesture.startScale;
-    state.imgX = mid.x + (gesture.pinchStartImgX - gesture.pinchMidX) * scaleRatio;
-    state.imgY = mid.y + (gesture.pinchStartImgY - gesture.pinchMidY) * scaleRatio;
+    state.imgX = cx + (gesture.pinchStartImgX - cx) * scaleRatio;
+    state.imgY = cy + (gesture.pinchStartImgY - cy) * scaleRatio;
 
     showResetHint(true);
     render();
 
   } else if (gesture.dragging && activePointers.length === 1) {
     const pos = pointerToCanvas(e.clientX, e.clientY);
-    state.imgX = gesture.startImgX + (pos.x - gesture.startX);
-    state.imgY = gesture.startImgY + (pos.y - gesture.startY);
+    const rawDX = pos.x - gesture.startX;
+    const rawDY = pos.y - gesture.startY;
+    const dragDist = Math.sqrt(rawDX * rawDX + rawDY * rawDY);
+
+    // Gravity well: dampen movement when near center, break free past threshold
+    const preset = getPreset();
+    const cx = preset.w / 2, cy = preset.h / 2;
+    const fromCenter = Math.sqrt(
+      (gesture.startImgX - cx) ** 2 + (gesture.startImgY - cy) ** 2
+    );
+    const CENTER_WELL = 60;   // px from center where gravity applies
+    const BREAK_DRAG  = 55;   // px of drag distance to break free
+
+    let factor = 1;
+    if (fromCenter < CENTER_WELL) {
+      const t = Math.min(dragDist / BREAK_DRAG, 1);
+      factor = t * t; // ease-in: very sticky at start, releases smoothly
+    }
+
+    state.imgX = gesture.startImgX + rawDX * factor;
+    state.imgY = gesture.startImgY + rawDY * factor;
     showResetHint(true);
     render();
   }
