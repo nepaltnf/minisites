@@ -220,18 +220,16 @@
   }
   .action-btn:active { transform: scale(0.97); opacity: 0.85; }
 
-  /* Floating camera button on stage */
-  #btn-pick-float {
+  /* Floating stage buttons (camera + library) */
+  .float-btn {
     position: absolute;
     bottom: 10px;
-    left: 10px;
     width: 36px;
     height: 36px;
     border-radius: 50%;
     background: rgba(28,28,30,0.75);
     border: 1px solid rgba(255,255,255,0.15);
     color: rgba(255,255,255,0.7);
-    font-size: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -240,11 +238,10 @@
     -webkit-backdrop-filter: blur(8px);
     transition: opacity 0.15s, transform 0.1s;
     z-index: 5;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
-  #btn-pick-float:active { transform: scale(0.9); opacity: 0.7; }
+  .float-btn:active { transform: scale(0.9); opacity: 0.7; }
+  #btn-pick-float  { left: 10px; }
+  #btn-library-float { left: 54px; }
 
   #btn-export {
     background: var(--accent);
@@ -332,11 +329,18 @@
     </div>
     <div id="pick-overlay" title="Tap to add photo"></div>
     <div id="reset-hint">double-tap to reset</div>
-    <button id="btn-pick-float" title="Change photo">
+    <button class="float-btn" id="btn-pick-float" title="Take photo">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="7" width="20" height="14" rx="2"/>
         <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
         <circle cx="12" cy="14" r="3"/>
+      </svg>
+    </button>
+    <button class="float-btn" id="btn-library-float" title="Photo library">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M3 15l5-5 4 4 3-3 6 6"/>
+        <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/>
       </svg>
     </button>
     <button id="btn-color" title="Background color"></button>
@@ -359,7 +363,8 @@
 </div>
 
 <div id="toast"></div>
-<input type="file" id="file-input" accept="image/*">
+<input type="file" id="file-input-library" accept="image/*">
+<input type="file" id="file-input-camera" accept="image/*" capture="environment">
 
 <script>
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -405,11 +410,13 @@ const ctx = previewCanvas.getContext('2d');
 const stage = document.getElementById('stage');
 const dropHint = document.getElementById('drop-hint');
 const pickOverlay = document.getElementById('pick-overlay');
-const fileInput = document.getElementById('file-input');
+const fileInputLibrary = document.getElementById('file-input-library');
+const fileInputCamera = document.getElementById('file-input-camera');
 const colorInput = document.getElementById('color-input');
 const hexInput = document.getElementById('hex-input');
 const swatchContainer = document.getElementById('swatches');
 const btnPickFloat = document.getElementById('btn-pick-float');
+const btnLibraryFloat = document.getElementById('btn-library-float');
 const btnExport = document.getElementById('btn-export');
 const btnColor = document.getElementById('btn-color');
 const colorPanel = document.getElementById('color-panel');
@@ -446,9 +453,9 @@ function resizePreviewCanvas() {
 function positionFloatingBtns() {
   const stageRect = stage.getBoundingClientRect();
   const canvasRect = previewCanvas.getBoundingClientRect();
-  const gap = stageRect.bottom - canvasRect.bottom;
-  const offset = gap + 'px';
+  const offset = (stageRect.bottom - canvasRect.bottom) + 'px';
   btnPickFloat.style.bottom = offset;
+  btnLibraryFloat.style.bottom = offset;
   btnColor.style.bottom = offset;
 }
 
@@ -563,8 +570,7 @@ previewCanvas.addEventListener('pointerdown', e => {
     gesture.lastTap = now;
 
     if (!state.img) {
-      // Tap to pick photo
-      fileInput.click();
+      fileInputLibrary.click();
       return;
     }
 
@@ -671,11 +677,11 @@ function showResetHint(show) {
   }
 }
 
-// ── Pick overlay (no-image state) ──────────────────────────────────────────
-pickOverlay.addEventListener('click', () => fileInput.click());
+// ── Pick overlay (no-image state) — goes straight to library ───────────────
+pickOverlay.addEventListener('click', () => fileInputLibrary.click());
 
-// ── File input ─────────────────────────────────────────────────────────────
-fileInput.addEventListener('change', e => {
+// ── File input handler ─────────────────────────────────────────────────────
+function handleFileInput(e) {
   const file = e.target.files[0];
   if (!file) return;
   const url = URL.createObjectURL(file);
@@ -686,10 +692,12 @@ fileInput.addEventListener('change', e => {
     dropHint.classList.add('hidden');
     pickOverlay.classList.add('hidden');
     render();
-    fileInput.value = '';
+    e.target.value = '';
   };
   img.src = url;
-});
+}
+fileInputLibrary.addEventListener('change', handleFileInput);
+fileInputCamera.addEventListener('change', handleFileInput);
 
 // ── Preset buttons ─────────────────────────────────────────────────────────
 document.querySelectorAll('.preset-btn').forEach(btn => {
@@ -720,8 +728,9 @@ hexInput.addEventListener('blur', () => {
   hexInput.value = state.bgColor.toUpperCase();
 });
 
-// ── Pick button (floating) ─────────────────────────────────────────────────
-btnPickFloat.addEventListener('click', () => fileInput.click());
+// ── Floating pick buttons ──────────────────────────────────────────────────
+btnPickFloat.addEventListener('click', () => fileInputCamera.click());
+btnLibraryFloat.addEventListener('click', () => fileInputLibrary.click());
 
 // ── Color panel toggle ─────────────────────────────────────────────────────
 btnColor.addEventListener('click', () => {
