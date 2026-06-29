@@ -219,24 +219,30 @@
   .action-btn:active { transform: scale(0.97); opacity: 0.85; }
 
   /* Floating stage buttons (camera + library) */
-  .float-btn {
+  /* Shared style for all floating stage buttons */
+  .float-btn,
+  #btn-color {
     position: absolute;
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    background: rgba(28,28,30,0.75);
-    border: 1px solid rgba(255,255,255,0.15);
-    color: rgba(255,255,255,0.7);
+    background: rgba(20,20,22,0.82);
+    border: 1.5px solid rgba(255,255,255,0.55);
+    color: rgba(255,255,255,0.85);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    transition: opacity 0.15s, transform 0.1s;
-    z-index: 5;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+    transition: border-color 0.15s, transform 0.1s, opacity 0.12s;
+    z-index: 20;
+    padding: 0;
   }
-  .float-btn:active { transform: scale(0.9); opacity: 0.7; }
+  .float-btn:active,
+  #btn-color:active { transform: scale(0.9); opacity: 0.75; }
+
   /* Left column — stacks upward from canvas bottom */
   .float-left  { left: 10px; }
   /* Right column — stacks upward from canvas bottom */
@@ -246,21 +252,7 @@
     background: var(--accent);
     color: #fff;
   }
-  #btn-color {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: 2.5px solid rgba(255,255,255,0.35);
-    cursor: pointer;
-    padding: 0;
-    transition: border-color 0.15s, transform 0.1s;
-    z-index: 5;
-  }
   #btn-color.panel-open { border-color: var(--accent); }
-  #btn-color:active { transform: scale(0.92); }
 
   /* Hidden file input */
   #file-input { display: none; }
