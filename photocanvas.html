@@ -124,49 +124,44 @@
   }
   #pick-overlay.hidden { display: none; }
 
-  /* ── Bottom Drawer ── */
-  #drawer {
+  /* ── Color Panel ── */
+  #color-panel {
     flex-shrink: 0;
     background: var(--surface);
     border-top: 1px solid var(--border);
-    padding: 14px 16px 16px;
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.25s cubic-bezier(0.32, 0.72, 0, 1),
+                padding 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+    padding: 0 16px;
+  }
+  #color-panel.open {
+    max-height: 130px;
+    padding: 12px 16px 10px;
   }
 
-  .drawer-section-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text2);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 10px;
-  }
-
-  /* Swatches */
   #swatches {
     display: flex;
     gap: 8px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
+    margin-bottom: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
+  #swatches::-webkit-scrollbar { display: none; }
 
   .swatch {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     border: 2px solid transparent;
     cursor: pointer;
-    transition: transform 0.12s, border-color 0.12s;
     flex-shrink: 0;
-    position: relative;
+    transition: transform 0.12s, border-color 0.12s;
   }
-  .swatch.active {
-    border-color: var(--accent);
-    transform: scale(1.15);
-  }
+  .swatch.active { border-color: var(--accent); transform: scale(1.15); }
   .swatch.white-swatch { border-color: var(--border); }
   .swatch.white-swatch.active { border-color: var(--accent); }
 
-  /* Color picker row */
   #color-picker-row {
     display: flex;
     align-items: center;
@@ -174,8 +169,8 @@
   }
 
   #color-input {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     border: 2px solid var(--border);
     cursor: pointer;
@@ -197,7 +192,7 @@
     color: var(--text);
     font-size: 14px;
     font-family: 'SF Mono', 'Menlo', monospace;
-    padding: 8px 10px;
+    padding: 7px 10px;
     text-transform: uppercase;
   }
   #hex-input:focus { outline: none; border-color: var(--accent); }
@@ -234,6 +229,19 @@
     background: var(--accent);
     color: #fff;
   }
+  #btn-color {
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(255,255,255,0.35);
+    cursor: pointer;
+    padding: 0;
+    transition: border-color 0.15s, transform 0.1s;
+    align-self: center;
+  }
+  #btn-color.panel-open { border-color: var(--accent); }
+  #btn-color:active { transform: scale(0.92); }
 
   /* Hidden file input */
   #file-input { display: none; }
@@ -303,19 +311,19 @@
     <div id="reset-hint">double-tap to reset</div>
   </div>
 
-  <!-- Color Drawer -->
-  <div id="drawer">
-    <div class="drawer-section-label">Background</div>
+  <!-- Color Panel (collapsed by default) -->
+  <div id="color-panel">
     <div id="swatches"></div>
     <div id="color-picker-row">
-      <input type="color" id="color-input" value="#000000">
-      <input type="text" id="hex-input" value="#000000" maxlength="7" placeholder="#000000">
+      <input type="color" id="color-input" value="#ffffff">
+      <input type="text" id="hex-input" value="#FFFFFF" maxlength="7" placeholder="#FFFFFF">
     </div>
   </div>
 
   <!-- Action Bar -->
   <div id="action-bar">
     <button class="action-btn" id="btn-pick">📷 Photo</button>
+    <button id="btn-color" title="Background color"></button>
     <button class="action-btn" id="btn-export">Save to Photos</button>
   </div>
 
@@ -340,9 +348,10 @@ const SWATCHES = [
 ];
 
 // ── State ──────────────────────────────────────────────────────────────────
+const savedColor = localStorage.getItem('pc_bgColor');
 let state = {
   preset: 'story',
-  bgColor: '#000000',
+  bgColor: savedColor || '#ffffff',
   img: null,
   imgX: 0,
   imgY: 0,
@@ -373,6 +382,8 @@ const hexInput = document.getElementById('hex-input');
 const swatchContainer = document.getElementById('swatches');
 const btnPick = document.getElementById('btn-pick');
 const btnExport = document.getElementById('btn-export');
+const btnColor = document.getElementById('btn-color');
+const colorPanel = document.getElementById('color-panel');
 const toast = document.getElementById('toast');
 const resetHint = document.getElementById('reset-hint');
 
@@ -435,6 +446,8 @@ function setColor(hex) {
   state.bgColor = hex;
   colorInput.value = hex;
   hexInput.value = hex.toUpperCase();
+  btnColor.style.background = hex;
+  localStorage.setItem('pc_bgColor', hex);
   updateSwatchActive();
   render();
 }
@@ -670,6 +683,18 @@ hexInput.addEventListener('blur', () => {
 // ── Pick button ────────────────────────────────────────────────────────────
 btnPick.addEventListener('click', () => fileInput.click());
 
+// ── Color panel toggle ─────────────────────────────────────────────────────
+btnColor.addEventListener('click', () => {
+  const open = colorPanel.classList.toggle('open');
+  btnColor.classList.toggle('panel-open', open);
+});
+
+// Close panel when tapping the canvas
+previewCanvas.addEventListener('pointerdown', () => {
+  colorPanel.classList.remove('open');
+  btnColor.classList.remove('panel-open');
+}, { capture: true });
+
 // ── Export (full-res render) ───────────────────────────────────────────────
 function buildFullResCanvas() {
   const preset = getPreset();
@@ -750,6 +775,11 @@ stage.addEventListener('drop', e => {
 // ── Init ───────────────────────────────────────────────────────────────────
 function init() {
   buildSwatches();
+  // Apply persisted/default color to button and inputs
+  colorInput.value = state.bgColor;
+  hexInput.value = state.bgColor.toUpperCase();
+  btnColor.style.background = state.bgColor;
+  updateSwatchActive();
   resizePreviewCanvas();
   render();
 
