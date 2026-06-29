@@ -389,6 +389,37 @@
     -webkit-backdrop-filter: blur(6px);
   }
   #reset-hint.visible { opacity: 1; }
+
+  /* ── Batch nav ── */
+  #batch-nav {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(20,20,22,0.82);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 6px 10px;
+    z-index: 20;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    white-space: nowrap;
+  }
+  #batch-nav.hidden { display: none; }
+  #batch-counter { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); min-width: 36px; text-align: center; }
+  .batch-arrow {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.75);
+    cursor: pointer;
+    padding: 0 2px;
+    display: flex;
+    align-items: center;
+  }
+  .batch-arrow:disabled { opacity: 0.25; }
 </style>
 </head>
 <body>
@@ -409,6 +440,15 @@
     </div>
     <div id="pick-overlay" title="Tap to add photo"></div>
     <div id="reset-hint">double-tap to reset</div>
+    <div id="batch-nav" class="hidden">
+      <button class="batch-arrow" id="btn-prev" disabled>
+        <svg width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M8 1L1.5 7.5L8 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span id="batch-counter">1 / 1</span>
+      <button class="batch-arrow" id="btn-next" disabled>
+        <svg width="9" height="15" viewBox="0 0 9 15" fill="none"><path d="M1 1L7.5 7.5L1 14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
     <!-- Library button — slot 0 left -->
     <button class="float-btn float-left" id="btn-library-float" title="Photo library">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -477,7 +517,7 @@
 </div>
 
 <div id="toast"></div>
-<input type="file" id="file-input-library" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif">
+<input type="file" id="file-input-library" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" multiple>
 
 <script>
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -497,12 +537,12 @@ const SWATCH_IMAGE_COUNT = 6; // slots replaced by image palette
 const savedColor = localStorage.getItem('pc_bgColor');
 let state = {
   preset: 'story',
-  bgColor: savedColor || '#ffffff',
-  img: null,
-  imgX: 0,
-  imgY: 0,
-  imgScale: 1,
-  baseScale: 1,
+  bgColor: savedColor || '#ffffff', // global — shared across series
+  // Working buffer for current image (synced with images array)
+  img: null, imgX: 0, imgY: 0, imgScale: 1, baseScale: 1,
+  // Batch
+  images: [],      // [{ img, imgX, imgY, imgScale, baseScale }]
+  currentIndex: 0,
 };
 
 // Gesture state
@@ -532,6 +572,44 @@ const btnColor = document.getElementById('btn-color');
 const colorPanel = document.getElementById('color-panel');
 const toast = document.getElementById('toast');
 const resetHint = document.getElementById('reset-hint');
+
+// ── Batch helpers ──────────────────────────────────────────────────────────
+function syncToImages(i) {
+  if (!state.images[i]) return;
+  state.images[i] = { img: state.img, imgX: state.imgX, imgY: state.imgY, imgScale: state.imgScale, baseScale: state.baseScale };
+}
+
+function syncFromImages(i) {
+  const e = state.images[i];
+  state.img = e.img; state.imgX = e.imgX; state.imgY = e.imgY;
+  state.imgScale = e.imgScale; state.baseScale = e.baseScale;
+}
+
+function updateBatchUI() {
+  const n = state.images.length;
+  const nav = document.getElementById('batch-nav');
+  if (n <= 1) {
+    nav.classList.add('hidden');
+  } else {
+    nav.classList.remove('hidden');
+    document.getElementById('batch-counter').textContent = `${state.currentIndex + 1} / ${n}`;
+    document.getElementById('btn-prev').disabled = state.currentIndex === 0;
+    document.getElementById('btn-next').disabled = state.currentIndex === n - 1;
+  }
+  btnExport.textContent = n > 1 ? `Save All (${n})` : 'Save to Photos';
+}
+
+function goTo(index) {
+  syncToImages(state.currentIndex);
+  state.currentIndex = index;
+  syncFromImages(index);
+  updateBatchUI();
+  updateImageSwatches(state.img);
+  render();
+}
+
+document.getElementById('btn-prev').addEventListener('click', () => goTo(state.currentIndex - 1));
+document.getElementById('btn-next').addEventListener('click', () => goTo(state.currentIndex + 1));
 
 // ── Canvas scale ───────────────────────────────────────────────────────────
 let displayScale = 1; // ratio of display canvas to full-res
@@ -572,6 +650,7 @@ function positionFloatingBtns() {
 
 // ── Render ─────────────────────────────────────────────────────────────────
 function render() {
+  syncToImages(state.currentIndex);
   const cw = previewCanvas.width;
   const ch = previewCanvas.height;
 
@@ -878,36 +957,51 @@ const ALLOWED_TYPES = new Set([
 ]);
 const MAX_FILE_SIZE = 40 * 1024 * 1024; // 40 MB
 
-function handleFileInput(e) {
-  const file = e.target.files[0];
+function loadImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload  = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(); };
+    img.src = url;
+  });
+}
+
+function makeEntry(img) {
+  const preset = getPreset();
+  const baseScale = Math.min(preset.w / img.width, preset.h / img.height);
+  return { img, imgX: preset.w / 2, imgY: preset.h / 2, imgScale: baseScale, baseScale };
+}
+
+async function handleFileInput(e) {
+  const files = Array.from(e.target.files);
   e.target.value = '';
-  if (!file) return;
+  if (!files.length) return;
 
-  if (!ALLOWED_TYPES.has(file.type)) {
-    showToast('Unsupported file type');
-    return;
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    showToast('File too large (max 40 MB)');
-    return;
-  }
+  const valid = files.filter(f => {
+    if (!ALLOWED_TYPES.has(f.type)) { showToast('Unsupported file type skipped'); return false; }
+    if (f.size > MAX_FILE_SIZE)     { showToast('File too large skipped (max 40 MB)'); return false; }
+    return true;
+  });
+  if (!valid.length) return;
 
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.onload = () => {
-    URL.revokeObjectURL(url);
-    state.img = img;
-    fitImage();
+  const loaded = await Promise.allSettled(valid.map(loadImageFile));
+  const imgs = loaded.filter(r => r.status === 'fulfilled').map(r => r.value);
+  if (!imgs.length) { showToast('Could not load images'); return; }
+
+  const wasEmpty = state.images.length === 0;
+  imgs.forEach(img => state.images.push(makeEntry(img)));
+
+  if (wasEmpty) {
+    state.currentIndex = 0;
+    syncFromImages(0);
     dropHint.classList.add('hidden');
     pickOverlay.classList.add('hidden');
-    updateImageSwatches(img);
-    render();
-  };
-  img.onerror = () => {
-    URL.revokeObjectURL(url);
-    showToast('Could not load image');
-  };
-  img.src = url;
+    updateImageSwatches(state.img);
+  }
+
+  updateBatchUI();
+  render();
 }
 fileInputLibrary.addEventListener('change', handleFileInput);
 
@@ -956,7 +1050,7 @@ previewCanvas.addEventListener('pointerdown', () => {
 }, { capture: true });
 
 // ── Export (full-res render) ───────────────────────────────────────────────
-function buildFullResCanvas() {
+function buildFullResCanvasForEntry(entry) {
   const preset = getPreset();
   const fc = document.createElement('canvas');
   fc.width = preset.w;
@@ -966,11 +1060,11 @@ function buildFullResCanvas() {
   fctx.fillStyle = state.bgColor;
   fctx.fillRect(0, 0, preset.w, preset.h);
 
-  if (state.img) {
+  if (entry.img) {
     fctx.save();
-    fctx.translate(state.imgX, state.imgY);
-    fctx.scale(state.imgScale, state.imgScale);
-    fctx.drawImage(state.img, -state.img.width / 2, -state.img.height / 2);
+    fctx.translate(entry.imgX, entry.imgY);
+    fctx.scale(entry.imgScale, entry.imgScale);
+    fctx.drawImage(entry.img, -entry.img.width / 2, -entry.img.height / 2);
     fctx.restore();
   }
 
@@ -984,57 +1078,72 @@ function showToast(msg, duration = 2000) {
 }
 
 // ── Export ─────────────────────────────────────────────────────────────────
+function canvasToFile(canvas, filename) {
+  return new Promise(resolve => {
+    canvas.toBlob(blob => resolve(new File([blob], filename, { type: 'image/jpeg' })), 'image/jpeg', 0.95);
+  });
+}
+
 btnExport.addEventListener('click', async () => {
-  if (!state.img) { showToast('Add a photo first'); return; }
+  if (!state.images.length) { showToast('Add a photo first'); return; }
 
-  const fc = buildFullResCanvas();
+  // Flush current buffer into images array before export
+  syncToImages(state.currentIndex);
 
-  fc.toBlob(async blob => {
-    const filename = `photocanvas-${state.preset}-${Date.now()}.jpg`;
-    const file = new File([blob], filename, { type: 'image/jpeg' });
+  const ts = Date.now();
+  const files = await Promise.all(
+    state.images.map((entry, i) =>
+      canvasToFile(buildFullResCanvasForEntry(entry), `photocanvas-${state.preset}-${ts}-${i + 1}.jpg`)
+    )
+  );
 
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: 'PhotoCanvas' });
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return;
-        // Fall through to download
-      }
+  if (navigator.canShare && navigator.canShare({ files })) {
+    try {
+      await navigator.share({ files, title: 'PhotoCanvas' });
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
     }
+  }
 
-    // Fallback: direct download (desktop / unsupported browsers)
-    const url = URL.createObjectURL(blob);
+  // Fallback: sequential download for desktop
+  for (const file of files) {
+    const url = URL.createObjectURL(file);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
+    a.href = url; a.download = file.name; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
-    showToast('Saved!');
-  }, 'image/jpeg', 0.95);
+  }
+  showToast(files.length > 1 ? `Saved ${files.length} images` : 'Saved!');
 });
 
 // ── Drag-and-drop (desktop) ────────────────────────────────────────────────
 stage.addEventListener('dragover', e => e.preventDefault());
-stage.addEventListener('drop', e => {
+stage.addEventListener('drop', async e => {
   e.preventDefault();
-  const file = e.dataTransfer.files[0];
-  if (!file) return;
-  if (!ALLOWED_TYPES.has(file.type)) { showToast('Unsupported file type'); return; }
-  if (file.size > MAX_FILE_SIZE) { showToast('File too large (max 40 MB)'); return; }
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.onload = () => {
-    URL.revokeObjectURL(url);
-    state.img = img;
-    fitImage();
+  const files = Array.from(e.dataTransfer.files).filter(f => {
+    if (!ALLOWED_TYPES.has(f.type)) { showToast('Unsupported file type skipped'); return false; }
+    if (f.size > MAX_FILE_SIZE)     { showToast('File too large skipped (max 40 MB)'); return false; }
+    return true;
+  });
+  if (!files.length) return;
+
+  const loaded = await Promise.allSettled(files.map(loadImageFile));
+  const imgs = loaded.filter(r => r.status === 'fulfilled').map(r => r.value);
+  if (!imgs.length) { showToast('Could not load images'); return; }
+
+  const wasEmpty = state.images.length === 0;
+  imgs.forEach(img => state.images.push(makeEntry(img)));
+
+  if (wasEmpty) {
+    state.currentIndex = 0;
+    syncFromImages(0);
     dropHint.classList.add('hidden');
     pickOverlay.classList.add('hidden');
-    updateImageSwatches(img);
-    render();
-  };
-  img.onerror = () => { URL.revokeObjectURL(url); showToast('Could not load image'); };
-  img.src = url;
+    updateImageSwatches(state.img);
+  }
+
+  updateBatchUI();
+  render();
 });
 
 // ── Crop ───────────────────────────────────────────────────────────────────
@@ -1217,7 +1326,15 @@ document.getElementById('crop-confirm').addEventListener('click', () => {
   fc.toBlob(blob => {
     const url = URL.createObjectURL(blob);
     const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); state.img = img; fitImage(); exitCrop(); render(); };
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      state.img = img;
+      fitImage();
+      // Write cropped image back into the images array
+      syncToImages(state.currentIndex);
+      exitCrop();
+      render();
+    };
     img.onerror = () => { URL.revokeObjectURL(url); showToast('Crop failed'); };
     img.src = url;
   }, 'image/png');
