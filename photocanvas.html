@@ -487,11 +487,11 @@ const PRESETS = {
   square: { w: 1080, h: 1080, label: 'Square' },
 };
 
-const SWATCHES = [
+const SWATCHES_FIXED = [
   '#000000', '#ffffff', '#1a1a1a', '#f5f5f0',
-  '#e8e0d5', '#c9b99a', '#7a6a5a', '#3d3530',
-  '#e8e8e8', '#b0b0b0', '#2d4a3e', '#1e3a5f',
+  '#e8e0d5', '#c9b99a',
 ];
+const SWATCH_IMAGE_COUNT = 6; // slots replaced by image palette
 
 // ── State ──────────────────────────────────────────────────────────────────
 const savedColor = localStorage.getItem('pc_bgColor');
@@ -626,15 +626,79 @@ function updateSwatchActive() {
 }
 
 // ── Swatches ───────────────────────────────────────────────────────────────
+function makeSwatch(hex) {
+  const el = document.createElement('div');
+  el.className = 'swatch' + (hex === '#ffffff' ? ' white-swatch' : '');
+  el.dataset.color = hex;
+  el.style.background = hex;
+  if (hex.toLowerCase() === state.bgColor.toLowerCase()) el.classList.add('active');
+  el.addEventListener('click', () => setColor(el.dataset.color));
+  return el;
+}
+
 function buildSwatches() {
-  SWATCHES.forEach(hex => {
-    const el = document.createElement('div');
-    el.className = 'swatch' + (hex === '#ffffff' ? ' white-swatch' : '');
+  // Image-derived slots (first 6) — dimmed until an image is loaded
+  for (let i = 0; i < SWATCH_IMAGE_COUNT; i++) {
+    const el = makeSwatch('#2a2a2a');
+    el.classList.add('swatch-image');
+    el.style.opacity = '0.25';
+    swatchContainer.appendChild(el);
+  }
+  // Fixed neutrals (last 6)
+  SWATCHES_FIXED.forEach(hex => swatchContainer.appendChild(makeSwatch(hex)));
+}
+
+// ── Image palette extraction ───────────────────────────────────────────────
+function extractPalette(img) {
+  const SIZE = 80;
+  const fc = document.createElement('canvas');
+  fc.width = fc.height = SIZE;
+  const fctx = fc.getContext('2d');
+  fctx.drawImage(img, 0, 0, SIZE, SIZE);
+  const data = fctx.getImageData(0, 0, SIZE, SIZE).data;
+
+  // Quantize to 24-step buckets and count
+  const freq = {};
+  for (let i = 0; i < data.length; i += 4) {
+    const a = data[i + 3];
+    if (a < 128) continue; // skip transparent
+    const r = Math.round(data[i]   / 24) * 24;
+    const g = Math.round(data[i+1] / 24) * 24;
+    const b = Math.round(data[i+2] / 24) * 24;
+    const key = `${r},${g},${b}`;
+    freq[key] = (freq[key] || 0) + 1;
+  }
+
+  // Sort by frequency
+  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+
+  // Pick top colors with minimum perceptual distance between picks
+  const picked = [];
+  for (const [key] of sorted) {
+    if (picked.length >= SWATCH_IMAGE_COUNT) break;
+    const [r, g, b] = key.split(',').map(Number);
+    const tooClose = picked.some(([pr, pg, pb]) => {
+      const dr = r - pr, dg = g - pg, db = b - pb;
+      return Math.sqrt(dr*dr + dg*dg + db*db) < 60;
+    });
+    if (!tooClose) picked.push([r, g, b]);
+  }
+
+  return picked.map(([r, g, b]) =>
+    '#' + [r, g, b].map(v => Math.min(255, v).toString(16).padStart(2, '0')).join('')
+  );
+}
+
+function updateImageSwatches(img) {
+  const palette = extractPalette(img);
+  const slots = swatchContainer.querySelectorAll('.swatch-image');
+  slots.forEach((el, i) => {
+    const hex = palette[i] || '#2a2a2a';
     el.dataset.color = hex;
     el.style.background = hex;
-    if (hex.toLowerCase() === state.bgColor.toLowerCase()) el.classList.add('active');
-    el.addEventListener('click', () => setColor(hex));
-    swatchContainer.appendChild(el);
+    el.style.opacity = palette[i] ? '1' : '0.2';
+    el.classList.toggle('white-swatch', hex === '#ffffff');
+    el.classList.toggle('active', hex.toLowerCase() === state.bgColor.toLowerCase());
   });
 }
 
@@ -836,6 +900,7 @@ function handleFileInput(e) {
     fitImage();
     dropHint.classList.add('hidden');
     pickOverlay.classList.add('hidden');
+    updateImageSwatches(img);
     render();
   };
   img.onerror = () => {
@@ -965,6 +1030,7 @@ stage.addEventListener('drop', e => {
     fitImage();
     dropHint.classList.add('hidden');
     pickOverlay.classList.add('hidden');
+    updateImageSwatches(img);
     render();
   };
   img.onerror = () => { URL.revokeObjectURL(url); showToast('Could not load image'); };
