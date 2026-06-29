@@ -576,7 +576,8 @@ const resetHint = document.getElementById('reset-hint');
 // ── Batch helpers ──────────────────────────────────────────────────────────
 function syncToImages(i) {
   if (!state.images[i]) return;
-  state.images[i] = { img: state.img, imgX: state.imgX, imgY: state.imgY, imgScale: state.imgScale, baseScale: state.baseScale };
+  const { originalImg } = state.images[i];
+  state.images[i] = { img: state.img, originalImg, imgX: state.imgX, imgY: state.imgY, imgScale: state.imgScale, baseScale: state.baseScale };
 }
 
 function syncFromImages(i) {
@@ -970,7 +971,7 @@ function loadImageFile(file) {
 function makeEntry(img) {
   const preset = getPreset();
   const baseScale = Math.min(preset.w / img.width, preset.h / img.height);
-  return { img, imgX: preset.w / 2, imgY: preset.h / 2, imgScale: baseScale, baseScale };
+  return { img, originalImg: img, imgX: preset.w / 2, imgY: preset.h / 2, imgScale: baseScale, baseScale };
 }
 
 async function handleFileInput(e) {
@@ -1167,7 +1168,10 @@ function enterCrop() {
   cropMode.classList.remove('hidden');
   document.getElementById('action-bar').style.display = 'none';
 
-  const img = state.img;
+  // Always crop from the original — lets users re-crop or undo a prior crop
+  const entry = state.images[state.currentIndex];
+  const img = (entry && entry.originalImg) || state.img;
+  cropState.sourceImg = img;
   const r = cropStageEl.getBoundingClientRect();
   const pad = 32;
   cropState.cScale = Math.min((r.width - pad*2) / img.width, (r.height - pad*2) / img.height);
@@ -1303,7 +1307,7 @@ document.querySelectorAll('.ratio-btn').forEach(btn => {
     document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     const key = btn.dataset.ratio;
-    cropState.ratio = key === 'original' ? state.img.width / state.img.height
+    cropState.ratio = key === 'original' ? cropState.sourceImg.width / cropState.sourceImg.height
                     : RATIO_MAP[key] ?? null;
     if (cropState.ratio) { snapToRatio(); renderCropOverlay(); }
   });
@@ -1312,16 +1316,17 @@ document.querySelectorAll('.ratio-btn').forEach(btn => {
 document.getElementById('crop-cancel').addEventListener('click', exitCrop);
 
 document.getElementById('crop-confirm').addEventListener('click', () => {
-  const { rect } = cropState;
+  const { rect, sourceImg } = cropState;
+  const src = sourceImg || state.img;
   const x = Math.max(0, Math.round(rect.x));
   const y = Math.max(0, Math.round(rect.y));
-  const w = Math.min(state.img.width  - x, Math.round(rect.w));
-  const h = Math.min(state.img.height - y, Math.round(rect.h));
+  const w = Math.min(src.width  - x, Math.round(rect.w));
+  const h = Math.min(src.height - y, Math.round(rect.h));
   if (w < 1 || h < 1) { exitCrop(); return; }
 
   const fc = document.createElement('canvas');
   fc.width = w; fc.height = h;
-  fc.getContext('2d').drawImage(state.img, -x, -y);
+  fc.getContext('2d').drawImage(src, -x, -y);
 
   fc.toBlob(blob => {
     const url = URL.createObjectURL(blob);
