@@ -315,9 +315,8 @@
   <!-- Preset Tabs -->
   <div id="presets">
     <button class="preset-btn active" data-preset="story">Story</button>
-    <button class="preset-btn" data-preset="portrait">Portrait</button>
+    <button class="preset-btn" data-preset="post">Post</button>
     <button class="preset-btn" data-preset="square">Square</button>
-    <button class="preset-btn" data-preset="landscape">Landscape</button>
   </div>
 
   <!-- Canvas Stage -->
@@ -360,10 +359,9 @@
 <script>
 // ── Constants ──────────────────────────────────────────────────────────────
 const PRESETS = {
-  story:     { w: 1080, h: 1920, label: 'Story 9:16' },
-  portrait:  { w: 1080, h: 1350, label: 'Feed Portrait' },
-  square:    { w: 1080, h: 1080, label: 'Square' },
-  landscape: { w: 1080, h: 566,  label: 'Landscape' },
+  story:  { w: 1080, h: 1920, label: 'Story' },
+  post:   { w: 1080, h: 1350, label: 'Post' },
+  square: { w: 1080, h: 1080, label: 'Square' },
 };
 
 const SWATCHES = [
