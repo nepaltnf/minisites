@@ -219,6 +219,7 @@
     transition: opacity 0.12s, transform 0.1s;
   }
   .action-btn:active { transform: scale(0.97); opacity: 0.85; }
+  .action-btn:disabled { opacity: 0.35; cursor: default; pointer-events: none; }
 
   /* Floating stage buttons (camera + library) */
   /* Shared style for all floating stage buttons */
@@ -681,6 +682,7 @@ function updateBatchUI() {
     document.getElementById('btn-next').disabled = state.currentIndex === n - 1;
   }
   btnExport.textContent = n > 1 ? `Save All (${n})` : 'Save to Photos';
+  btnExport.disabled = n === 0;
 }
 
 function goTo(index) {
@@ -1445,8 +1447,8 @@ infoModal.addEventListener('click', e => { if (e.target === infoModal) infoModal
 // ── Init ───────────────────────────────────────────────────────────────────
 function init() {
   buildSwatches();
-  // Apply persisted/default color (also sets hint text contrast)
   setColor(state.bgColor);
+  updateBatchUI();
   resizePreviewCanvas();
   render();
 
