@@ -719,15 +719,15 @@ function makeSwatch(hex) {
 }
 
 function buildSwatches() {
-  // Image-derived slots (first 6) — dimmed until an image is loaded
+  // Fixed neutrals first
+  SWATCHES_FIXED.forEach(hex => swatchContainer.appendChild(makeSwatch(hex)));
+  // Image-derived slots after — hidden until an image is loaded
   for (let i = 0; i < SWATCH_IMAGE_COUNT; i++) {
     const el = makeSwatch('#2a2a2a');
     el.classList.add('swatch-image');
-    el.style.opacity = '0.25';
+    el.style.display = 'none';
     swatchContainer.appendChild(el);
   }
-  // Fixed neutrals (last 6)
-  SWATCHES_FIXED.forEach(hex => swatchContainer.appendChild(makeSwatch(hex)));
 }
 
 // ── Image palette extraction ───────────────────────────────────────────────
@@ -772,13 +772,15 @@ function extractPalette(img) {
 }
 
 function updateImageSwatches(img) {
-  const palette = extractPalette(img);
   const slots = swatchContainer.querySelectorAll('.swatch-image');
+  if (!img) { slots.forEach(el => { el.style.display = 'none'; }); return; }
+  const palette = extractPalette(img);
   slots.forEach((el, i) => {
-    const hex = palette[i] || '#2a2a2a';
+    if (!palette[i]) { el.style.display = 'none'; return; }
+    const hex = palette[i];
     el.dataset.color = hex;
     el.style.background = hex;
-    el.style.opacity = palette[i] ? '1' : '0.2';
+    el.style.display = '';
     el.classList.toggle('white-swatch', hex === '#ffffff');
     el.classList.toggle('active', hex.toLowerCase() === state.bgColor.toLowerCase());
   });
