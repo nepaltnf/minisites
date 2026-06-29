@@ -234,14 +234,6 @@
     background: var(--accent);
     color: #fff;
   }
-  #btn-share {
-    background: var(--surface2);
-    color: var(--text);
-    border: 1.5px solid var(--border);
-    flex: 0 0 auto;
-    padding-left: 14px;
-    padding-right: 14px;
-  }
 
   /* Hidden file input */
   #file-input { display: none; }
@@ -325,8 +317,7 @@
   <!-- Action Bar -->
   <div id="action-bar">
     <button class="action-btn" id="btn-pick">📷 Photo</button>
-    <button class="action-btn" id="btn-export">Save</button>
-    <button class="action-btn" id="btn-share">Share</button>
+    <button class="action-btn" id="btn-export">Save to Photos</button>
   </div>
 
 </div>
@@ -383,7 +374,6 @@ const hexInput = document.getElementById('hex-input');
 const swatchContainer = document.getElementById('swatches');
 const btnPick = document.getElementById('btn-pick');
 const btnExport = document.getElementById('btn-export');
-const btnShare = document.getElementById('btn-share');
 const toast = document.getElementById('toast');
 const resetHint = document.getElementById('reset-hint');
 
@@ -689,33 +679,13 @@ function showToast(msg, duration = 2000) {
   setTimeout(() => toast.classList.remove('show'), duration);
 }
 
-async function exportImage() {
-  if (!state.img) { showToast('Add a photo first'); return; }
-  const fc = buildFullResCanvas();
-  return new Promise(resolve => {
-    fc.toBlob(blob => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `photocanvas-${state.preset}-${Date.now()}.jpg`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-      showToast('Saved!');
-      resolve(blob);
-    }, 'image/jpeg', 0.95);
-  });
-}
-
-btnExport.addEventListener('click', () => exportImage());
-
-// ── Share ──────────────────────────────────────────────────────────────────
-btnShare.addEventListener('click', async () => {
+// ── Export ─────────────────────────────────────────────────────────────────
+btnExport.addEventListener('click', async () => {
   if (!state.img) { showToast('Add a photo first'); return; }
 
   const fc = buildFullResCanvas();
 
   fc.toBlob(async blob => {
-    const preset = getPreset();
     const filename = `photocanvas-${state.preset}-${Date.now()}.jpg`;
     const file = new File([blob], filename, { type: 'image/jpeg' });
 
@@ -724,22 +694,19 @@ btnShare.addEventListener('click', async () => {
         await navigator.share({ files: [file], title: 'PhotoCanvas' });
         return;
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          // Fall through to download
-        } else {
-          return;
-        }
+        if (err.name === 'AbortError') return;
+        // Fall through to download
       }
     }
 
-    // Fallback: download then try instagram deep link
+    // Fallback: direct download (desktop / unsupported browsers)
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 5000);
-    showToast('Saved — open Instagram to share');
+    showToast('Saved!');
   }, 'image/jpeg', 0.95);
 });
 
