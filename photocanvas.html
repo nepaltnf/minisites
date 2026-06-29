@@ -225,8 +225,8 @@
   .float-btn,
   #btn-color {
     position: absolute;
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: rgba(20,20,22,0.82);
     border: 1.5px solid rgba(255,255,255,0.55);
@@ -564,7 +564,7 @@ function positionFloatingBtns() {
   const stageRect = stage.getBoundingClientRect();
   const canvasRect = previewCanvas.getBoundingClientRect();
   const base = stageRect.bottom - canvasRect.bottom;
-  function slotBottom(i) { return (base + i * 44) + 'px'; }
+  function slotBottom(i) { return (base + i * 56) + 'px'; }
   btnLibraryFloat.style.bottom = slotBottom(0);  // left col slot 0
   btnCropFloat.style.bottom    = slotBottom(1);  // left col slot 1
   btnColor.style.bottom        = slotBottom(0);  // right col slot 0
