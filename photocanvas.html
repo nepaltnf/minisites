@@ -355,7 +355,7 @@
 </div>
 
 <div id="toast"></div>
-<input type="file" id="file-input-library" accept="image/*">
+<input type="file" id="file-input-library" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif">
 
 <script>
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -688,18 +688,38 @@ function showResetHint(show) {
 pickOverlay.addEventListener('click', () => fileInputLibrary.click());
 
 // ── File input handler ─────────────────────────────────────────────────────
+const ALLOWED_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif'
+]);
+const MAX_FILE_SIZE = 40 * 1024 * 1024; // 40 MB
+
 function handleFileInput(e) {
   const file = e.target.files[0];
+  e.target.value = '';
   if (!file) return;
+
+  if (!ALLOWED_TYPES.has(file.type)) {
+    showToast('Unsupported file type');
+    return;
+  }
+  if (file.size > MAX_FILE_SIZE) {
+    showToast('File too large (max 40 MB)');
+    return;
+  }
+
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
+    URL.revokeObjectURL(url);
     state.img = img;
     fitImage();
     dropHint.classList.add('hidden');
     pickOverlay.classList.add('hidden');
     render();
-    e.target.value = '';
+  };
+  img.onerror = () => {
+    URL.revokeObjectURL(url);
+    showToast('Could not load image');
   };
   img.src = url;
 }
@@ -813,16 +833,20 @@ stage.addEventListener('dragover', e => e.preventDefault());
 stage.addEventListener('drop', e => {
   e.preventDefault();
   const file = e.dataTransfer.files[0];
-  if (!file || !file.type.startsWith('image/')) return;
+  if (!file) return;
+  if (!ALLOWED_TYPES.has(file.type)) { showToast('Unsupported file type'); return; }
+  if (file.size > MAX_FILE_SIZE) { showToast('File too large (max 40 MB)'); return; }
   const url = URL.createObjectURL(file);
   const img = new Image();
   img.onload = () => {
+    URL.revokeObjectURL(url);
     state.img = img;
     fitImage();
     dropHint.classList.add('hidden');
     pickOverlay.classList.add('hidden');
     render();
   };
+  img.onerror = () => { URL.revokeObjectURL(url); showToast('Could not load image'); };
   img.src = url;
 });
 
