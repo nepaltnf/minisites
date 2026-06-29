@@ -622,8 +622,8 @@ previewCanvas.addEventListener('pointermove', e => {
     const fromCenter = Math.sqrt(
       (gesture.startImgX - cx) ** 2 + (gesture.startImgY - cy) ** 2
     );
-    const CENTER_WELL = 120;  // px from center where gravity applies
-    const BREAK_DRAG  = 110;  // px of drag distance to break free
+    const CENTER_WELL = 240;  // px from center where gravity applies
+    const BREAK_DRAG  = 220;  // px of drag distance to break free
 
     let factor = 1;
     if (fromCenter < CENTER_WELL) {
