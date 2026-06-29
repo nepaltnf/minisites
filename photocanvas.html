@@ -336,6 +336,17 @@
   .ch-sw { bottom:-1px; left:-1px;  border-bottom-width:3px; border-left-width:3px;  }
   .ch-se { bottom:-1px; right:-1px; border-bottom-width:3px; border-right-width:3px; }
 
+  /* Mid-edge handles */
+  .ch-mid {
+    position: absolute;
+    background: #fff;
+    border-radius: 2px;
+  }
+  .ch-n  { top:-2px;    left:50%; transform:translateX(-50%); width:28px; height:4px; }
+  .ch-s  { bottom:-2px; left:50%; transform:translateX(-50%); width:28px; height:4px; }
+  .ch-w  { left:-2px;   top:50%;  transform:translateY(-50%); width:4px;  height:28px; }
+  .ch-e  { right:-2px;  top:50%;  transform:translateY(-50%); width:4px;  height:28px; }
+
   #ratio-bar {
     flex-shrink: 0;
     display: flex;
@@ -550,6 +561,10 @@
           <div class="crop-handle ch-ne"></div>
           <div class="crop-handle ch-sw"></div>
           <div class="crop-handle ch-se"></div>
+          <div class="ch-mid ch-n"></div>
+          <div class="ch-mid ch-s"></div>
+          <div class="ch-mid ch-w"></div>
+          <div class="ch-mid ch-e"></div>
           <div class="crop-rule crop-rule-h" style="top:33.33%"></div>
           <div class="crop-rule crop-rule-h" style="top:66.66%"></div>
           <div class="crop-rule crop-rule-v" style="left:33.33%"></div>
@@ -1338,10 +1353,18 @@ function hitArea(px, py) {
   const { rect, cScale, cOffX, cOffY } = cropState;
   const L = cOffX + rect.x * cScale, T = cOffY + rect.y * cScale;
   const R = L + rect.w * cScale,     B = T + rect.h * cScale;
+  const MX = (L + R) / 2, MY = (T + B) / 2;
+  // Corners first (highest priority)
   if (Math.abs(px-L)<HIT && Math.abs(py-T)<HIT) return 'nw';
   if (Math.abs(px-R)<HIT && Math.abs(py-T)<HIT) return 'ne';
   if (Math.abs(px-L)<HIT && Math.abs(py-B)<HIT) return 'sw';
   if (Math.abs(px-R)<HIT && Math.abs(py-B)<HIT) return 'se';
+  // Mid-edge handles
+  if (Math.abs(px-MX)<HIT && Math.abs(py-T)<HIT) return 'n';
+  if (Math.abs(px-MX)<HIT && Math.abs(py-B)<HIT) return 's';
+  if (Math.abs(px-L)<HIT && Math.abs(py-MY)<HIT) return 'w';
+  if (Math.abs(px-R)<HIT && Math.abs(py-MY)<HIT) return 'e';
+  // Interior = move
   if (px>L && px<R && py>T && py<B) return 'move';
   return null;
 }
