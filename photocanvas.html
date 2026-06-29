@@ -433,6 +433,55 @@
   }
   .batch-arrow:disabled { opacity: 0.25; }
 
+  /* Welcome modal */
+  #welcome-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+  }
+  #welcome-modal.hidden { display: none; }
+  #welcome-sheet {
+    width: 100%;
+    background: #1c1c1e;
+    border-radius: 20px 20px 0 0;
+    padding: 32px 24px max(32px, env(safe-area-inset-bottom, 32px));
+    color: rgba(255,255,255,0.88);
+    font-size: 15px;
+    line-height: 1.65;
+    text-align: center;
+  }
+  #welcome-sheet h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 10px;
+    letter-spacing: -0.3px;
+  }
+  #welcome-sheet p { margin: 0 0 10px; color: rgba(255,255,255,0.72); }
+  #welcome-sheet .welcome-note {
+    font-size: 13px;
+    color: rgba(255,255,255,0.4);
+    margin-top: 4px;
+  }
+  #welcome-start {
+    display: block;
+    width: 100%;
+    margin-top: 22px;
+    padding: 15px;
+    background: var(--accent);
+    border: none;
+    border-radius: 14px;
+    color: #000;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
   /* Info button */
   #btn-info {
     position: fixed;
@@ -602,6 +651,16 @@
 </div>
 
 <button id="btn-info">i</button>
+
+<div id="welcome-modal" class="hidden">
+  <div id="welcome-sheet">
+    <h2>Welcome to FotoCanvas</h2>
+    <p>A free tool for placing your photos on clean canvas backgrounds — ready for Instagram, no paywalls, no account required.</p>
+    <p>If it saves you some time or frustration, consider leaving a tip via the <strong style="color:#fff">ⓘ</strong> info button in the top right.</p>
+    <button id="welcome-start">Get Started</button>
+    <p class="welcome-note">This message only shows once.</p>
+  </div>
+</div>
 
 <div id="info-modal" class="hidden">
   <div id="info-sheet">
@@ -1471,6 +1530,16 @@ document.getElementById('crop-confirm').addEventListener('click', () => {
 });
 
 btnCropFloat.addEventListener('click', enterCrop);
+
+// ── Welcome splash (first visit only) ─────────────────────────────────────
+const welcomeModal = document.getElementById('welcome-modal');
+if (!localStorage.getItem('pc_welcomed')) {
+  welcomeModal.classList.remove('hidden');
+}
+document.getElementById('welcome-start').addEventListener('click', () => {
+  localStorage.setItem('pc_welcomed', '1');
+  welcomeModal.classList.add('hidden');
+});
 
 // ── Info modal ─────────────────────────────────────────────────────────────
 const infoModal = document.getElementById('info-modal');
