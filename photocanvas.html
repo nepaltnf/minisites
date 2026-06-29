@@ -990,6 +990,7 @@ let cropState = {
 function enterCrop() {
   if (!state.img) { showToast('Add a photo first'); return; }
   cropMode.classList.remove('hidden');
+  document.getElementById('action-bar').style.display = 'none';
 
   const img = state.img;
   const r = cropStageEl.getBoundingClientRect();
@@ -1019,6 +1020,7 @@ function enterCrop() {
 
 function exitCrop() {
   cropMode.classList.add('hidden');
+  document.getElementById('action-bar').style.display = '';
   cropState.drag = null;
 }
 
