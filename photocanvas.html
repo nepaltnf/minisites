@@ -439,6 +439,17 @@ function resizePreviewCanvas() {
   previewCanvas.height = dispH;
   previewCanvas.style.width = dispW + 'px';
   previewCanvas.style.height = dispH + 'px';
+
+  requestAnimationFrame(positionFloatingBtns);
+}
+
+function positionFloatingBtns() {
+  const stageRect = stage.getBoundingClientRect();
+  const canvasRect = previewCanvas.getBoundingClientRect();
+  const gap = stageRect.bottom - canvasRect.bottom;
+  const offset = gap + 'px';
+  btnPickFloat.style.bottom = offset;
+  btnColor.style.bottom = offset;
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
