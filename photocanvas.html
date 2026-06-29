@@ -577,13 +577,14 @@ const resetHint = document.getElementById('reset-hint');
 function syncToImages(i) {
   if (!state.images[i]) return;
   const { originalImg, cropRect } = state.images[i];
-  state.images[i] = { img: state.img, originalImg, cropRect, imgX: state.imgX, imgY: state.imgY, imgScale: state.imgScale, baseScale: state.baseScale };
+  state.images[i] = { img: state.img, originalImg, cropRect, bgColor: state.bgColor, imgX: state.imgX, imgY: state.imgY, imgScale: state.imgScale, baseScale: state.baseScale };
 }
 
 function syncFromImages(i) {
   const e = state.images[i];
   state.img = e.img; state.imgX = e.imgX; state.imgY = e.imgY;
   state.imgScale = e.imgScale; state.baseScale = e.baseScale;
+  state.bgColor = e.bgColor;
 }
 
 function updateBatchUI() {
@@ -606,6 +607,7 @@ function goTo(index) {
   syncFromImages(index);
   updateBatchUI();
   updateImageSwatches(state.img);
+  setColor(state.bgColor);
   render();
 }
 
@@ -971,7 +973,7 @@ function loadImageFile(file) {
 function makeEntry(img) {
   const preset = getPreset();
   const baseScale = Math.min(preset.w / img.width, preset.h / img.height);
-  return { img, originalImg: img, cropRect: null, imgX: preset.w / 2, imgY: preset.h / 2, imgScale: baseScale, baseScale };
+  return { img, originalImg: img, cropRect: null, bgColor: state.bgColor, imgX: preset.w / 2, imgY: preset.h / 2, imgScale: baseScale, baseScale };
 }
 
 async function handleFileInput(e) {
@@ -1058,7 +1060,7 @@ function buildFullResCanvasForEntry(entry) {
   fc.height = preset.h;
   const fctx = fc.getContext('2d');
 
-  fctx.fillStyle = state.bgColor;
+  fctx.fillStyle = entry.bgColor || state.bgColor;
   fctx.fillRect(0, 0, preset.w, preset.h);
 
   if (entry.img) {
