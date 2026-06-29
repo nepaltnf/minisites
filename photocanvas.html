@@ -223,7 +223,6 @@
   /* Floating stage buttons (camera + library) */
   .float-btn {
     position: absolute;
-    bottom: 10px;
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -240,8 +239,10 @@
     z-index: 5;
   }
   .float-btn:active { transform: scale(0.9); opacity: 0.7; }
-  #btn-pick-float  { left: 10px; }
-  #btn-library-float { left: 54px; }
+  /* Left column — stacks upward from canvas bottom */
+  .float-left  { left: 10px; }
+  /* Right column — stacks upward from canvas bottom */
+  .float-right { right: 10px; }
 
   #btn-export {
     background: var(--accent);
@@ -329,21 +330,14 @@
     </div>
     <div id="pick-overlay" title="Tap to add photo"></div>
     <div id="reset-hint">double-tap to reset</div>
-    <button class="float-btn" id="btn-pick-float" title="Take photo">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2"/>
-        <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-        <circle cx="12" cy="14" r="3"/>
-      </svg>
-    </button>
-    <button class="float-btn" id="btn-library-float" title="Photo library">
+    <button class="float-btn float-left" id="btn-library-float" title="Photo library">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="3" width="18" height="18" rx="2"/>
         <path d="M3 15l5-5 4 4 3-3 6 6"/>
         <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" stroke="none"/>
       </svg>
     </button>
-    <button id="btn-color" title="Background color"></button>
+    <button class="float-right" id="btn-color" title="Background color"></button>
   </div>
 
   <!-- Color Panel (collapsed by default) -->
@@ -364,7 +358,6 @@
 
 <div id="toast"></div>
 <input type="file" id="file-input-library" accept="image/*">
-<input type="file" id="file-input-camera" accept="image/*" capture="environment">
 
 <script>
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -411,11 +404,9 @@ const stage = document.getElementById('stage');
 const dropHint = document.getElementById('drop-hint');
 const pickOverlay = document.getElementById('pick-overlay');
 const fileInputLibrary = document.getElementById('file-input-library');
-const fileInputCamera = document.getElementById('file-input-camera');
 const colorInput = document.getElementById('color-input');
 const hexInput = document.getElementById('hex-input');
 const swatchContainer = document.getElementById('swatches');
-const btnPickFloat = document.getElementById('btn-pick-float');
 const btnLibraryFloat = document.getElementById('btn-library-float');
 const btnExport = document.getElementById('btn-export');
 const btnColor = document.getElementById('btn-color');
@@ -453,10 +444,11 @@ function resizePreviewCanvas() {
 function positionFloatingBtns() {
   const stageRect = stage.getBoundingClientRect();
   const canvasRect = previewCanvas.getBoundingClientRect();
-  const offset = (stageRect.bottom - canvasRect.bottom) + 'px';
-  btnPickFloat.style.bottom = offset;
-  btnLibraryFloat.style.bottom = offset;
-  btnColor.style.bottom = offset;
+  const base = stageRect.bottom - canvasRect.bottom; // gap below canvas
+  // Each slot is 36px button + 8px gap; slot 0 = lowest (canvas baseline)
+  function slotBottom(i) { return (base + i * 44) + 'px'; }
+  btnLibraryFloat.style.bottom = slotBottom(0);
+  btnColor.style.bottom = slotBottom(0);
 }
 
 // ── Render ─────────────────────────────────────────────────────────────────
@@ -697,7 +689,6 @@ function handleFileInput(e) {
   img.src = url;
 }
 fileInputLibrary.addEventListener('change', handleFileInput);
-fileInputCamera.addEventListener('change', handleFileInput);
 
 // ── Preset buttons ─────────────────────────────────────────────────────────
 document.querySelectorAll('.preset-btn').forEach(btn => {
@@ -728,8 +719,7 @@ hexInput.addEventListener('blur', () => {
   hexInput.value = state.bgColor.toUpperCase();
 });
 
-// ── Floating pick buttons ──────────────────────────────────────────────────
-btnPickFloat.addEventListener('click', () => fileInputCamera.click());
+// ── Floating pick button ───────────────────────────────────────────────────
 btnLibraryFloat.addEventListener('click', () => fileInputLibrary.click());
 
 // ── Color panel toggle ─────────────────────────────────────────────────────
