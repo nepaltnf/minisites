@@ -420,6 +420,75 @@
     align-items: center;
   }
   .batch-arrow:disabled { opacity: 0.25; }
+
+  /* Info button */
+  #btn-info {
+    position: fixed;
+    top: max(14px, env(safe-area-inset-top, 14px));
+    right: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.45);
+    background: rgba(20,20,22,0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: rgba(255,255,255,0.8);
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  /* Info modal */
+  #info-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+  #info-modal.hidden { display: none; }
+  #info-sheet {
+    width: 100%;
+    background: #1c1c1e;
+    border-radius: 20px 20px 0 0;
+    padding: 28px 24px max(28px, env(safe-area-inset-bottom, 28px));
+    color: rgba(255,255,255,0.88);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  #info-sheet h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 12px;
+  }
+  #info-sheet p { margin: 0 0 14px; }
+  #info-sheet a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  #info-close {
+    display: block;
+    margin: 18px auto 0;
+    padding: 12px 32px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 12px;
+    color: rgba(255,255,255,0.8);
+    font-size: 15px;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -514,6 +583,19 @@
     <button class="action-btn" id="btn-export">Save to Photos</button>
   </div>
 
+</div>
+
+<button id="btn-info">i</button>
+
+<div id="info-modal" class="hidden">
+  <div id="info-sheet">
+    <h2>PhotoCanvas</h2>
+    <p>Made by a photographer, for photographers. Place your images on a clean background and export them ready for Instagram — no subscriptions, no paywalls, no nonsense.</p>
+    <p>Works entirely on your phone, offline, with no account required. Your photos never leave your device.</p>
+    <p>If this saves you time or frustration, a small donation is always appreciated.<br>
+    <a href="https://venmo.com/IanAllen" target="_blank" rel="noopener">Venmo @IanAllen</a></p>
+    <button id="info-close">Close</button>
+  </div>
 </div>
 
 <div id="toast"></div>
@@ -1353,6 +1435,12 @@ document.getElementById('crop-confirm').addEventListener('click', () => {
 });
 
 btnCropFloat.addEventListener('click', enterCrop);
+
+// ── Info modal ─────────────────────────────────────────────────────────────
+const infoModal = document.getElementById('info-modal');
+document.getElementById('btn-info').addEventListener('click', () => infoModal.classList.remove('hidden'));
+document.getElementById('info-close').addEventListener('click', () => infoModal.classList.add('hidden'));
+infoModal.addEventListener('click', e => { if (e.target === infoModal) infoModal.classList.add('hidden'); });
 
 // ── Init ───────────────────────────────────────────────────────────────────
 function init() {
