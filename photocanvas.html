@@ -633,6 +633,14 @@ previewCanvas.addEventListener('pointermove', e => {
 
     state.imgX = gesture.startImgX + rawDX * factor;
     state.imgY = gesture.startImgY + rawDY * factor;
+
+    // Snap to center if close enough
+    const SNAP = 22;
+    if (Math.sqrt((state.imgX - cx) ** 2 + (state.imgY - cy) ** 2) < SNAP) {
+      state.imgX = cx;
+      state.imgY = cy;
+    }
+
     showResetHint(true);
     render();
   }
