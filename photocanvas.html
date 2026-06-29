@@ -576,8 +576,8 @@ const resetHint = document.getElementById('reset-hint');
 // ── Batch helpers ──────────────────────────────────────────────────────────
 function syncToImages(i) {
   if (!state.images[i]) return;
-  const { originalImg } = state.images[i];
-  state.images[i] = { img: state.img, originalImg, imgX: state.imgX, imgY: state.imgY, imgScale: state.imgScale, baseScale: state.baseScale };
+  const { originalImg, cropRect } = state.images[i];
+  state.images[i] = { img: state.img, originalImg, cropRect, imgX: state.imgX, imgY: state.imgY, imgScale: state.imgScale, baseScale: state.baseScale };
 }
 
 function syncFromImages(i) {
@@ -971,7 +971,7 @@ function loadImageFile(file) {
 function makeEntry(img) {
   const preset = getPreset();
   const baseScale = Math.min(preset.w / img.width, preset.h / img.height);
-  return { img, originalImg: img, imgX: preset.w / 2, imgY: preset.h / 2, imgScale: baseScale, baseScale };
+  return { img, originalImg: img, cropRect: null, imgX: preset.w / 2, imgY: preset.h / 2, imgScale: baseScale, baseScale };
 }
 
 async function handleFileInput(e) {
@@ -1188,7 +1188,7 @@ function enterCrop() {
   cctx.drawImage(img, cropState.cOffX, cropState.cOffY, img.width * cropState.cScale, img.height * cropState.cScale);
 
   cropState.ratio = null;
-  cropState.rect  = { x:0, y:0, w:img.width, h:img.height };
+  cropState.rect  = (entry && entry.cropRect) ? { ...entry.cropRect } : { x:0, y:0, w:img.width, h:img.height };
   cropState.drag  = null;
 
   document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
@@ -1335,7 +1335,10 @@ document.getElementById('crop-confirm').addEventListener('click', () => {
       URL.revokeObjectURL(url);
       state.img = img;
       fitImage();
-      // Write cropped image back into the images array
+      // Persist crop rect and cropped image back into the entry
+      if (state.images[state.currentIndex]) {
+        state.images[state.currentIndex].cropRect = { x, y, w, h };
+      }
       syncToImages(state.currentIndex);
       exitCrop();
       render();
