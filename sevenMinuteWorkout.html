@@ -123,8 +123,8 @@
   .phase-label.done{ color:var(--work); background:var(--work-dim); }
 
   .illustration{
-    width:clamp(90px, 24vh, 190px);
-    height:clamp(90px, 24vh, 190px);
+    width:clamp(120px, 30vh, 220px);
+    height:clamp(120px, 30vh, 220px);
     border-radius:28px;
     background:var(--panel);
     display:flex;
@@ -133,6 +133,15 @@
     font-size:clamp(48px, 12vh, 96px);
     line-height:1;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+    overflow:hidden;
+  }
+  .illustration img{
+    width:78%;
+    height:78%;
+    object-fit:contain;
+  }
+  .illustration .emoji-fallback{
+    line-height:1;
   }
 
   .exercise-name{
@@ -405,10 +414,10 @@
 
   <div class="stage">
     <div class="phase-label ready" id="phaseLabel">Get Ready</div>
-    <div class="illustration" id="illustration">🏃</div>
+    <div class="illustration" id="illustration"><span class="emoji-fallback">⏱️</span></div>
     <div class="timer" id="timer">10</div>
     <div class="exercise-name" id="exerciseName">Warm Up</div>
-    <div class="exercise-cue" id="exerciseCue">Loosen up — the workout starts in a moment.</div>
+    <div class="exercise-cue" id="exerciseCue">Loosen up. The workout starts in a moment.</div>
     <div class="next-up" id="nextUp">Next: <b>Jumping Jacks</b></div>
   </div>
 
@@ -422,7 +431,7 @@
 <!-- Start overlay -->
 <div class="overlay" id="startOverlay">
   <h1>7 Minute Workout</h1>
-  <p>12 bodyweight exercises. 30 seconds of work, 10 seconds of rest, done in one continuous circuit — no equipment needed.</p>
+  <p>12 bodyweight exercises. 30 seconds of work, 10 seconds of rest, done in one continuous circuit, no equipment needed.</p>
   <div class="overlay-meta">
     <span id="metaCount">12 exercises</span>
     <span>·</span>
@@ -483,18 +492,18 @@
   "use strict";
 
   var EXERCISES = [
-    { name:"Jumping Jacks",        icon:"🤸", cue:"Feet and arms out together, land soft." },
-    { name:"Wall Sit",             icon:"🧱", cue:"Back flat on wall, knees at 90°." },
-    { name:"Push-Up",              icon:"💪", cue:"Straight line head to heels." },
-    { name:"Abdominal Crunch",     icon:"🔺", cue:"Lift shoulder blades, keep neck relaxed." },
-    { name:"Step-Up onto Chair",   icon:"🪜", cue:"Alternate leading leg each step." },
-    { name:"Squat",                icon:"🏋️", cue:"Hips back, chest up, knees tracking toes." },
-    { name:"Triceps Dip on Chair", icon:"🪑", cue:"Elbows bend to ~90°, close to the seat." },
-    { name:"Plank",                icon:"➖", cue:"Straight line, brace your core." },
-    { name:"High Knees",           icon:"🏃", cue:"Drive knees up, quick light steps." },
-    { name:"Lunge",                icon:"🚶", cue:"Alternate legs, knee over ankle." },
-    { name:"Push-Up & Rotation",   icon:"🔄", cue:"Push-up, then rotate and reach up." },
-    { name:"Side Plank",           icon:"↘️", cue:"Alternate sides halfway through." }
+    { name:"Jumping Jacks",        icon:"🤸", img:"images/workout/JumpingJack.png",              cue:"Feet and arms out together, land soft." },
+    { name:"Wall Sit",             icon:"🧱", img:"images/workout/WallSit.png",                  cue:"Back flat on wall, knees at 90°." },
+    { name:"Push-Up",              icon:"💪", img:"images/workout/PushUp.png",                   cue:"Straight line head to heels." },
+    { name:"Abdominal Crunch",     icon:"🔺", img:"images/workout/Crunches.png",                 cue:"Lift shoulder blades, keep neck relaxed." },
+    { name:"Step-Up onto Chair",   icon:"🪜", img:"images/workout/StepUp.png",                   cue:"Alternate leading leg each step." },
+    { name:"Squat",                icon:"🏋️", img:"images/workout/Squats.png",                   cue:"Hips back, chest up, knees tracking toes." },
+    { name:"Triceps Dip on Chair", icon:"🪑", img:"images/workout/TriceptDip.png",               cue:"Elbows bend to ~90°, close to the seat." },
+    { name:"Plank",                icon:"➖", img:"images/workout/Plank.png",                    cue:"Straight line, brace your core." },
+    { name:"High Knees",           icon:"🏃", img:"images/workout/HighKnees-RunninginPlace.png", cue:"Drive knees up, quick light steps." },
+    { name:"Lunge",                icon:"🚶", img:"images/workout/Lunges.png",                   cue:"Alternate legs, knee over ankle." },
+    { name:"Push-Up & Rotation",   icon:"🔄", img:"images/workout/PushUp+Rotation.png",          cue:"Push-up, then rotate and reach up." },
+    { name:"Side Plank",           icon:"↘️", img:"images/workout/SidePlank.png",                cue:"Alternate sides halfway through." }
   ];
 
   var els = {};
@@ -619,6 +628,14 @@
 
   function currentStep(){ return sequence[state.seqIndex]; }
 
+  function setIllustration(emoji, imgSrc, imgAlt){
+    if (imgSrc){
+      els.illustration.innerHTML = '<img src="'+imgSrc+'" alt="'+imgAlt+'">';
+    } else {
+      els.illustration.innerHTML = '<span class="emoji-fallback">'+emoji+'</span>';
+    }
+  }
+
   function render(){
     var step = currentStep();
     els.timer.textContent = Math.max(0, Math.ceil(state.timeLeft));
@@ -626,31 +643,31 @@
 
     if (step.type === "ready"){
       setPhase("ready", "Get Ready");
-      els.illustration.textContent = "⏱️";
+      setIllustration("⏱️");
       els.exerciseName.textContent = "Warm Up";
-      els.exerciseCue.textContent = "Loosen up — the workout starts in a moment.";
+      els.exerciseCue.textContent = "Loosen up. The workout starts in a moment.";
       els.nextUp.innerHTML = "First: <b>"+EXERCISES[0].name+"</b>";
     } else if (step.type === "work"){
       var ex = EXERCISES[step.exIndex];
       setPhase("work", "Work");
-      els.illustration.textContent = ex.icon;
+      setIllustration(ex.icon, ex.img, ex.name);
       els.exerciseName.textContent = ex.name;
       els.exerciseCue.textContent = ex.cue;
       if (step.exIndex < EXERCISES.length - 1){
         els.nextUp.innerHTML = "Next: <b>"+EXERCISES[step.exIndex+1].name+"</b>";
       } else {
-        els.nextUp.innerHTML = "Last exercise — almost there!";
+        els.nextUp.innerHTML = "Last exercise. Almost there!";
       }
     } else if (step.type === "rest"){
       var nextEx = EXERCISES[step.exIndex+1];
       setPhase("rest", "Rest");
-      els.illustration.textContent = "💧";
+      setIllustration("💧");
       els.exerciseName.textContent = "Rest";
       els.exerciseCue.textContent = "Catch your breath, shake it out.";
       els.nextUp.innerHTML = "Next: <b>"+nextEx.name+"</b>";
     } else if (step.type === "done"){
       setPhase("done", "Complete");
-      els.illustration.textContent = "🎉";
+      setIllustration("🎉");
       els.exerciseName.textContent = "Workout Complete";
       els.exerciseCue.textContent = "Nice work. Hydrate and stretch.";
       els.nextUp.innerHTML = "";
