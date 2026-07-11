@@ -175,7 +175,7 @@
   @media (max-height: 680px){
     .stage{ gap:clamp(4px, 1.4vh, 12px); padding:4px 20px; }
     .hero{ width:clamp(130px, 30vh, 220px); height:clamp(130px, 30vh, 220px); }
-    .timer{ font-size:clamp(40px, 12vh, 84px); }
+    .timer{ font-size:clamp(48px, 14vh, 96px); }
     .exercise-name{ font-size:clamp(20px, 5.2vw, 32px); }
     .exercise-cue{ display:none; }
     .topbar{ padding:8px 18px; }
@@ -190,15 +190,14 @@
     z-index:2;
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
-    font-size:clamp(52px, 15vh, 108px);
+    font-size:clamp(68px, 19vh, 136px);
     font-weight:800;
     line-height:1;
     font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
     letter-spacing:-0.02em;
     color:var(--text);
-    opacity:0.92;
     text-shadow: 0 0 14px rgba(0,0,0,0.85), 0 0 30px rgba(0,0,0,0.7), 0 0 50px rgba(0,0,0,0.5);
-    transition: color .2s ease;
+    transition: color .2s ease, opacity .3s ease;
   }
   .timer.urgent{ color:var(--danger); }
 
@@ -458,7 +457,7 @@
   <div class="stage">
     <div class="phase-label ready" id="phaseLabel">Get Ready</div>
     <div class="hero">
-      <div class="illustration" id="illustration"><span class="emoji-fallback">⏱️</span></div>
+      <div class="illustration" id="illustration"><img src="images/workout/Timer.png" alt="Get ready"></div>
       <div class="timer" id="timer">10</div>
     </div>
     <div class="exercise-name" id="exerciseName">Warm Up</div>
@@ -691,14 +690,30 @@
     }
   }
 
+  function stepTotalDuration(step){
+    if (step.type === "work") return settings.work;
+    if (step.type === "rest") return settings.rest;
+    if (step.type === "ready") return 10;
+    return null;
+  }
+
+  function updateTimerOpacity(step){
+    var total = stepTotalDuration(step);
+    if (!total || state.timeLeft <= 3){ els.timer.style.opacity = 1; return; }
+    var progress = clamp(1 - (state.timeLeft / total), 0, 1);
+    var opacity = 0.28 + progress * 0.72;
+    els.timer.style.opacity = opacity.toFixed(2);
+  }
+
   function render(){
     var step = currentStep();
     els.timer.textContent = Math.max(0, Math.ceil(state.timeLeft));
     els.timer.classList.toggle("urgent", step.type !== "done" && state.timeLeft <= 3 && state.timeLeft > 0);
+    updateTimerOpacity(step);
 
     if (step.type === "ready"){
       setPhase("ready", "Get Ready");
-      setIllustration("⏱️");
+      setIllustration("⏱️", "images/workout/Timer.png", "Get ready");
       els.exerciseName.textContent = "Warm Up";
       els.exerciseCue.textContent = "Loosen up. The workout starts in a moment.";
       els.nextUp.innerHTML = "First: <b>"+EXERCISES[0].name+"</b>";
