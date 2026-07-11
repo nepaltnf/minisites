@@ -156,11 +156,12 @@
     transition:opacity .25s linear;
   }
   .illustration .icon-tint.icon-flash{
-    animation:iconFlashPulse 1s ease-in-out infinite;
+    animation:iconFlashPulse 1s ease-out infinite;
   }
   @keyframes iconFlashPulse{
-    0%, 100%{ transform:scale(1); opacity:0.85; }
-    50%{ transform:scale(1.06); opacity:1; }
+    0%{ transform:scale(1.07); opacity:1; }
+    60%{ transform:scale(1); opacity:0.85; }
+    100%{ transform:scale(1); opacity:0.85; }
   }
   .illustration .emoji-fallback{
     line-height:1;
@@ -175,11 +176,12 @@
     z-index:40;
   }
   .flash-overlay.active{
-    animation:pageFlashPulse 1s ease-in-out infinite;
+    animation:pageFlashPulse 1s ease-out infinite;
   }
   @keyframes pageFlashPulse{
-    0%, 100%{ opacity:0; }
-    45%{ opacity:0.28; }
+    0%{ opacity:0.32; }
+    55%{ opacity:0; }
+    100%{ opacity:0; }
   }
   .flash-overlay.start-flash{
     background:var(--work);
