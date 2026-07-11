@@ -653,7 +653,8 @@
     started: false,
     lastBeepSecond: null,
     nextUpAnnounced: false,
-    motivationAnnounced: false
+    motivationAnnounced: false,
+    switchSidesAnnounced: false
   };
 
   // ---------- Persistence ----------
@@ -923,6 +924,13 @@
         var phrase = pool[Math.floor(Math.random() * pool.length)];
         speak(phrase);
       }
+      if (step.type === "work" && !state.switchSidesAnnounced && EXERCISES[step.exIndex].name === "Side Plank"){
+        var halfwayThreshold = Math.ceil(settings.work / 2) + 1;
+        if (state.timeLeft <= halfwayThreshold && state.timeLeft > 0){
+          state.switchSidesAnnounced = true;
+          speak("Switch sides");
+        }
+      }
     }
 
     if (state.timeLeft <= 0){
@@ -944,6 +952,7 @@
     state.lastBeepSecond = null;
     state.nextUpAnnounced = false;
     state.motivationAnnounced = false;
+    state.switchSidesAnnounced = false;
 
     if (step.type === "work"){
       goBeep();
@@ -1019,6 +1028,7 @@
     state.lastBeepSecond = null;
     state.nextUpAnnounced = false;
     state.motivationAnnounced = false;
+    state.switchSidesAnnounced = false;
     state.running = false;
     cancelAnimationFrame(rafId);
     render();
@@ -1035,6 +1045,7 @@
     state.lastBeepSecond = null;
     state.nextUpAnnounced = false;
     state.motivationAnnounced = false;
+    state.switchSidesAnnounced = false;
     render();
 
     if (step.type === "work"){
