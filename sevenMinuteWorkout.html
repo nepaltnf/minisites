@@ -989,6 +989,17 @@
     state.lastBeepSecond = null;
     state.nextUpAnnounced = false;
     render();
+
+    if (step.type === "work"){
+      goBeep();
+      speak(EXERCISES[step.exIndex].name);
+      triggerStartFlash();
+    } else if (step.type === "rest"){
+      restBeep();
+      speak("Rest");
+      triggerStartFlash();
+    }
+
     if (wasRunning && step.type !== "done"){
       lastTs = null;
       rafId = requestAnimationFrame(tick);
