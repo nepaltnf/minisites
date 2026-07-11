@@ -3,6 +3,7 @@
 *.png
 !recipeBoxicon.png
 !images/workout/*.png
+!images/workout-list/*.png
 
 # Large files not suitable for GitHub
 images/nasa_cgi_moon_kit.glb

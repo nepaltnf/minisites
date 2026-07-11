@@ -601,18 +601,18 @@
   "use strict";
 
   var EXERCISES = [
-    { name:"Jumping Jacks",        icon:"🤸", img:"images/workout/JumpingJack.png",              cue:"Feet and arms out together, land soft." },
-    { name:"Wall Sit",             icon:"🧱", img:"images/workout/WallSit.png",                  cue:"Back flat on wall, knees at 90°." },
-    { name:"Push-Up",              icon:"💪", img:"images/workout/PushUp.png",                   cue:"Straight line head to heels." },
-    { name:"Abdominal Crunch",     icon:"🔺", img:"images/workout/Crunches.png",                 cue:"Lift shoulder blades, keep neck relaxed." },
-    { name:"Step-Up onto Chair",   icon:"🪜", img:"images/workout/StepUp.png",                   cue:"Alternate leading leg each step." },
-    { name:"Squat",                icon:"🏋️", img:"images/workout/Squats.png",                   cue:"Hips back, chest up, knees tracking toes." },
-    { name:"Triceps Dip on Chair", icon:"🪑", img:"images/workout/TriceptDip.png",               cue:"Elbows bend to ~90°, close to the seat." },
-    { name:"Plank",                icon:"➖", img:"images/workout/Plank.png",                    cue:"Straight line, brace your core." },
-    { name:"High Knees",           icon:"🏃", img:"images/workout/HighKnees-RunninginPlace.png", cue:"Drive knees up, quick light steps." },
-    { name:"Lunge",                icon:"🚶", img:"images/workout/Lunges.png",                   cue:"Alternate legs, knee over ankle." },
-    { name:"Push-Up & Rotation",   icon:"🔄", img:"images/workout/PushUp+Rotation.png",          cue:"Push-up, then rotate and reach up." },
-    { name:"Side Plank",           icon:"↘️", img:"images/workout/SidePlank.png",                cue:"Alternate sides halfway through." }
+    { name:"Jumping Jacks",        icon:"🤸", img:"images/workout/JumpingJack.png",              listImg:"images/workout-list/JumpingJack.png",              cue:"Feet and arms out together, land soft." },
+    { name:"Wall Sit",             icon:"🧱", img:"images/workout/WallSit.png",                  listImg:"images/workout-list/WallSit.png",                  cue:"Back flat on wall, knees at 90°." },
+    { name:"Push-Up",              icon:"💪", img:"images/workout/PushUp.png",                   listImg:"images/workout-list/PushUp.png",                   cue:"Straight line head to heels." },
+    { name:"Abdominal Crunch",     icon:"🔺", img:"images/workout/Crunches.png",                 listImg:"images/workout-list/Crunches.png",                 cue:"Lift shoulder blades, keep neck relaxed." },
+    { name:"Step-Up onto Chair",   icon:"🪜", img:"images/workout/StepUp.png",                   listImg:"images/workout-list/StepUp.png",                   cue:"Alternate leading leg each step." },
+    { name:"Squat",                icon:"🏋️", img:"images/workout/Squats.png",                   listImg:"images/workout-list/Squats.png",                   cue:"Hips back, chest up, knees tracking toes." },
+    { name:"Triceps Dip on Chair", icon:"🪑", img:"images/workout/TriceptDip.png",               listImg:"images/workout-list/TriceptDip.png",               cue:"Elbows bend to ~90°, close to the seat." },
+    { name:"Plank",                icon:"➖", img:"images/workout/Plank.png",                    listImg:"images/workout-list/Plank.png",                    cue:"Straight line, brace your core." },
+    { name:"High Knees",           icon:"🏃", img:"images/workout/HighKnees-RunninginPlace.png", listImg:"images/workout-list/HighKnees-RunninginPlace.png", cue:"Drive knees up, quick light steps." },
+    { name:"Lunge",                icon:"🚶", img:"images/workout/Lunges.png",                   listImg:"images/workout-list/Lunges.png",                   cue:"Alternate legs, knee over ankle." },
+    { name:"Push-Up & Rotation",   icon:"🔄", img:"images/workout/PushUp+Rotation.png",          listImg:"images/workout-list/PushUp+Rotation.png",          cue:"Push-up, then rotate and reach up." },
+    { name:"Side Plank",           icon:"↘️", img:"images/workout/SidePlank.png",                listImg:"images/workout-list/SidePlank.png",                cue:"Alternate sides halfway through." }
   ];
 
   var MOTIVATION_PHRASES = [
@@ -764,8 +764,9 @@
     els.exerciseListEl.innerHTML = "";
     EXERCISES.forEach(function(ex, i){
       var li = document.createElement("li");
-      var thumb = ex.img
-        ? '<img class="thumb" src="'+ex.img+'" alt="">'
+      var thumbSrc = ex.listImg || ex.img;
+      var thumb = thumbSrc
+        ? '<img class="thumb" src="'+thumbSrc+'" alt="">'
         : '<span class="thumb emoji-fallback">'+ex.icon+'</span>';
       li.innerHTML = '<span class="row"><span class="idx">'+(i+1)+'</span>'+thumb+'<span class="n">'+ex.name+'</span></span>';
       els.exerciseListEl.appendChild(li);
