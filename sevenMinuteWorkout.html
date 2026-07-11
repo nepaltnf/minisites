@@ -2,18 +2,21 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>7 Minute Workout</title>
-<!-- EXPERIMENT 3: CarryClub recipe — legacy metas, NO viewport-fit=cover,
-     NO manifest. Testing whether this yields a full 852px window that
-     bleeds under both the status bar and home indicator. -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- Intentionally NO legacy apple-mobile-web-app-capable/status-bar-style
+     metas: the manifest alone drives the home-screen install. iOS then
+     anchors the web-app window below the status bar and bleeds it to the
+     screen bottom (chosen look). The legacy metas would flip it to a
+     top-bleed window with an unpaintable strip at the bottom instead.
+     (Experiment 3 proved fresh installs can't get both edges on current
+     iOS regardless of metas; CarryClub's dual bleed is a grandfathered
+     install from an older iOS.) -->
 <meta name="apple-mobile-web-app-title" content="7 Min Workout">
 <meta name="theme-color" content="#0b0f14">
 <link rel="icon" href="images/workout/Timer.png" type="image/png">
 <link rel="apple-touch-icon" href="images/workout/Timer.png">
-<!-- <link rel="manifest" href="sevenMinuteWorkout.webmanifest"> disabled for experiment 3 -->
+<link rel="manifest" href="sevenMinuteWorkout.webmanifest">
 
 <meta property="og:type" content="website">
 <meta property="og:title" content="7 Minute Workout">
