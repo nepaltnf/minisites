@@ -183,10 +183,11 @@
   }
   .flash-overlay.start-flash{
     background:var(--work);
-    animation:startFlashPulse 0.55s ease-out;
+    animation:startFlashPulse 3s ease-out;
   }
   @keyframes startFlashPulse{
-    0%{ opacity:0.4; }
+    0%{ opacity:0.5; }
+    33%{ opacity:0.5; }
     100%{ opacity:0; }
   }
 
@@ -778,7 +779,7 @@
     clearTimeout(startFlashTimeout);
     startFlashTimeout = setTimeout(function(){
       els.flashOverlay.classList.remove("start-flash");
-    }, 550);
+    }, 3000);
   }
 
   function render(){
