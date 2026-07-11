@@ -61,6 +61,8 @@
     padding-top:var(--safe-top);
     padding-bottom:var(--safe-bottom);
     transition:background 0.6s ease;
+    position:relative;
+    overflow:hidden;
   }
 
   /* ---------- Top bar ---------- */
@@ -122,12 +124,12 @@
     justify-content:center;
     padding:6px 0;
     text-align:center;
-    gap:clamp(8px, 2.2vh, 20px);
+    gap:clamp(8px, 2.2dvh, 20px);
     min-height:0;
   }
 
   .hero{
-    width:min(100%, 58vh, 520px);
+    width:min(100%, 58dvh, 520px);
     aspect-ratio:1/1;
     display:flex;
     align-items:center;
@@ -139,7 +141,7 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:clamp(48px, 12vh, 96px);
+    font-size:clamp(48px, 12dvh, 96px);
     line-height:1;
   }
   .illustration .icon-stack{
@@ -182,7 +184,7 @@
   }
 
   .flash-overlay{
-    position:fixed;
+    position:absolute;
     inset:0;
     background:var(--danger);
     opacity:0;
@@ -231,9 +233,9 @@
 
   /* ---------- Short-viewport fit (small phones, landscape) ---------- */
   @media (max-height: 680px){
-    .stage{ gap:clamp(4px, 1.2vh, 10px); padding:4px 0; }
-    .hero{ width:min(100%, 40vh, 320px); }
-    .timer{ font-size:clamp(36px, 10vh, 64px); }
+    .stage{ gap:clamp(4px, 1.2dvh, 10px); padding:4px 0; }
+    .hero{ width:min(100%, 40dvh, 320px); }
+    .timer{ font-size:clamp(36px, 10dvh, 64px); }
     .exercise-name{ font-size:clamp(20px, 5.2vw, 32px); }
     .exercise-cue{ display:none; }
     .topbar{ padding:8px 18px; }
@@ -246,7 +248,7 @@
   .timer{
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
-    font-size:clamp(44px, 9vh, 84px);
+    font-size:clamp(44px, 9dvh, 84px);
     font-weight:800;
     line-height:1;
     font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
@@ -290,7 +292,7 @@
 
   /* ---------- Start overlay ---------- */
   .overlay{
-    position:fixed; inset:0;
+    position:absolute; inset:0;
     background:var(--bg);
     display:flex;
     flex-direction:column;
@@ -372,7 +374,7 @@
 
   /* ---------- Settings modal ---------- */
   .modal-backdrop{
-    position:fixed; inset:0;
+    position:absolute; inset:0;
     background:rgba(0,0,0,0.55);
     backdrop-filter: blur(2px);
     display:flex;
@@ -494,7 +496,7 @@
   }
 
   .exercise-list{
-    max-height:52vh;
+    max-height:52dvh;
     overflow-y:auto;
     margin:0 0 8px;
     -webkit-overflow-scrolling:touch;
@@ -569,68 +571,68 @@
       <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M16 6h2v12h-2zM4 6v12l8.5-6z"/></svg>
     </button>
   </div>
-</div>
 
-<!-- Start overlay -->
-<div class="overlay" id="startOverlay">
-  <h1>7 Minute Workout</h1>
-  <p>12 bodyweight exercises. 30 seconds of work, 10 seconds of rest, done in one continuous circuit, no equipment needed.</p>
-  <div class="overlay-meta">
-    <span id="metaCount">12 exercises</span>
-    <span>·</span>
-    <span id="metaTime">~7:50</span>
+  <!-- Start overlay -->
+  <div class="overlay" id="startOverlay">
+    <h1>7 Minute Workout</h1>
+    <p>12 bodyweight exercises. 30 seconds of work, 10 seconds of rest, done in one continuous circuit, no equipment needed.</p>
+    <div class="overlay-meta">
+      <span id="metaCount">12 exercises</span>
+      <span>·</span>
+      <span id="metaTime">~7:50</span>
+    </div>
+    <button class="start-btn" id="startBtn">Start Workout</button>
+    <div class="overlay-links">
+      <button class="overlay-link" id="overlaySettingsBtn">Settings</button>
+      <span>·</span>
+      <button class="overlay-link" id="overlayListBtn">Circuit</button>
+    </div>
+    <p style="font-size:12px; opacity:0.6; margin-top:6px;">Based on the ACSM "Scientific 7-Minute Workout"</p>
   </div>
-  <button class="start-btn" id="startBtn">Start Workout</button>
-  <div class="overlay-links">
-    <button class="overlay-link" id="overlaySettingsBtn">Settings</button>
-    <span>·</span>
-    <button class="overlay-link" id="overlayListBtn">Circuit</button>
-  </div>
-  <p style="font-size:12px; opacity:0.6; margin-top:6px;">Based on the ACSM "Scientific 7-Minute Workout"</p>
-</div>
 
-<!-- Settings modal -->
-<div class="modal-backdrop" id="settingsBackdrop">
-  <div class="modal">
-    <h2>Settings</h2>
-    <div class="setting-row">
-      <label>Work time<span class="sub">per exercise</span></label>
-      <div class="stepper">
-        <button data-action="work-dec">−</button>
-        <div class="val" id="workVal">30s</div>
-        <button data-action="work-inc">+</button>
+  <!-- Settings modal -->
+  <div class="modal-backdrop" id="settingsBackdrop">
+    <div class="modal">
+      <h2>Settings</h2>
+      <div class="setting-row">
+        <label>Work time<span class="sub">per exercise</span></label>
+        <div class="stepper">
+          <button data-action="work-dec">−</button>
+          <div class="val" id="workVal">30s</div>
+          <button data-action="work-inc">+</button>
+        </div>
+      </div>
+      <div class="setting-row">
+        <label>Rest time<span class="sub">between exercises</span></label>
+        <div class="stepper">
+          <button data-action="rest-dec">−</button>
+          <div class="val" id="restVal">10s</div>
+          <button data-action="rest-inc">+</button>
+        </div>
+      </div>
+      <div class="setting-row toggle-row">
+        <label>Sound cues<span class="sub">countdown beeps + tones</span></label>
+        <div class="switch on" id="soundToggle"><div class="knob"></div></div>
+      </div>
+      <div class="setting-row toggle-row">
+        <label>Voice announce<span class="sub">speak exercise names</span></label>
+        <div class="switch" id="voiceToggle"><div class="knob"></div></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-restart" id="restartBtn">Restart Workout</button>
+        <button class="btn-done" id="settingsDoneBtn">Done</button>
       </div>
     </div>
-    <div class="setting-row">
-      <label>Rest time<span class="sub">between exercises</span></label>
-      <div class="stepper">
-        <button data-action="rest-dec">−</button>
-        <div class="val" id="restVal">10s</div>
-        <button data-action="rest-inc">+</button>
-      </div>
-    </div>
-    <div class="setting-row toggle-row">
-      <label>Sound cues<span class="sub">countdown beeps + tones</span></label>
-      <div class="switch on" id="soundToggle"><div class="knob"></div></div>
-    </div>
-    <div class="setting-row toggle-row">
-      <label>Voice announce<span class="sub">speak exercise names</span></label>
-      <div class="switch" id="voiceToggle"><div class="knob"></div></div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-restart" id="restartBtn">Restart Workout</button>
-      <button class="btn-done" id="settingsDoneBtn">Done</button>
-    </div>
   </div>
-</div>
 
-<!-- Exercise list modal -->
-<div class="modal-backdrop" id="listBackdrop">
-  <div class="modal">
-    <h2>Circuit</h2>
-    <ul class="exercise-list" id="exerciseListEl"></ul>
-    <div class="modal-actions">
-      <button class="btn-done" id="listDoneBtn" style="flex:1;">Close</button>
+  <!-- Exercise list modal -->
+  <div class="modal-backdrop" id="listBackdrop">
+    <div class="modal">
+      <h2>Circuit</h2>
+      <ul class="exercise-list" id="exerciseListEl"></ul>
+      <div class="modal-actions">
+        <button class="btn-done" id="listDoneBtn" style="flex:1;">Close</button>
+      </div>
     </div>
   </div>
 </div>
