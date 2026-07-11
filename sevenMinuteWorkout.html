@@ -128,13 +128,43 @@
     font-size:clamp(48px, 12vh, 96px);
     line-height:1;
   }
-  .illustration img{
+  .illustration .icon-mask{
     width:100%;
     height:100%;
-    object-fit:contain;
+    background-color:var(--text);
+    -webkit-mask-size:contain;
+    mask-size:contain;
+    -webkit-mask-repeat:no-repeat;
+    mask-repeat:no-repeat;
+    -webkit-mask-position:center;
+    mask-position:center;
+    transition:background-color .25s linear;
+  }
+  .illustration .icon-mask.icon-flash{
+    animation:iconFlashPulse 1s ease-in-out infinite;
+  }
+  @keyframes iconFlashPulse{
+    0%, 100%{ transform:scale(1); }
+    50%{ transform:scale(1.06); }
   }
   .illustration .emoji-fallback{
     line-height:1;
+  }
+
+  .flash-overlay{
+    position:fixed;
+    inset:0;
+    background:var(--danger);
+    opacity:0;
+    pointer-events:none;
+    z-index:40;
+  }
+  .flash-overlay.active{
+    animation:pageFlashPulse 1s ease-in-out infinite;
+  }
+  @keyframes pageFlashPulse{
+    0%, 100%{ opacity:0; }
+    45%{ opacity:0.28; }
   }
 
   .exercise-name{
@@ -430,6 +460,7 @@
 <body>
 
 <div id="app">
+  <div class="flash-overlay" id="flashOverlay"></div>
   <div class="topbar">
     <button class="icon-btn" id="listBtn" aria-label="Exercise list">☰</button>
     <div class="title">7 Minute Workout</div>
@@ -543,7 +574,7 @@
   ];
 
   var els = {};
-  ["timer","illustration","exerciseName","exerciseCue","nextUp",
+  ["timer","illustration","flashOverlay","exerciseName","exerciseCue","nextUp",
    "progressTrack","playPauseBtn","prevBtn","nextBtn","startOverlay","startBtn",
    "settingsBtn","settingsBackdrop","settingsDoneBtn","restartBtn",
    "workVal","restVal","soundToggle","voiceToggle",
@@ -667,9 +698,12 @@
 
   function currentStep(){ return sequence[state.seqIndex]; }
 
-  function setIllustration(emoji, imgSrc, imgAlt){
+  var lastIllustrationKey = null;
+  function setIllustration(key, emoji, imgSrc, imgAlt){
+    if (key === lastIllustrationKey) return;
+    lastIllustrationKey = key;
     if (imgSrc){
-      els.illustration.innerHTML = '<img src="'+imgSrc+'" alt="'+imgAlt+'">';
+      els.illustration.innerHTML = '<div class="icon-mask" role="img" aria-label="'+imgAlt+'" style="-webkit-mask-image:url(\''+imgSrc+'\');mask-image:url(\''+imgSrc+'\');"></div>';
     } else {
       els.illustration.innerHTML = '<span class="emoji-fallback">'+emoji+'</span>';
     }
@@ -690,6 +724,39 @@
     els.timer.style.opacity = opacity.toFixed(2);
   }
 
+  var TEXT_RGB = [0xee, 0xf3, 0xf8];
+  var DANGER_RGB = [0xff, 0x5a, 0x5a];
+  var WORK_RGB = [0x37, 0xe0, 0x8a];
+  function lerpColor(c1, c2, t){
+    var r = Math.round(c1[0] + (c2[0]-c1[0])*t);
+    var g = Math.round(c1[1] + (c2[1]-c1[1])*t);
+    var b = Math.round(c1[2] + (c2[2]-c1[2])*t);
+    return "rgb("+r+","+g+","+b+")";
+  }
+
+  var isFinalCountdown = false;
+  function updateUrgencyEffects(step){
+    var mask = els.illustration.querySelector(".icon-mask");
+    var urgent = step.type !== "done" && state.timeLeft <= 5 && state.timeLeft > 0;
+
+    if (mask){
+      if (step.type === "done"){
+        mask.style.backgroundColor = "rgb("+WORK_RGB.join(",")+")";
+      } else {
+        var total = stepTotalDuration(step);
+        var progress = total ? clamp(1 - (state.timeLeft / total), 0, 1) : 0;
+        mask.style.backgroundColor = lerpColor(TEXT_RGB, DANGER_RGB, progress);
+      }
+      mask.classList.toggle("icon-flash", urgent && state.running);
+    }
+
+    var flashActive = urgent && state.running;
+    if (flashActive !== isFinalCountdown){
+      isFinalCountdown = flashActive;
+      els.flashOverlay.classList.toggle("active", flashActive);
+    }
+  }
+
   function render(){
     var step = currentStep();
     els.timer.textContent = Math.max(0, Math.ceil(state.timeLeft));
@@ -698,14 +765,14 @@
 
     if (step.type === "ready"){
       setPhase("ready");
-      setIllustration("⏱️", "images/workout/Timer.png", "Get ready");
+      setIllustration("ready", "⏱️", "images/workout/Timer.png", "Get ready");
       els.exerciseName.textContent = "Warm Up";
       els.exerciseCue.textContent = "Loosen up. The workout starts in a moment.";
       els.nextUp.innerHTML = "First: <b>"+EXERCISES[0].name+"</b>";
     } else if (step.type === "work"){
       var ex = EXERCISES[step.exIndex];
       setPhase("work");
-      setIllustration(ex.icon, ex.img, ex.name);
+      setIllustration("work"+step.exIndex, ex.icon, ex.img, ex.name);
       els.exerciseName.textContent = ex.name;
       els.exerciseCue.textContent = ex.cue;
       if (step.exIndex < EXERCISES.length - 1){
@@ -716,19 +783,20 @@
     } else if (step.type === "rest"){
       var nextEx = EXERCISES[step.exIndex+1];
       setPhase("rest");
-      setIllustration("💧", "images/workout/Timer.png", "Rest");
+      setIllustration("rest", "💧", "images/workout/Timer.png", "Rest");
       els.exerciseName.textContent = "Rest";
       els.exerciseCue.textContent = "Catch your breath, shake it out.";
       els.nextUp.innerHTML = "Next: <b>"+nextEx.name+"</b>";
     } else if (step.type === "done"){
       setPhase("done");
-      setIllustration("🎉", "images/workout/Celebration.png", "Workout complete");
+      setIllustration("done", "🎉", "images/workout/Celebration.png", "Workout complete");
       els.exerciseName.textContent = "Workout Complete";
       els.exerciseCue.textContent = "Nice work. Hydrate and stretch.";
       els.nextUp.innerHTML = "";
       els.timer.textContent = "0";
     }
 
+    updateUrgencyEffects(step);
     renderProgress(step);
   }
 
@@ -851,6 +919,7 @@
     state.running = false;
     cancelAnimationFrame(rafId);
     updatePlayPauseUI();
+    render();
   }
 
   function togglePlayPause(){
