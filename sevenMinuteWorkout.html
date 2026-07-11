@@ -771,6 +771,26 @@
     }catch(e){}
   }
 
+  // ---------- Screen wake lock ----------
+  var wakeLock = null;
+  function requestWakeLock(){
+    if (!("wakeLock" in navigator)) return;
+    navigator.wakeLock.request("screen").then(function(lock){
+      wakeLock = lock;
+    }).catch(function(){});
+  }
+  function releaseWakeLock(){
+    if (wakeLock){
+      wakeLock.release().catch(function(){});
+      wakeLock = null;
+    }
+  }
+  document.addEventListener("visibilitychange", function(){
+    if (wakeLock === null && document.visibilityState === "visible" && state.running){
+      requestWakeLock();
+    }
+  });
+
   // ---------- Rendering ----------
   function buildProgress(){
     els.progressTrack.innerHTML = "";
@@ -898,9 +918,9 @@
       els.exerciseName.textContent = "Workout Complete";
       els.exerciseCue.textContent = "Nice work. Hydrate and stretch.";
       els.nextUp.innerHTML = "";
-      els.timer.textContent = "0";
     }
 
+    els.timer.style.display = (step.type === "done") ? "none" : "";
     els.goAgainBtn.style.display = (step.type === "done") ? "inline-block" : "none";
 
     updateUrgencyEffects(step);
@@ -1022,6 +1042,7 @@
     state.seqIndex = sequence.length - 1;
     state.timeLeft = 0;
     state.running = false;
+    releaseWakeLock();
     beep(660,0.15,0.28);
     setTimeout(function(){ beep(880,0.15,0.28); }, 160);
     setTimeout(function(){ beep(1100,0.3,0.3); }, 320);
@@ -1038,6 +1059,7 @@
     }
     ctx(); // unlock audio on user gesture
     primeSpeech(); // unlock speechSynthesis on iOS, which needs a direct gesture too
+    requestWakeLock();
     var step = currentStep();
     if (step.type === "done"){
       resetWorkout();
@@ -1051,6 +1073,7 @@
   function pause(){
     state.running = false;
     cancelAnimationFrame(rafId);
+    releaseWakeLock();
     updatePlayPauseUI();
     render();
   }
