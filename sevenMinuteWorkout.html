@@ -626,7 +626,8 @@
     timeLeft: sequence[0].duration,
     running: false,
     started: false,
-    lastBeepSecond: null
+    lastBeepSecond: null,
+    nextUpAnnounced: false
   };
 
   // ---------- Persistence ----------
@@ -874,6 +875,11 @@
         state.lastBeepSecond = wholeSec;
         tickBeep();
       }
+      if (step.type === "rest" && !state.nextUpAnnounced && state.timeLeft <= 5 && state.timeLeft > 0){
+        state.nextUpAnnounced = true;
+        var nextEx = EXERCISES[step.exIndex+1];
+        if (nextEx) speak(nextEx.name + " next");
+      }
     }
 
     if (state.timeLeft <= 0){
@@ -893,6 +899,7 @@
     var step = currentStep();
     state.timeLeft = step.duration;
     state.lastBeepSecond = null;
+    state.nextUpAnnounced = false;
 
     if (step.type === "work"){
       goBeep();
@@ -964,6 +971,7 @@
     state.seqIndex = 0;
     state.timeLeft = sequence[0].duration;
     state.lastBeepSecond = null;
+    state.nextUpAnnounced = false;
     state.running = false;
     cancelAnimationFrame(rafId);
     render();
@@ -978,6 +986,7 @@
     var step = currentStep();
     state.timeLeft = step.duration;
     state.lastBeepSecond = null;
+    state.nextUpAnnounced = false;
     render();
     if (wasRunning && step.type !== "done"){
       lastTs = null;
