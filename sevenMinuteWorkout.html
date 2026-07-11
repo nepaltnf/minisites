@@ -683,7 +683,7 @@
 
   var MOTIVATION_PHRASES = [
     "Let's go, you've got this!",
-    "Go go go!",
+    "GO! GO! GO!",
     "Make me proud!",
     "Push through!",
     "Almost there!",
@@ -695,7 +695,7 @@
     "Don't be a baby!",
     { text:"Puh puh puh push it real good!", rate:0.85 },
     "oh yeah, Mommahh like-e",
-    "Hot priviledge, incoming!"
+    "prepare for hot-priviledge"
   ];
 
   var EXERCISE_MOTIVATION_PHRASES = {
@@ -791,12 +791,29 @@
   function goBeep(){ beep(1320, 0.28, 0.3); }
   function restBeep(){ beep(440, 0.22, 0.25); }
 
+  // ---------- Voice selection: prefer "Nicky" (en-US) ----------
+  var preferredVoice = null;
+  function pickVoice(){
+    if (!("speechSynthesis" in window)) return null;
+    var voices = window.speechSynthesis.getVoices();
+    if (!voices.length) return null;
+    return voices.find(function(v){ return /nicky/i.test(v.name) && /^en-US/i.test(v.lang); })
+        || voices.find(function(v){ return /nicky/i.test(v.name); })
+        || voices.find(function(v){ return v.lang === "en-US"; })
+        || null;
+  }
+  if ("speechSynthesis" in window){
+    preferredVoice = pickVoice();
+    window.speechSynthesis.onvoiceschanged = function(){ preferredVoice = pickVoice(); };
+  }
+
   function speak(text, opts){
     if (!settings.voice) return;
     try{
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       var u = new SpeechSynthesisUtterance(text);
+      if (preferredVoice) u.voice = preferredVoice;
       u.rate = (opts && opts.rate != null) ? opts.rate : 1.05;
       if (opts && opts.pitch != null) u.pitch = opts.pitch;
       window.speechSynthesis.speak(u);
@@ -807,7 +824,9 @@
     if (!settings.voice) return;
     try{
       if (!("speechSynthesis" in window)) return;
+      if (!preferredVoice) preferredVoice = pickVoice();
       var u = new SpeechSynthesisUtterance(" ");
+      if (preferredVoice) u.voice = preferredVoice;
       u.volume = 0;
       window.speechSynthesis.speak(u);
     }catch(e){}
