@@ -717,6 +717,16 @@
     }catch(e){}
   }
 
+  function primeSpeech(){
+    if (!settings.voice) return;
+    try{
+      if (!("speechSynthesis" in window)) return;
+      var u = new SpeechSynthesisUtterance(" ");
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+    }catch(e){}
+  }
+
   // ---------- Rendering ----------
   function buildProgress(){
     els.progressTrack.innerHTML = "";
@@ -972,6 +982,7 @@
       els.startOverlay.classList.add("hidden");
     }
     ctx(); // unlock audio on user gesture
+    primeSpeech(); // unlock speechSynthesis on iOS, which needs a direct gesture too
     var step = currentStep();
     if (step.type === "done"){
       resetWorkout();
@@ -1113,6 +1124,7 @@
     settings.voice = !settings.voice;
     saveSettings();
     refreshSettingsUI();
+    if (settings.voice) primeSpeech();
   });
 
   els.restartBtn.addEventListener("click", function(){
