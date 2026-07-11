@@ -80,6 +80,13 @@
       height:100vh;
     }
   }
+  /* Same fix for plain Add-to-Home-Screen bookmarks: those don't match
+     display-mode:standalone (no manifest), so JS adds this class when
+     navigator.standalone is true. */
+  html.ios-standalone #app{
+    bottom:auto;
+    height:100vh;
+  }
 
   /* ---------- Top bar ---------- */
   .topbar{
@@ -1283,6 +1290,11 @@
   });
 
   // ---------- Init ----------
+  // iOS Add-to-Home-Screen bookmarks report a viewport that excludes the
+  // status bar; this class switches #app to the true 100vh screen height.
+  if (window.navigator.standalone){
+    document.documentElement.classList.add("ios-standalone");
+  }
   refreshSettingsUI();
   render();
 
