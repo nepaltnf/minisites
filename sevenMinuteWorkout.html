@@ -599,6 +599,19 @@
     { name:"Side Plank",           icon:"↘️", img:"images/workout/SidePlank.png",                cue:"Alternate sides halfway through." }
   ];
 
+  var MOTIVATION_PHRASES = [
+    "Let's go, you've got this!",
+    "Go go go!",
+    "Make me proud!",
+    "Push through!",
+    "Almost there!",
+    "Keep pushing!",
+    "Stay strong!",
+    "Don't stop now!",
+    "Finish strong!",
+    "Dig deep!"
+  ];
+
   var els = {};
   ["timer","illustration","flashOverlay","exerciseName","exerciseCue","nextUp",
    "progressTrack","playPauseBtn","prevBtn","nextBtn","startOverlay","startBtn",
@@ -629,7 +642,8 @@
     running: false,
     started: false,
     lastBeepSecond: null,
-    nextUpAnnounced: false
+    nextUpAnnounced: false,
+    motivationAnnounced: false
   };
 
   // ---------- Persistence ----------
@@ -882,6 +896,11 @@
         var nextEx = EXERCISES[step.exIndex+1];
         if (nextEx) speak(nextEx.name + " next");
       }
+      if (step.type === "work" && !state.motivationAnnounced && state.timeLeft <= 5 && state.timeLeft > 0){
+        state.motivationAnnounced = true;
+        var phrase = MOTIVATION_PHRASES[Math.floor(Math.random() * MOTIVATION_PHRASES.length)];
+        speak(phrase);
+      }
     }
 
     if (state.timeLeft <= 0){
@@ -902,6 +921,7 @@
     state.timeLeft = step.duration;
     state.lastBeepSecond = null;
     state.nextUpAnnounced = false;
+    state.motivationAnnounced = false;
 
     if (step.type === "work"){
       goBeep();
@@ -975,6 +995,7 @@
     state.timeLeft = sequence[0].duration;
     state.lastBeepSecond = null;
     state.nextUpAnnounced = false;
+    state.motivationAnnounced = false;
     state.running = false;
     cancelAnimationFrame(rafId);
     render();
@@ -990,6 +1011,7 @@
     state.timeLeft = step.duration;
     state.lastBeepSecond = null;
     state.nextUpAnnounced = false;
+    state.motivationAnnounced = false;
     render();
 
     if (step.type === "work"){
