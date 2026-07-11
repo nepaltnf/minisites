@@ -421,9 +421,16 @@
   </div>
 
   <div class="controls">
-    <button class="btn-round btn-secondary" id="prevBtn" aria-label="Previous">⏮</button>
-    <button class="btn-round btn-primary" id="playPauseBtn" aria-label="Pause">⏸</button>
-    <button class="btn-round btn-secondary" id="nextBtn" aria-label="Next">⏭</button>
+    <button class="btn-round btn-secondary" id="prevBtn" aria-label="Previous">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M6 6h2v12H6zM20 6v12l-8.5-6z"/></svg>
+    </button>
+    <button class="btn-round btn-primary" id="playPauseBtn" aria-label="Pause">
+      <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor" width="28" height="28"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor" width="28" height="28" style="display:none"><path d="M7 5v14l12-7z"/></svg>
+    </button>
+    <button class="btn-round btn-secondary" id="nextBtn" aria-label="Next">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M16 6h2v12h-2zM4 6v12l8.5-6z"/></svg>
+    </button>
   </div>
 </div>
 
@@ -804,7 +811,8 @@
   }
 
   function updatePlayPauseUI(){
-    els.playPauseBtn.textContent = state.running ? "⏸" : "▶";
+    els.playPauseBtn.querySelector(".icon-pause").style.display = state.running ? "" : "none";
+    els.playPauseBtn.querySelector(".icon-play").style.display = state.running ? "none" : "";
     els.playPauseBtn.classList.toggle("paused", !state.running && state.started && currentStep().type !== "done");
   }
 
