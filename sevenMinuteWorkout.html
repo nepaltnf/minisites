@@ -658,7 +658,7 @@
 
   // ---------- Persistence ----------
   function loadSettings(){
-    var defaults = { work:30, rest:10, sound:true, voice:false };
+    var defaults = { work:30, rest:10, sound:true, voice:true };
     try{
       var raw = localStorage.getItem("sevenMinWorkoutSettings");
       if (!raw) return defaults;
@@ -667,7 +667,7 @@
         work: clamp(parsed.work||30, 10, 90),
         rest: clamp(parsed.rest||10, 5, 60),
         sound: parsed.sound !== false,
-        voice: !!parsed.voice
+        voice: parsed.voice !== false
       };
     }catch(e){ return defaults; }
   }
