@@ -4,9 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>7 Minute Workout</title>
-<!-- Legacy Apple web-clip metas removed while testing manifest-only install:
-     their presence can force the old 793px web-clip geometry even when a
-     manifest is present. Restore if manifest-only regresses. -->
+<!-- Intentionally NO legacy apple-mobile-web-app-capable/status-bar-style
+     metas: the manifest alone drives the home-screen install. iOS then
+     anchors the web-app window below the status bar and bleeds it to the
+     screen bottom (chosen look). The legacy metas would flip it to a
+     top-bleed window with an unpaintable strip at the bottom instead. -->
 <meta name="apple-mobile-web-app-title" content="7 Min Workout">
 <meta name="theme-color" content="#0b0f14">
 <link rel="icon" href="images/workout/Timer.png" type="image/png">
@@ -70,24 +72,6 @@
     padding-bottom:var(--safe-bottom);
     transition:background 0.6s ease;
     overflow:hidden;
-  }
-
-  /* iOS home-screen web app: the layout viewport is reported shorter than
-     the real screen (by about the status bar height), so a bottom:0 anchor
-     floats above the true bottom. Standalone mode has no collapsing
-     toolbars, so 100vh is the real screen height there. */
-  @media (display-mode: standalone){
-    #app{
-      bottom:auto;
-      height:100vh;
-    }
-  }
-  /* Same fix for plain Add-to-Home-Screen bookmarks: those don't match
-     display-mode:standalone (no manifest), so JS adds this class when
-     navigator.standalone is true. */
-  html.ios-standalone #app{
-    bottom:auto;
-    height:100vh;
   }
 
   /* ---------- Top bar ---------- */
@@ -1294,54 +1278,8 @@
   });
 
   // ---------- Init ----------
-  // iOS Add-to-Home-Screen bookmarks report a viewport that excludes the
-  // status bar; this class switches #app to the true 100vh screen height.
-  if (window.navigator.standalone){
-    document.documentElement.classList.add("ios-standalone");
-  }
   refreshSettingsUI();
   render();
-
-  // TEMP DEBUG: standalone (home-screen web app) viewport diagnostics for
-  // the manifest experiment. Shows only when launched from the home screen
-  // icon. Remove once full-bleed top+bottom is confirmed.
-  if (window.navigator.standalone){
-    var app = document.getElementById("app");
-    app.style.outline = "2px solid red";
-    app.style.outlineOffset = "-2px";
-
-    var vhProbe = document.createElement("div");
-    vhProbe.style.cssText = "position:fixed;top:0;left:0;width:1px;height:100vh;pointer-events:none;visibility:hidden;";
-    document.body.appendChild(vhProbe);
-
-    var safeProbe = document.createElement("div");
-    safeProbe.style.cssText = "position:fixed;top:0;left:0;width:1px;pointer-events:none;visibility:hidden;" +
-      "padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);";
-    document.body.appendChild(safeProbe);
-
-    var dbg = document.createElement("div");
-    dbg.style.cssText = "position:fixed;left:4px;right:4px;bottom:2px;z-index:9999;" +
-      "font:10px/1.3 monospace;color:#ffb547;text-align:center;pointer-events:none;" +
-      "text-shadow:0 1px 2px #000;";
-    document.body.appendChild(dbg);
-
-    function updateDebug(){
-      var vv = window.visualViewport;
-      var sp = getComputedStyle(safeProbe);
-      var standaloneMQ = window.matchMedia("(display-mode: standalone)").matches;
-      dbg.textContent =
-        "innerH " + window.innerHeight +
-        " | 100vh " + Math.round(vhProbe.getBoundingClientRect().height) +
-        " | screenH " + screen.height +
-        " | vvH " + (vv ? Math.round(vv.height) : "n/a") +
-        " | appH " + Math.round(app.getBoundingClientRect().height) +
-        " | safeT " + sp.paddingTop + " safeB " + sp.paddingBottom +
-        " | MQ " + (standaloneMQ ? "yes" : "no");
-    }
-    updateDebug();
-    window.addEventListener("resize", updateDebug);
-    setInterval(updateDebug, 1000);
-  }
 })();
 </script>
 </body>
