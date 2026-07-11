@@ -181,6 +181,14 @@
     0%, 100%{ opacity:0; }
     45%{ opacity:0.28; }
   }
+  .flash-overlay.start-flash{
+    background:var(--work);
+    animation:startFlashPulse 0.55s ease-out;
+  }
+  @keyframes startFlashPulse{
+    0%{ opacity:0.4; }
+    100%{ opacity:0; }
+  }
 
   .exercise-name{
     font-size:clamp(24px, 6vw, 40px);
@@ -762,6 +770,17 @@
     }
   }
 
+  var startFlashTimeout = null;
+  function triggerStartFlash(){
+    els.flashOverlay.classList.remove("start-flash");
+    void els.flashOverlay.offsetWidth;
+    els.flashOverlay.classList.add("start-flash");
+    clearTimeout(startFlashTimeout);
+    startFlashTimeout = setTimeout(function(){
+      els.flashOverlay.classList.remove("start-flash");
+    }, 550);
+  }
+
   function render(){
     var step = currentStep();
     els.timer.textContent = Math.max(0, Math.ceil(state.timeLeft));
@@ -877,9 +896,11 @@
     if (step.type === "work"){
       goBeep();
       speak(EXERCISES[step.exIndex].name);
+      triggerStartFlash();
     } else if (step.type === "rest"){
       restBeep();
       speak("Rest");
+      triggerStartFlash();
     } else if (step.type === "done"){
       finishWorkout();
       return;
