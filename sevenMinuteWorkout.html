@@ -106,42 +106,27 @@
     flex-direction:column;
     align-items:center;
     justify-content:center;
-    padding:10px 24px;
+    padding:6px 0;
     text-align:center;
-    gap:clamp(10px, 3vh, 24px);
+    gap:clamp(8px, 2.2vh, 20px);
     min-height:0;
   }
 
-  .phase-label{
-    font-size:clamp(14px, 3.4vw, 18px);
-    font-weight:800;
-    letter-spacing:0.18em;
-    text-transform:uppercase;
-    padding:6px 18px;
-    border-radius:999px;
-  }
-  .phase-label.work{ color:var(--work); background:var(--work-dim); }
-  .phase-label.rest{ color:var(--rest); background:var(--rest-dim); }
-  .phase-label.ready{ color:var(--ready); background:#3a2c12; }
-  .phase-label.done{ color:var(--work); background:var(--work-dim); }
-
   .hero{
-    position:relative;
-    width:clamp(170px, 40vh, 300px);
-    height:clamp(170px, 40vh, 300px);
+    width:min(100%, 58vh, 520px);
+    aspect-ratio:1/1;
     display:flex;
     align-items:center;
     justify-content:center;
   }
   .illustration{
-    position:absolute;
-    inset:0;
+    width:100%;
+    height:100%;
     display:flex;
     align-items:center;
     justify-content:center;
     font-size:clamp(48px, 12vh, 96px);
     line-height:1;
-    opacity:0.7;
   }
   .illustration img{
     width:100%;
@@ -157,46 +142,47 @@
     font-weight:800;
     letter-spacing:-0.01em;
     max-width:90vw;
+    padding:0 24px;
   }
   .exercise-cue{
     font-size:clamp(13px, 3.2vw, 16px);
     color:var(--text-dim);
     max-width:520px;
     line-height:1.4;
+    padding:0 24px;
   }
   .next-up{
     font-size:clamp(12px, 3vw, 14px);
     color:var(--text-dim);
     letter-spacing:0.02em;
+    padding:0 24px;
   }
   .next-up b{color:var(--text);}
 
   /* ---------- Short-viewport fit (small phones, landscape) ---------- */
   @media (max-height: 680px){
-    .stage{ gap:clamp(4px, 1.4vh, 12px); padding:4px 20px; }
-    .hero{ width:clamp(130px, 30vh, 220px); height:clamp(130px, 30vh, 220px); }
-    .timer{ font-size:clamp(48px, 14vh, 96px); }
+    .stage{ gap:clamp(4px, 1.2vh, 10px); padding:4px 0; }
+    .hero{ width:min(100%, 40vh, 320px); }
+    .timer{ font-size:clamp(36px, 10vh, 64px); }
     .exercise-name{ font-size:clamp(20px, 5.2vw, 32px); }
     .exercise-cue{ display:none; }
     .topbar{ padding:8px 18px; }
-    .controls{ padding:8px 18px calc(10px + var(--safe-bottom)); }
-    .btn-primary{ width:68px; height:68px; }
-    .btn-secondary{ width:44px; height:44px; }
+    .controls{ gap:12px; padding:8px 18px calc(10px + var(--safe-bottom)); }
+    .btn-primary{ width:96px; height:44px; }
+    .btn-secondary{ width:48px; height:44px; }
   }
 
   /* ---------- Timer ---------- */
   .timer{
-    position:relative;
-    z-index:2;
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
-    font-size:clamp(68px, 19vh, 136px);
+    font-size:clamp(44px, 9vh, 84px);
     font-weight:800;
     line-height:1;
     font-family: "SF Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
     letter-spacing:-0.02em;
     color:var(--text);
-    text-shadow: 0 0 14px rgba(0,0,0,0.85), 0 0 30px rgba(0,0,0,0.7), 0 0 50px rgba(0,0,0,0.5);
+    text-shadow: 0 0 24px rgba(255,255,255,0.08);
     transition: color .2s ease, opacity .3s ease;
   }
   .timer.urgent{ color:var(--danger); }
@@ -206,26 +192,26 @@
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:22px;
+    gap:16px;
     padding:14px 18px calc(18px + var(--safe-bottom));
   }
   .btn-round{
     border:none;
-    border-radius:50%;
+    border-radius:14px;
     display:flex;align-items:center;justify-content:center;
     cursor:pointer;
     color:var(--bg);
     transition:transform .1s ease, opacity .15s ease;
   }
-  .btn-round:active{ transform:scale(0.93); }
+  .btn-round:active{ transform:scale(0.95); }
   .btn-secondary{
-    width:52px;height:52px;
+    width:60px;height:56px;
     background:var(--panel-2);
     color:var(--text);
     font-size:20px;
   }
   .btn-primary{
-    width:82px;height:82px;
+    width:120px;height:56px;
     background:var(--text);
     font-size:30px;
   }
@@ -455,11 +441,10 @@
   </div>
 
   <div class="stage">
-    <div class="phase-label ready" id="phaseLabel">Get Ready</div>
     <div class="hero">
       <div class="illustration" id="illustration"><img src="images/workout/Timer.png" alt="Get ready"></div>
-      <div class="timer" id="timer">10</div>
     </div>
+    <div class="timer" id="timer">10</div>
     <div class="exercise-name" id="exerciseName">Warm Up</div>
     <div class="exercise-cue" id="exerciseCue">Loosen up. The workout starts in a moment.</div>
     <div class="next-up" id="nextUp">Next: <b>Jumping Jacks</b></div>
@@ -558,7 +543,7 @@
   ];
 
   var els = {};
-  ["timer","phaseLabel","illustration","exerciseName","exerciseCue","nextUp",
+  ["timer","illustration","exerciseName","exerciseCue","nextUp",
    "progressTrack","playPauseBtn","prevBtn","nextBtn","startOverlay","startBtn",
    "settingsBtn","settingsBackdrop","settingsDoneBtn","restartBtn",
    "workVal","restVal","soundToggle","voiceToggle",
@@ -712,14 +697,14 @@
     updateTimerOpacity(step);
 
     if (step.type === "ready"){
-      setPhase("ready", "Get Ready");
+      setPhase("ready");
       setIllustration("⏱️", "images/workout/Timer.png", "Get ready");
       els.exerciseName.textContent = "Warm Up";
       els.exerciseCue.textContent = "Loosen up. The workout starts in a moment.";
       els.nextUp.innerHTML = "First: <b>"+EXERCISES[0].name+"</b>";
     } else if (step.type === "work"){
       var ex = EXERCISES[step.exIndex];
-      setPhase("work", "Work");
+      setPhase("work");
       setIllustration(ex.icon, ex.img, ex.name);
       els.exerciseName.textContent = ex.name;
       els.exerciseCue.textContent = ex.cue;
@@ -730,13 +715,13 @@
       }
     } else if (step.type === "rest"){
       var nextEx = EXERCISES[step.exIndex+1];
-      setPhase("rest", "Rest");
+      setPhase("rest");
       setIllustration("💧", "images/workout/Timer.png", "Rest");
       els.exerciseName.textContent = "Rest";
       els.exerciseCue.textContent = "Catch your breath, shake it out.";
       els.nextUp.innerHTML = "Next: <b>"+nextEx.name+"</b>";
     } else if (step.type === "done"){
-      setPhase("done", "Complete");
+      setPhase("done");
       setIllustration("🎉", "images/workout/Celebration.png", "Workout complete");
       els.exerciseName.textContent = "Workout Complete";
       els.exerciseCue.textContent = "Nice work. Hydrate and stretch.";
@@ -747,9 +732,7 @@
     renderProgress(step);
   }
 
-  function setPhase(cls, label){
-    els.phaseLabel.className = "phase-label " + cls;
-    els.phaseLabel.textContent = label;
+  function setPhase(cls){
     var app = document.getElementById("app");
     if (cls === "work") app.style.background = "linear-gradient(180deg,#0b0f14, #0e1a14 60%, #0b0f14)";
     else if (cls === "rest") app.style.background = "linear-gradient(180deg,#0b0f14, #0c1720 60%, #0b0f14)";
