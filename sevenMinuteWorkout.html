@@ -935,7 +935,7 @@
 
     if (step.type === "work"){
       goBeep();
-      speak(EXERCISES[step.exIndex].name);
+      speak(step.exIndex === 0 ? EXERCISES[step.exIndex].name : "Begin");
       triggerStartFlash();
     } else if (step.type === "rest"){
       restBeep();
