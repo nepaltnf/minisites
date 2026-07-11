@@ -314,6 +314,20 @@
     cursor:pointer;
   }
   .start-btn:active{ transform:scale(0.97); }
+
+  .go-again-btn{
+    margin-top:6px;
+    padding:14px 40px;
+    border-radius:999px;
+    border:none;
+    background:var(--work);
+    color:#04170d;
+    font-size:16px;
+    font-weight:800;
+    letter-spacing:0.03em;
+    cursor:pointer;
+  }
+  .go-again-btn:active{ transform:scale(0.97); }
   .overlay-meta{
     display:flex;
     gap:18px;
@@ -506,6 +520,7 @@
     <div class="exercise-name" id="exerciseName">Warm Up</div>
     <div class="exercise-cue" id="exerciseCue">Loosen up. The workout starts in a moment.</div>
     <div class="next-up" id="nextUp">Next: <b>Jumping Jacks</b></div>
+    <button class="go-again-btn" id="goAgainBtn" style="display:none;">Go Again</button>
   </div>
 
   <div class="controls">
@@ -623,7 +638,7 @@
   };
 
   var els = {};
-  ["timer","illustration","flashOverlay","exerciseName","exerciseCue","nextUp",
+  ["timer","illustration","flashOverlay","exerciseName","exerciseCue","nextUp","goAgainBtn",
    "progressTrack","playPauseBtn","prevBtn","nextBtn","startOverlay","startBtn",
    "settingsBtn","settingsBackdrop","settingsDoneBtn","restartBtn",
    "workVal","restVal","soundToggle","voiceToggle",
@@ -858,6 +873,8 @@
       els.nextUp.innerHTML = "";
       els.timer.textContent = "0";
     }
+
+    els.goAgainBtn.style.display = (step.type === "done") ? "inline-block" : "none";
 
     updateUrgencyEffects(step);
     renderProgress(step);
@@ -1144,6 +1161,8 @@
     els.settingsBackdrop.classList.remove("show");
     resetWorkout();
   });
+
+  els.goAgainBtn.addEventListener("click", start);
 
   // ---------- Controls ----------
   els.startBtn.addEventListener("click", start);
