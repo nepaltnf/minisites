@@ -335,6 +335,26 @@
     font-size:13px;
     margin-top:4px;
   }
+  .overlay-links{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--text-dim);
+    font-size:13px;
+    margin-top:14px;
+  }
+  .overlay-link{
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-size:13px;
+    font-weight:600;
+    text-decoration:underline;
+    text-underline-offset:2px;
+    cursor:pointer;
+    padding:4px;
+  }
+  .overlay-link:active{ color:var(--text); }
 
   /* ---------- Settings modal ---------- */
   .modal-backdrop{
@@ -547,6 +567,11 @@
     <span id="metaTime">~7:50</span>
   </div>
   <button class="start-btn" id="startBtn">Start Workout</button>
+  <div class="overlay-links">
+    <button class="overlay-link" id="overlaySettingsBtn">Settings</button>
+    <span>·</span>
+    <button class="overlay-link" id="overlayListBtn">Circuit</button>
+  </div>
   <p style="font-size:12px; opacity:0.6; margin-top:6px;">Based on the ACSM "Scientific 7-Minute Workout"</p>
 </div>
 
@@ -642,7 +667,8 @@
    "progressTrack","playPauseBtn","prevBtn","nextBtn","startOverlay","startBtn",
    "settingsBtn","settingsBackdrop","settingsDoneBtn","restartBtn",
    "workVal","restVal","soundToggle","voiceToggle",
-   "listBtn","listBackdrop","listDoneBtn","exerciseListEl","metaCount","metaTime"
+   "listBtn","listBackdrop","listDoneBtn","exerciseListEl","metaCount","metaTime",
+   "overlaySettingsBtn","overlayListBtn"
   ].forEach(function(id){ els[id] = document.getElementById(id); });
 
   var settings = loadSettings();
@@ -1103,6 +1129,13 @@
   els.settingsBtn.addEventListener("click", function(){
     refreshSettingsUI();
     els.settingsBackdrop.classList.add("show");
+  });
+  els.overlaySettingsBtn.addEventListener("click", function(){
+    refreshSettingsUI();
+    els.settingsBackdrop.classList.add("show");
+  });
+  els.overlayListBtn.addEventListener("click", function(){
+    els.listBackdrop.classList.add("show");
   });
   els.settingsDoneBtn.addEventListener("click", function(){
     els.settingsBackdrop.classList.remove("show");
