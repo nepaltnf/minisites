@@ -693,7 +693,7 @@
     "Finish strong!",
     "Dig deep!",
     "Don't be a baby!",
-    "Pa pa pa... push it real good!",
+    { text:"Puh puh puh push it real good!", rate:0.85 },
     "Momma likey!",
     "Hot priviledge, incoming!"
   ];
@@ -791,13 +791,14 @@
   function goBeep(){ beep(1320, 0.28, 0.3); }
   function restBeep(){ beep(440, 0.22, 0.25); }
 
-  function speak(text){
+  function speak(text, opts){
     if (!settings.voice) return;
     try{
       if (!("speechSynthesis" in window)) return;
       window.speechSynthesis.cancel();
       var u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.05;
+      u.rate = (opts && opts.rate != null) ? opts.rate : 1.05;
+      if (opts && opts.pitch != null) u.pitch = opts.pitch;
       window.speechSynthesis.speak(u);
     }catch(e){}
   }
@@ -1031,7 +1032,8 @@
         var exName = EXERCISES[step.exIndex].name;
         var pool = MOTIVATION_PHRASES.concat(EXERCISE_MOTIVATION_PHRASES[exName] || []);
         var phrase = pool[Math.floor(Math.random() * pool.length)];
-        speak(phrase);
+        var phraseObj = typeof phrase === "string" ? { text: phrase } : phrase;
+        speak(phraseObj.text, { rate: phraseObj.rate, pitch: phraseObj.pitch });
       }
       if (step.type === "work" && !state.switchSidesAnnounced && EXERCISES[step.exIndex].name === "Side Plank"){
         var halfwayThreshold = Math.ceil(settings.work / 2) + 1;
