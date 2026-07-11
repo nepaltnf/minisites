@@ -404,21 +404,40 @@
   }
 
   .exercise-list{
-    max-height:34vh;
+    max-height:52vh;
     overflow-y:auto;
     margin:0 0 8px;
     -webkit-overflow-scrolling:touch;
   }
   .exercise-list li{
     display:flex;
-    justify-content:space-between;
-    padding:9px 0;
-    font-size:14px;
+    align-items:center;
+    padding:10px 0;
+    font-size:15px;
     color:var(--text-dim);
     border-bottom:1px solid rgba(255,255,255,0.05);
   }
+  .exercise-list li .row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    width:100%;
+  }
+  .exercise-list li .idx{ opacity:.5; min-width:18px; }
+  .exercise-list li .thumb{
+    width:52px;
+    height:52px;
+    flex:0 0 auto;
+    object-fit:contain;
+  }
+  .exercise-list li .thumb.emoji-fallback{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:36px;
+    line-height:1;
+  }
   .exercise-list li span.n{ color:var(--text); font-weight:600; }
-  .exercise-list li .idx{ opacity:.5; margin-right:8px; }
 
   ::-webkit-scrollbar{ width:0; height:0; }
 </style>
@@ -653,7 +672,10 @@
     els.exerciseListEl.innerHTML = "";
     EXERCISES.forEach(function(ex, i){
       var li = document.createElement("li");
-      li.innerHTML = '<span><span class="idx">'+(i+1)+'</span><span class="n">'+ex.name+'</span></span><span>'+ex.icon+'</span>';
+      var thumb = ex.img
+        ? '<img class="thumb" src="'+ex.img+'" alt="">'
+        : '<span class="thumb emoji-fallback">'+ex.icon+'</span>';
+      li.innerHTML = '<span class="row"><span class="idx">'+(i+1)+'</span>'+thumb+'<span class="n">'+ex.name+'</span></span>';
       els.exerciseListEl.appendChild(li);
     });
   }
