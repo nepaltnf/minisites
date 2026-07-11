@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b0f14">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#0b0f14;
@@ -31,7 +34,7 @@
     margin:0;
     background:var(--bg);
     color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     overscroll-behavior:none;
     user-select:none;
     -webkit-user-select:none;
@@ -125,19 +128,15 @@
   .illustration{
     width:clamp(120px, 30vh, 220px);
     height:clamp(120px, 30vh, 220px);
-    border-radius:28px;
-    background:var(--panel);
     display:flex;
     align-items:center;
     justify-content:center;
     font-size:clamp(48px, 12vh, 96px);
     line-height:1;
-    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
-    overflow:hidden;
   }
   .illustration img{
-    width:78%;
-    height:78%;
+    width:100%;
+    height:100%;
     object-fit:contain;
   }
   .illustration .emoji-fallback{
@@ -661,13 +660,13 @@
     } else if (step.type === "rest"){
       var nextEx = EXERCISES[step.exIndex+1];
       setPhase("rest", "Rest");
-      setIllustration("💧");
+      setIllustration("💧", "images/workout/Timer.png", "Rest");
       els.exerciseName.textContent = "Rest";
       els.exerciseCue.textContent = "Catch your breath, shake it out.";
       els.nextUp.innerHTML = "Next: <b>"+nextEx.name+"</b>";
     } else if (step.type === "done"){
       setPhase("done", "Complete");
-      setIllustration("🎉");
+      setIllustration("🎉", "images/workout/Celebration.png", "Workout complete");
       els.exerciseName.textContent = "Workout Complete";
       els.exerciseCue.textContent = "Nice work. Hydrate and stretch.";
       els.nextUp.innerHTML = "";
