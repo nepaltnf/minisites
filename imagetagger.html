@@ -130,15 +130,14 @@
   .picker-head h2 { font-size: 15px; margin: 0; }
   .picker-head button { background: none; border: none; font-size: 22px; color: var(--muted); cursor: pointer; line-height: 1; }
   .picker-grid {
-    flex: 1; overflow-y: auto; padding: 14px; display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px;
-    align-content: start;
+    flex: 1; min-height: 0; overflow-y: auto; padding: 14px;
+    display: flex; flex-wrap: wrap; align-content: flex-start; gap: 10px;
   }
   .picker-thumb {
-    position: relative; border-radius: 10px; overflow: hidden; cursor: pointer;
+    position: relative; width: 96px; height: 96px; flex: 0 0 auto;
+    border-radius: 10px; overflow: hidden; cursor: pointer;
     border: 3px solid transparent;
   }
-  .picker-thumb::before { content: ''; display: block; padding-top: 100%; }
   .picker-thumb img {
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
   }
@@ -156,6 +155,7 @@
 
   @media (min-width: 820px) {
     .image-wrap img { max-height: 68vh; }
+    .picker-thumb { width: 120px; height: 120px; }
   }
 </style>
 </head>
