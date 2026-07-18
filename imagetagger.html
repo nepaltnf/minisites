@@ -255,10 +255,18 @@
     return 2;
   }
 
+  // Images missing BOTH title and description are more urgent than
+  // images already missing just one of the two.
+  function emptyRank(img) {
+    const noTitle = !img.title || !img.title.trim();
+    const noDesc = !img.description || !img.description.trim();
+    return noTitle && noDesc ? 0 : 1;
+  }
+
   async function loadQueue() {
     const [{ data: images, error: imgErr }, { data: galleries, error: galErr }] = await Promise.all([
       sb.from('images')
-        .select('id,gallery_id,url,thumb_url,title,description,filename,sort_order')
+        .select('id,gallery_id,url,thumb_url,title,description,tags,filename,sort_order')
         .or('title.is.null,title.eq.,description.is.null,description.eq.'),
       sb.from('galleries').select('id,type'),
     ]);
@@ -272,6 +280,8 @@
 
     const galleryType = new Map((galleries || []).map(g => [g.id, g.type]));
     queue = (images || []).sort((a, b) => {
+      const emptyDiff = emptyRank(a) - emptyRank(b);
+      if (emptyDiff) return emptyDiff;
       const rankDiff = typeRank(galleryType.get(a.gallery_id)) - typeRank(galleryType.get(b.gallery_id));
       if (rankDiff) return rankDiff;
       if (a.gallery_id !== b.gallery_id) return String(a.gallery_id).localeCompare(String(b.gallery_id));
@@ -304,6 +314,7 @@
       <div class="fields">
         <input id="titleInput" type="text" placeholder="Title" value="${escapeAttr(current.title || '')}" />
         <textarea id="descInput" placeholder="Description">${escapeHtml(current.description || '')}</textarea>
+        <input id="tagsInput" type="text" placeholder="Tags (comma separated)" value="${escapeAttr((current.tags || []).join(', '))}" />
       </div>
       <div class="apply-row">
         <span id="applyLabel">Applies to just this image</span>
@@ -336,13 +347,15 @@
     if (!current) return;
     const title = document.getElementById('titleInput').value.trim();
     const description = document.getElementById('descInput').value.trim();
+    const tags = document.getElementById('tagsInput').value
+      .split(',').map(t => t.trim()).filter(Boolean);
     const saveBtn = document.getElementById('saveBtn');
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
 
     const ids = [current.id, ...applySelection];
     try {
-      await sb.from('images').update({ title, description }).in('id', ids);
+      await sb.from('images').update({ title, description, tags: tags.length ? tags : null }).in('id', ids);
     } catch (e) {
       console.error('save failed', e);
     }
