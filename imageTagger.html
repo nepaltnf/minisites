@@ -246,20 +246,37 @@
   // ---------------------------------------------------------------
   // Queue loading
   // ---------------------------------------------------------------
-  async function loadQueue() {
-    const { data, error } = await sb
-      .from('images')
-      .select('id,gallery_id,url,thumb_url,title,description,filename')
-      .or('title.is.null,title.eq.,description.is.null,description.eq.')
-      .order('gallery_id', { ascending: true })
-      .order('sort_order', { ascending: true });
+  // Gallery `type` priority: portfolios first, then projects, then
+  // everything else (client/archive/untyped-but-not-portfolio).
+  const TYPE_PRIORITY = { portfolio: 0, project: 1 };
+  function typeRank(type) {
+    if (type in TYPE_PRIORITY) return TYPE_PRIORITY[type];
+    if (!type) return TYPE_PRIORITY.portfolio; // untyped galleries default to portfolio
+    return 2;
+  }
 
-    if (error) {
+  async function loadQueue() {
+    const [{ data: images, error: imgErr }, { data: galleries, error: galErr }] = await Promise.all([
+      sb.from('images')
+        .select('id,gallery_id,url,thumb_url,title,description,filename,sort_order')
+        .or('title.is.null,title.eq.,description.is.null,description.eq.'),
+      sb.from('galleries').select('id,type'),
+    ]);
+
+    if (imgErr || galErr) {
+      const message = (imgErr || galErr).message;
       document.getElementById('mainArea').innerHTML =
-        `<div class="empty-state"><div class="big">⚠️</div><div>Could not load images.<br>${error.message}</div></div>`;
+        `<div class="empty-state"><div class="big">⚠️</div><div>Could not load images.<br>${message}</div></div>`;
       return;
     }
-    queue = data || [];
+
+    const galleryType = new Map((galleries || []).map(g => [g.id, g.type]));
+    queue = (images || []).sort((a, b) => {
+      const rankDiff = typeRank(galleryType.get(a.gallery_id)) - typeRank(galleryType.get(b.gallery_id));
+      if (rankDiff) return rankDiff;
+      if (a.gallery_id !== b.gallery_id) return String(a.gallery_id).localeCompare(String(b.gallery_id));
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
     showNext();
   }
 
