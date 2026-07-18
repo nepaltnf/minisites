@@ -99,6 +99,16 @@
   }
   .apply-row button.has-selection { border-color: var(--accent); color: var(--accent); font-weight: 600; }
 
+  /* ---------- Tag autocomplete ---------- */
+  .tag-suggestions {
+    position: fixed; z-index: 200; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.15); max-height: 220px; overflow-y: auto;
+    display: none;
+  }
+  .tag-suggestions.open { display: block; }
+  .tag-suggestion-item { padding: 11px 14px; font-size: 14px; cursor: pointer; }
+  .tag-suggestion-item.active, .tag-suggestion-item:hover { background: var(--bg); }
+
   .actions {
     flex: none; display: flex; gap: 10px; padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--border); background: var(--panel);
@@ -213,6 +223,7 @@
   let queue = [];      // images still needing title/description, in order
   let current = null;  // the image currently being tagged
   let applySelection = new Set(); // ids selected in the picker, to receive the same title/desc
+  let allKnownTags = new Set(); // every tag already used anywhere, for autocomplete
 
   // ---------------------------------------------------------------
   // Auth
@@ -239,7 +250,13 @@
   async function showApp() {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').classList.add('visible');
-    await loadQueue();
+    await Promise.all([loadQueue(), loadKnownTags()]);
+  }
+
+  async function loadKnownTags() {
+    const { data } = await sb.from('images').select('tags').not('tags', 'is', null);
+    allKnownTags = new Set();
+    (data || []).forEach(row => (row.tags || []).forEach(t => allKnownTags.add(t)));
   }
 
   (async function init() {
@@ -326,6 +343,7 @@
       </div>
     `;
     updateApplyLabel();
+    attachTagAutocomplete(document.getElementById('tagsInput'));
   }
 
   function updateApplyLabel() {
@@ -345,6 +363,103 @@
   function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;'); }
 
   // ---------------------------------------------------------------
+  // Tag autocomplete — suggests from allKnownTags as you type the
+  // last comma-separated segment of the tags input.
+  // ---------------------------------------------------------------
+  function attachTagAutocomplete(input) {
+    if (!input) return;
+    let box = document.getElementById('tagSuggestBox');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'tagSuggestBox';
+      box.className = 'tag-suggestions';
+      document.body.appendChild(box);
+    }
+    let activeIndex = -1;
+
+    function currentSegment() {
+      const parts = input.value.split(',');
+      return parts[parts.length - 1].trim();
+    }
+
+    function existingTags() {
+      return input.value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+    }
+
+    function positionBox() {
+      const rect = input.getBoundingClientRect();
+      box.style.left = rect.left + 'px';
+      box.style.top = (rect.bottom + 4) + 'px';
+      box.style.width = rect.width + 'px';
+    }
+
+    function closeBox() {
+      box.classList.remove('open');
+      box.innerHTML = '';
+      activeIndex = -1;
+    }
+
+    function renderSuggestions() {
+      const query = currentSegment().toLowerCase();
+      if (!query) { closeBox(); return; }
+      const existing = existingTags();
+      const matches = [...allKnownTags]
+        .filter(t => t.toLowerCase().includes(query) && !existing.includes(t.toLowerCase()))
+        .sort((a, b) => {
+          const aStarts = a.toLowerCase().startsWith(query) ? 0 : 1;
+          const bStarts = b.toLowerCase().startsWith(query) ? 0 : 1;
+          if (aStarts !== bStarts) return aStarts - bStarts;
+          return a.localeCompare(b);
+        })
+        .slice(0, 10);
+      if (!matches.length) { closeBox(); return; }
+      activeIndex = -1;
+      box.innerHTML = matches.map(t => `<div class="tag-suggestion-item" data-tag="${escapeAttr(t)}">#${escapeHtml(t)}</div>`).join('');
+      positionBox();
+      box.classList.add('open');
+    }
+
+    function selectTag(tag) {
+      const parts = input.value.split(',');
+      parts[parts.length - 1] = ' ' + tag;
+      input.value = parts.map(p => p.trim()).filter(Boolean).join(', ') + ', ';
+      closeBox();
+      input.focus();
+    }
+
+    input.addEventListener('input', renderSuggestions);
+    input.addEventListener('focus', renderSuggestions);
+    input.addEventListener('blur', () => setTimeout(closeBox, 150));
+    input.addEventListener('keydown', (e) => {
+      if (!box.classList.contains('open')) return;
+      const items = [...box.querySelectorAll('.tag-suggestion-item')];
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, items.length - 1);
+        items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        items.forEach((el, i) => el.classList.toggle('active', i === activeIndex));
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        if (activeIndex >= 0 && items[activeIndex]) {
+          e.preventDefault();
+          selectTag(items[activeIndex].dataset.tag);
+        }
+      } else if (e.key === 'Escape') {
+        closeBox();
+      }
+    });
+    box.addEventListener('mousedown', (e) => {
+      const item = e.target.closest('.tag-suggestion-item');
+      if (item) {
+        e.preventDefault();
+        selectTag(item.dataset.tag);
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------
   // Save / Skip
   // ---------------------------------------------------------------
   async function saveCurrent() {
@@ -360,6 +475,7 @@
     const ids = [current.id, ...applySelection];
     try {
       await sb.from('images').update({ title, description, tags: tags.length ? tags : null }).in('id', ids);
+      tags.forEach(t => allKnownTags.add(t));
     } catch (e) {
       console.error('save failed', e);
     }
