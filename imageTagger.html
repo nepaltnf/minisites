@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Tag Game</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #f7f6f3;
+    --panel: #ffffff;
+    --border: #e3e0d8;
+    --text: #1c1c1a;
+    --muted: #7a776e;
+    --accent: #2f6fd9;
+    --accent-2: #1f9d63;
+    --danger: #c23b3b;
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  body {
+    display: flex; flex-direction: column;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  a { color: inherit; }
+
+  /* ---------- Login ---------- */
+  #loginScreen {
+    flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px;
+  }
+  .login-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: 0 8px 30px rgba(0,0,0,.08);
+    padding: 32px 28px; width: 100%; max-width: 360px;
+  }
+  .login-card h1 { font-size: 20px; margin: 0 0 4px; }
+  .login-card p { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .login-card input {
+    width: 100%; padding: 12px 14px; margin-bottom: 10px; font-size: 15px;
+    border: 1px solid var(--border); border-radius: 10px; outline: none; background: #fcfcfa;
+  }
+  .login-card input:focus { border-color: var(--accent); }
+  .login-card button {
+    width: 100%; padding: 13px; margin-top: 6px; font-size: 15px; font-weight: 600;
+    background: var(--accent); color: #fff; border: none; border-radius: 10px; cursor: pointer;
+  }
+  .login-error { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 16px; }
+
+  /* ---------- App shell ---------- */
+  #app { display: none; flex: 1; flex-direction: column; min-height: 0; }
+  #app.visible { display: flex; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 18px; border-bottom: 1px solid var(--border); flex: none;
+  }
+  .topbar h1 { font-size: 16px; margin: 0; font-weight: 700; }
+  .progress { font-size: 13px; color: var(--muted); }
+
+  .main {
+    flex: 1; display: flex; flex-direction: column; min-height: 0; overflow-y: auto;
+    padding: 18px; gap: 18px; align-items: center;
+  }
+
+  .image-wrap {
+    width: 100%; max-width: 640px;
+    background: #000; border-radius: var(--radius); overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,.12);
+  }
+  .image-wrap img {
+    width: 100%; max-height: 62vh; object-fit: contain; display: block; background: #111;
+  }
+
+  .fields { width: 100%; max-width: 640px; display: flex; flex-direction: column; gap: 10px; }
+  .fields input, .fields textarea {
+    width: 100%; padding: 13px 14px; font-size: 16px; border: 1px solid var(--border);
+    border-radius: 12px; outline: none; background: var(--panel); font-family: inherit;
+  }
+  .fields input:focus, .fields textarea:focus { border-color: var(--accent); }
+  .fields textarea { resize: vertical; min-height: 64px; }
+
+  .apply-row {
+    width: 100%; max-width: 640px; display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; color: var(--muted);
+  }
+  .apply-row button {
+    background: none; border: 1px solid var(--border); border-radius: 20px;
+    padding: 7px 14px; font-size: 13px; color: var(--text); cursor: pointer;
+  }
+  .apply-row button.has-selection { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+  .actions {
+    flex: none; display: flex; gap: 10px; padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border); background: var(--panel);
+  }
+  .actions button {
+    flex: 1; padding: 15px; font-size: 15px; font-weight: 700; border: none; border-radius: 12px; cursor: pointer;
+  }
+  .btn-skip { background: #eee; color: var(--text); }
+  .btn-save { background: var(--accent-2); color: #fff; }
+  .btn-save:disabled { opacity: .4; cursor: default; }
+
+  .empty-state, .loading-state {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 40px; color: var(--muted); gap: 8px;
+  }
+  .empty-state .big { font-size: 40px; }
+
+  /* ---------- Picker modal ---------- */
+  #pickerOverlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100;
+    align-items: flex-end; justify-content: center;
+  }
+  #pickerOverlay.open { display: flex; }
+  .picker-sheet {
+    background: var(--panel); width: 100%; max-width: 700px; max-height: 82vh;
+    border-radius: 20px 20px 0 0; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .picker-head { padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .picker-head h2 { font-size: 15px; margin: 0; }
+  .picker-head button { background: none; border: none; font-size: 22px; color: var(--muted); cursor: pointer; line-height: 1; }
+  .picker-grid {
+    flex: 1; overflow-y: auto; padding: 14px; display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px;
+  }
+  .picker-thumb {
+    position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; cursor: pointer;
+    border: 3px solid transparent;
+  }
+  .picker-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .picker-thumb.selected { border-color: var(--accent-2); }
+  .picker-thumb.selected::after {
+    content: '✓'; position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+    background: var(--accent-2); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .picker-foot { padding: 12px 18px calc(12px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
+  .picker-foot button {
+    width: 100%; padding: 13px; font-size: 15px; font-weight: 700; background: var(--accent);
+    color: #fff; border: none; border-radius: 12px; cursor: pointer;
+  }
+
+  @media (min-width: 820px) {
+    .image-wrap img { max-height: 68vh; }
+  }
+</style>
+</head>
+<body>
+
+  <div id="loginScreen">
+    <div class="login-card">
+      <h1>Tag Game</h1>
+      <p>Sign in to start tagging untitled images.</p>
+      <form onsubmit="login(event)">
+        <input id="loginEmail" type="email" placeholder="Email" autocomplete="username" required />
+        <input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" required />
+        <button type="submit" id="loginBtn">Sign In</button>
+      </form>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+
+  <div id="app">
+    <div class="topbar">
+      <h1>Tag Game</h1>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <div class="main" id="mainArea">
+      <div class="loading-state">Loading untagged images…</div>
+    </div>
+
+    <div class="actions" id="actionsBar" style="display:none">
+      <button class="btn-skip" onclick="skipCurrent()">Skip</button>
+      <button class="btn-save" id="saveBtn" onclick="saveCurrent()">Save &amp; Next</button>
+    </div>
+  </div>
+
+  <div id="pickerOverlay" onclick="if(event.target===this) closePicker()">
+    <div class="picker-sheet">
+      <div class="picker-head">
+        <h2>Apply to more images</h2>
+        <button onclick="closePicker()">&times;</button>
+      </div>
+      <div class="picker-grid" id="pickerGrid"></div>
+      <div class="picker-foot">
+        <button onclick="closePicker()">Done — <span id="pickerCount">0</span> selected</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const SUPA_URL = 'https://qlbcgpbfpkkumvznvejs.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsYmNncGJmcGtrdW12em52ZWpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mjk1ODUsImV4cCI6MjA4ODEwNTU4NX0.BzIHuf1Anb16cmwx7cqXMwEXO3R3kuzVDNjsVWP0wVE';
+  const sb = supabase.createClient(SUPA_URL, SUPA_KEY, {
+    auth: { persistSession: true, autoRefreshToken: true, storageKey: 'tag-game-auth' },
+  });
+
+  let queue = [];      // images still needing title/description, in order
+  let current = null;  // the image currently being tagged
+  let applySelection = new Set(); // ids selected in the picker, to receive the same title/desc
+
+  // ---------------------------------------------------------------
+  // Auth
+  // ---------------------------------------------------------------
+  async function login(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl = document.getElementById('loginError');
+    const btn = document.getElementById('loginBtn');
+    errEl.textContent = '';
+    btn.disabled = true;
+    btn.textContent = 'Signing in…';
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      errEl.textContent = error.message || 'Invalid email or password';
+      btn.disabled = false;
+      btn.textContent = 'Sign In';
+      return;
+    }
+    showApp();
+  }
+
+  async function showApp() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    await loadQueue();
+  }
+
+  (async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) showApp();
+  })();
+
+  // ---------------------------------------------------------------
+  // Queue loading
+  // ---------------------------------------------------------------
+  async function loadQueue() {
+    const { data, error } = await sb
+      .from('images')
+      .select('id,gallery_id,url,thumb_url,title,description,filename')
+      .or('title.is.null,title.eq.,description.is.null,description.eq.')
+      .order('gallery_id', { ascending: true })
+      .order('sort_order', { ascending: true });
+
+    if (error) {
+      document.getElementById('mainArea').innerHTML =
+        `<div class="empty-state"><div class="big">⚠️</div><div>Could not load images.<br>${error.message}</div></div>`;
+      return;
+    }
+    queue = data || [];
+    showNext();
+  }
+
+  function showNext() {
+    applySelection = new Set();
+    const actionsBar = document.getElementById('actionsBar');
+    if (!queue.length) {
+      current = null;
+      actionsBar.style.display = 'none';
+      document.getElementById('progress').textContent = '';
+      document.getElementById('mainArea').innerHTML =
+        `<div class="empty-state"><div class="big">🎉</div><div>All caught up — every image has a title and description.</div></div>`;
+      return;
+    }
+    current = queue[0];
+    actionsBar.style.display = 'flex';
+    document.getElementById('progress').textContent = `${queue.length} remaining`;
+    renderCurrent();
+  }
+
+  function renderCurrent() {
+    const area = document.getElementById('mainArea');
+    area.innerHTML = `
+      <div class="image-wrap"><img src="${current.thumb_url || current.url}" alt="" /></div>
+      <div class="fields">
+        <input id="titleInput" type="text" placeholder="Title" value="${escapeAttr(current.title || '')}" />
+        <textarea id="descInput" placeholder="Description">${escapeHtml(current.description || '')}</textarea>
+      </div>
+      <div class="apply-row">
+        <span id="applyLabel">Applies to just this image</span>
+        <button id="applyBtn" onclick="openPicker()">+ Select more to apply</button>
+      </div>
+    `;
+    updateApplyLabel();
+  }
+
+  function updateApplyLabel() {
+    const label = document.getElementById('applyLabel');
+    const btn = document.getElementById('applyBtn');
+    if (!label || !btn) return;
+    if (applySelection.size) {
+      label.textContent = `Applies to ${applySelection.size + 1} images`;
+      btn.classList.add('has-selection');
+    } else {
+      label.textContent = 'Applies to just this image';
+      btn.classList.remove('has-selection');
+    }
+  }
+
+  function escapeHtml(s) { return s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+  function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;'); }
+
+  // ---------------------------------------------------------------
+  // Save / Skip
+  // ---------------------------------------------------------------
+  async function saveCurrent() {
+    if (!current) return;
+    const title = document.getElementById('titleInput').value.trim();
+    const description = document.getElementById('descInput').value.trim();
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+
+    const ids = [current.id, ...applySelection];
+    try {
+      await sb.from('images').update({ title, description }).in('id', ids);
+    } catch (e) {
+      console.error('save failed', e);
+    }
+
+    queue = queue.filter(img => !ids.includes(img.id));
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save & Next';
+    showNext();
+  }
+
+  function skipCurrent() {
+    if (!current) return;
+    queue.shift();
+    queue.push(current); // goes to the back of this session's queue
+    showNext();
+  }
+
+  // ---------------------------------------------------------------
+  // "Select more to apply" picker — other untagged images in the
+  // same gallery as the current one.
+  // ---------------------------------------------------------------
+  function openPicker() {
+    const grid = document.getElementById('pickerGrid');
+    const candidates = queue.filter(img => img.id !== current.id && img.gallery_id === current.gallery_id);
+    if (!candidates.length) {
+      grid.innerHTML = `<div style="grid-column:1/-1;color:var(--muted);text-align:center;padding:30px 0">No other untagged images in this gallery.</div>`;
+    } else {
+      grid.innerHTML = candidates.map(img => `
+        <div class="picker-thumb${applySelection.has(img.id) ? ' selected' : ''}" data-id="${img.id}" onclick="togglePick('${img.id}')">
+          <img src="${img.thumb_url || img.url}" alt="" />
+        </div>`).join('');
+    }
+    updatePickerCount();
+    document.getElementById('pickerOverlay').classList.add('open');
+  }
+
+  function togglePick(id) {
+    if (applySelection.has(id)) applySelection.delete(id);
+    else applySelection.add(id);
+    const el = document.querySelector(`.picker-thumb[data-id="${id}"]`);
+    if (el) el.classList.toggle('selected');
+    updatePickerCount();
+  }
+
+  function updatePickerCount() {
+    document.getElementById('pickerCount').textContent = applySelection.size;
+  }
+
+  function closePicker() {
+    document.getElementById('pickerOverlay').classList.remove('open');
+    updateApplyLabel();
+  }
+</script>
+
+</body>
+</html>
