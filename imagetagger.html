@@ -131,13 +131,14 @@
   .picker-head button { background: none; border: none; font-size: 22px; color: var(--muted); cursor: pointer; line-height: 1; }
   .picker-grid {
     flex: 1; overflow-y: auto; padding: 14px; display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-    grid-auto-rows: 1fr; gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px;
+    align-content: start;
   }
   .picker-thumb {
-    position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; cursor: pointer;
+    position: relative; border-radius: 10px; overflow: hidden; cursor: pointer;
     border: 3px solid transparent;
   }
+  .picker-thumb::before { content: ''; display: block; padding-top: 100%; }
   .picker-thumb img {
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
   }
